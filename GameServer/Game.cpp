@@ -189,11 +189,6 @@ bool Game::CanPaiOperate(std::shared_ptr<Player> player)
 {
 	if (!player) return false;
 
-	if (/*_oper_cache.time_out() < CommonTimerInstance.GetTime() && 超时检查*/_oper_cache.player_id() == player->GetID()) 
-	{
-		return true; //玩家操作：碰、杠、胡牌
-	}
-
 	auto player_index = GetPlayerOrder(player->GetID());
 	if (player_index < 0) return false;
 
@@ -227,7 +222,8 @@ void Game::OnPaiOperate(std::shared_ptr<Player> player, pb::Message* message)
 	auto pai_operate_string = pai_operate->ShortDebugString();
 	auto oper_limit_string = _oper_cache.ShortDebugString();
 
-	DEBUG("房间:{} 当前牌局:{} 当前操作玩家ID:{} 位置索引:{} 进行的操作:{} 服务器记录的当前可操作玩家索引:{} 服务器缓存玩家操作:{}", _room_id, _game_id, curr_player_id, player_index, pai_operate_string, _curr_player_index, oper_limit_string);
+	DEBUG("房间:{} 当前牌局:{} 当前操作玩家ID:{} 位置索引:{} 进行的操作:{} 服务器记录的当前可操作玩家索引:{} 服务器缓存玩家操作:{}", 
+			_room_id, _game_id, curr_player_id, player_index, pai_operate_string, _curr_player_index, oper_limit_string);
 
 	if (!CanPaiOperate(player)) 
 	{
@@ -236,7 +232,46 @@ void Game::OnPaiOperate(std::shared_ptr<Player> player, pb::Message* message)
 		ERROR("尚未轮到该玩家:{} 操作:{}", curr_player_id, pai_operate_string);
 		return; //不允许操作
 	}
+	
+	//如果不是放弃，才是当前玩家的操作
+	//if (Asset::PAI_OPER_TYPE_GIVEUP != pai_operate->oper_type())
+	{
+		//_curr_player_index = player_index; //上面检查过，就说明当前该玩家可操作
+		BroadCast(message); //广播玩家操作，玩家放弃操作不能广播
+	}
+	
+	//const auto& pai = _oper_cache.pai(); //缓存的牌
+	const auto& pai = pai_operate->pai(); //玩家发上来的牌
+
+	//
+	//一个人打牌之后，要检查其余每个玩家手中的牌，且等待他们的操作，直到超时
+	//
+	switch (pai_operate->oper_type())
+	{
+		case Asset::PAI_OPER_TYPE_DAPAI: //打牌
+		{
+			//
+			//加入牌池
+			//
+			Add2CardsPool(pai);
+		}
+		break;
+		
+		case Asset::PAI_OPER_TYPE_GIVEUP: //放弃//不要
+		{
+		}
+		break;
+		
+		default:
+		{
+			return; //直接退出
+		}
+		break;
+	}
+			
+	_curr_player_index = (_curr_player_index + 1) % MAX_PLAYER_COUNT; //如果有玩家放弃操作，则继续下个玩家
 }
+
 void Game::PaiPushDown()
 {
 	Asset::PaiPushDown proto;

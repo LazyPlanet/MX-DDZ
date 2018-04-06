@@ -643,6 +643,7 @@ void Player::SetStreakWins(int32_t count)
 void Player::OnGameStart()
 {
 	AddTotalRounds(); //总对战局数
+
 	if (_room && _room->IsFriend()) AddFriendRoomRounds(); //好友房对战局数
 
 	ClearCards();  //游戏数据
@@ -712,8 +713,8 @@ int32_t Player::CmdPaiOperate(pb::Message* message)
 	//
 	//玩家抓到杠之后，进行打牌，记录上次牌状态
 	//
-	_last_oper_type = _oper_type; //记录上次牌操作
-	_oper_type = pai_operate->oper_type(); 
+	//_last_oper_type = _oper_type; //记录上次牌操作
+	//_oper_type = pai_operate->oper_type(); 
 	
 	_game->OnPaiOperate(shared_from_this(), message);
 
