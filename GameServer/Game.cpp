@@ -206,10 +206,10 @@ bool Game::CanPaiOperate(std::shared_ptr<Player> player)
 			_room_id, _game_id, _curr_player_index, player_index, player->GetID(), _oper_cache.ShortDebugString());
 	return false;
 }
+
 void Game::OnPlayerReEnter(std::shared_ptr<Player> player)
 {
 	if (!player) return;
-	
 }
 
 void Game::OnPaiOperate(std::shared_ptr<Player> player, pb::Message* message)

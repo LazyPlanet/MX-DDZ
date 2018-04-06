@@ -7,7 +7,6 @@
 
 #include "P_Header.h"
 #include "Player.h"
-#include "LockedQueue.h"
 
 namespace Adoter
 {
