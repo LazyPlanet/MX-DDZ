@@ -660,51 +660,51 @@ int32_t Player::CmdClanOperate(pb::Message* message)
 	return 0;
 }
 
+bool Player::PaiXingCheck(Asset::PaiOperation* pai_operate)
+{
+	if (!pai_operate) return false;
+
+	return true;
+}
+
 int32_t Player::CmdPaiOperate(pb::Message* message)
 {
 	std::lock_guard<std::mutex> lock(_card_lock);
+	
+	if (!_room || !_game) return 1; //还没加入房间或者还没开始游戏
 
 	Asset::PaiOperation* pai_operate = dynamic_cast<Asset::PaiOperation*>(message);
-	if (!pai_operate) return 1; 
-	
-	if (!_room || !_game) return 2; //还没加入房间或者还没开始游戏
+	if (!pai_operate) return 2; 
 
 	if (!pai_operate->position()) pai_operate->set_position(GetPosition()); //设置玩家座位
 			
-	auto debug_string = pai_operate->ShortDebugString();
-	const auto& pai = pai_operate->pai(); 
-	
 	//进行操作
+	//
 	switch (pai_operate->oper_type())
 	{
 		case Asset::PAI_OPER_TYPE_DAPAI: //打牌
 		{
-			/*
-			auto& pais = _cards_inhand[pai.card_type()]; //获取该类型的牌
-			
-			auto it = std::find(pais.begin(), pais.end(), pai.card_value()); //查找第一个满足条件的牌即可
-			if (it == pais.end()) 
+			if (!PaiXingCheck(pai_operate)) 
 			{
-				LOG(ERROR, "玩家:{}在房间:{}第:{}局不能打牌，无法找到牌:{}", _player_id, _room->GetID(), _game->GetID(), debug_string);
-				return 4; //没有这张牌
+				LOG(ERROR, "玩家:{} 在房间:{} 第:{}局不能打牌，牌数据:{}", _player_id, _room->GetID(), _game->GetID(), pai_operate->ShortDebugString());
+				return 3;
 			}
 
-			pais.erase(it); //打出牌
-			*/
-			Add2CardsPool(pai);
+			//Add2CardsPool(pai);
+		}
+		break;
+
+		case Asset::PAI_OPER_TYPE_GIVEUP: //不要
+		{
+
 		}
 		break;
 		
-		case Asset::PAI_OPER_TYPE_CANCEL:
-		{
-			WARN("玩家:{} 放弃操作:{}", _player_id, _game->GetOperCache().ShortDebugString());
-			return 0;
-		}
-		break;
-
 		default:
 		{
-			//return 0; //下面还要进行操作
+			WARN("玩家:{} 在房间:{}/{}局操作错误，牌数据:{}", _player_id, _game->GetID(), _room->GetID(), pai_operate->ShortDebugString());
+
+			return 4; //非法操作，直接退出
 		}
 		break;
 	}
@@ -712,6 +712,7 @@ int32_t Player::CmdPaiOperate(pb::Message* message)
 	++_oper_count;
 
 	//牌内操作
+	//
 	_game->OnPaiOperate(shared_from_this(), message);
 
 	return 0;

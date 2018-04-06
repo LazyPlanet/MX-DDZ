@@ -505,6 +505,8 @@ public:
 	}
 	*/
 
+	bool PaiXingCheck(Asset::PaiOperation* pai_operate);
+
 	void ClearCards(); //删除玩家牌(包括手里牌、墙外牌)
 	void OnGameOver(); //游戏结束
 
