@@ -261,8 +261,8 @@ void Game::Calculate(std::shared_ptr<Player> banker)
 		if (player == banker) continue;
 
 		auto niu = player->GetNiu();
-		int32_t fan = _room->GetMultiple(niu);
-		int32_t score = base_score * fan;
+		auto fan = _room->GetMultiple(niu);
+		auto score = base_score * fan;
 
 		if (banker_niu != 0 && niu > banker_niu)
 		{
@@ -294,7 +294,7 @@ void Game::Calculate(std::shared_ptr<Player> banker)
 		//牌型基础分值计算
 		//
 		auto detail = record->mutable_details()->Add();
-		detail->set_fan_type(fan);
+		detail->set_fan_type((Asset::FAN_TYPE)fan);
 		detail->set_score(-score);
 	
 		//
