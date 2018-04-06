@@ -142,6 +142,7 @@ int32_t Player::Logout(pb::Message* message)
 			{
 				Asset::PaiElement pai;
 
+				/*
 				for (auto it = _cards_inhand.begin(); it != _cards_inhand.end(); ++it)
 				{
 					if (it->second.size())
@@ -151,6 +152,7 @@ int32_t Player::Logout(pb::Message* message)
 						break;
 					}
 				}
+				*/
 
 				Asset::PaiOperation pai_operation; 
 				pai_operation.set_oper_type(Asset::PAI_OPER_TYPE_DAPAI);
@@ -677,6 +679,7 @@ int32_t Player::CmdPaiOperate(pb::Message* message)
 	{
 		case Asset::PAI_OPER_TYPE_DAPAI: //打牌
 		{
+			/*
 			auto& pais = _cards_inhand[pai.card_type()]; //获取该类型的牌
 			
 			auto it = std::find(pais.begin(), pais.end(), pai.card_value()); //查找第一个满足条件的牌即可
@@ -687,7 +690,7 @@ int32_t Player::CmdPaiOperate(pb::Message* message)
 			}
 
 			pais.erase(it); //打出牌
-
+			*/
 			Add2CardsPool(pai);
 		}
 		break;
@@ -708,14 +711,7 @@ int32_t Player::CmdPaiOperate(pb::Message* message)
 
 	++_oper_count;
 
-	//
-	//处理杠流泪场景，须在_game->OnPaiOperate下进行判断
-	//
-	//玩家抓到杠之后，进行打牌，记录上次牌状态
-	//
-	//_last_oper_type = _oper_type; //记录上次牌操作
-	//_oper_type = pai_operate->oper_type(); 
-	
+	//牌内操作
 	_game->OnPaiOperate(shared_from_this(), message);
 
 	return 0;
@@ -1788,25 +1784,22 @@ int32_t Player::OnFaPai(std::vector<int32_t>& cards)
 	for (auto card_index : cards) //发牌到玩家手里
 	{
 		const auto& card = GameInstance.GetCard(card_index);
-
-		//if (card.card_type() == 0 || card.card_value() == 0) return 2; //数据有误
-
-		_cards_inhand[card.card_type()].push_back(card.card_value()); //插入玩家手牌
+		_cards_inhand.push_back(card); //插入玩家手牌
 	}
 
-	for (auto& cards : _cards_inhand) //整理牌
-		std::sort(cards.second.begin(), cards.second.end(), [](int x, int y){ return x < y; }); //由小到大
+	//整理牌
+	//
+	std::sort(_cards_inhand.begin(), _cards_inhand.end(), [](const Asset::PaiElement& x, const Asset::PaiElement& y){ 
+			return x.card_value() < y.card_value(); //由小到大
+		}); 
 
 	Asset::PaiNotify notify; //玩家牌数据发给Client
 	notify.set_player_id(_player_id); //目标玩家
 
 	for (const auto& pai : _cards_inhand)
 	{
-		auto pais = notify.mutable_pais()->Add();
-		pais->set_card_type((Asset::CARD_TYPE)pai.first); //牌类型
-
-		::google::protobuf::RepeatedField<int32_t> cards(pai.second.begin(), pai.second.end());
-		pais->mutable_cards()->CopyFrom(cards); //牌值
+		auto pai_ptr = notify.mutable_pais()->Add();
+		pai_ptr->CopyFrom(pai);
 	}
 	
 	notify.set_data_type(Asset::PaiNotify_CARDS_DATA_TYPE_CARDS_DATA_TYPE_START); //操作类型：开局
@@ -1855,6 +1848,7 @@ void Player::PrintPai()
 
 	std::stringstream card_value_list;
 
+	/*
 	for (const auto& pai : _cards_inhand)
 	{
 		std::stringstream inhand_list;
@@ -1867,8 +1861,8 @@ void Player::PrintPai()
 	auto room_id = _room->GetID();
 	auto curr_count = _room->GetGamesCount();
 	auto open_rands = _room->GetOpenRands();
-
-	LOG(INFO, "玩家:{}在房间{}第{}/{}局牌数据:{}", _player_id, room_id, curr_count, open_rands, card_value_list.str());
+	*/
+	//LOG(INFO, "玩家:{}在房间{}第{}/{}局牌数据:{}", _player_id, room_id, curr_count, open_rands, card_value_list.str());
 }
 	
 Asset::GAME_OPER_TYPE Player::GetOperState() 
@@ -1923,6 +1917,7 @@ Asset::PaiElement Player::GetMaxPai()
 	Asset::PaiElement pai;
 	int32_t max_type = 0, max_value = 0;
 
+	/*
 	for (const auto& card : _cards_inhand)
 	{
 		for (auto card_value : card.second)
@@ -1947,6 +1942,7 @@ Asset::PaiElement Player::GetMaxPai()
 
 	pai.set_card_type((Asset::CARD_TYPE)max_type);
 	pai.set_card_value(max_value);
+	*/
 	return pai;
 }
 	
@@ -1954,6 +1950,7 @@ int32_t Player::GetSumCardsInhand(std::vector<int32_t>& card_values)
 {
 	int32_t sum = 0;
 
+	/*
 	for (const auto& card : _cards_inhand)
 	{
 		for (auto card_value : card.second)
@@ -1964,6 +1961,7 @@ int32_t Player::GetSumCardsInhand(std::vector<int32_t>& card_values)
 			card_values.push_back(card_value);
 		}
 	}
+	*/
 
 	return sum;
 }

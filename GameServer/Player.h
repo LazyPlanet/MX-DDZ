@@ -282,7 +282,8 @@ private:
 	//玩家牌数据
 	std::list<Asset::PaiElement> _cards_pool; //牌池//玩家已经打的牌缓存
 	std::vector<Asset::PaiElement> _cards_hu; //听牌之后能胡的牌
-	std::map<int32_t/*麻将牌类型*/, std::vector<int32_t>/*牌值*/> _cards_inhand; //玩家手里的牌
+	std::vector<Asset::PaiElement> _cards_inhand; //玩家手里的牌
+	//std::map<int32_t/*麻将牌类型*/, std::vector<int32_t>/*牌值*/> _cards_inhand; //玩家手里的牌
 	std::vector<Asset::PaiElement> _minggang; //明杠
 	std::vector<int64_t> _source_players; //明杠来源
 	std::vector<Asset::PaiElement> _angang; //暗杠
@@ -491,8 +492,9 @@ public:
 	Asset::PaiElement GetMaxPai();
 	int32_t GetSumCardsInhand(std::vector<int32_t>& card_values);
 	int32_t GetNiu();
-	const std::map<int32_t, std::vector<int32_t>>& GetCardsInhand() { return _cards_inhand; }
+	//const std::map<int32_t, std::vector<int32_t>>& GetCardsInhand() { return _cards_inhand; }
 	//const std::map<int32_t, std::vector<int32_t>>& GetCardsOuthand() { return _cards_outhand; }
+	const std::vector<Asset::PaiElement>& GetCardsInhand() { return _cards_inhand; } 
 
 	void Add2CardsPool(Asset::PaiElement pai) { _cards_pool.push_back(pai); }
 	//const std::list<Asset::PaiElement>& GetCardsPool() { return _cards_pool; }

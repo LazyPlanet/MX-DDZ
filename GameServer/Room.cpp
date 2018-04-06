@@ -199,13 +199,10 @@ void Room::OnReEnter(std::shared_ptr<Player> op_player)
 		if (op_player->GetID() == player->GetID())
 		{
 			const auto& cards_inhand = player->GetCardsInhand();
-			for (const auto& cards : cards_inhand)
+			for (const auto& card : cards_inhand)
 			{
-				if (cards.second.size() == 0) continue;
-
-				auto pais = player_list->mutable_pai_inhand()->Add();
-				pais->set_card_type((Asset::CARD_TYPE)cards.first);
-				for (auto card_value : cards.second) pais->mutable_cards()->Add(card_value);
+				auto pai_ptr = player_list->mutable_pai_inhand()->Add();
+				pai_ptr->add_cards(card.card_value());
 			}
 		}
 	}

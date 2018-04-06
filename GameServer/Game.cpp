@@ -81,9 +81,9 @@ bool Game::Start(std::vector<std::shared_ptr<Player>> players, int64_t room_id, 
 
 		player->SetGame(shared_from_this());
 
-		int32_t card_count = 5; //正常开启，普通玩家牌数量
+		int32_t card_count = 17; //正常开启，普通玩家牌数量
 
-		if (banker_index % MAX_PLAYER_COUNT == i) _curr_player_index = i; //当前操作玩家
+		if (banker_index % MAX_PLAYER_COUNT == i) _curr_player_index = i; //当前操作玩家//地主是庄家
 
 		//玩家发牌
 		auto cards = FaPai(card_count);
@@ -98,11 +98,10 @@ bool Game::Start(std::vector<std::shared_ptr<Player>> players, int64_t room_id, 
 		player_element->mutable_wechat()->CopyFrom(player->GetWechat());
 
 		const auto& cards_inhand = player->GetCardsInhand();
-		for (const auto& crds : cards_inhand)
+		for (const auto& card : cards_inhand)
 		{
 			auto pai_list = player_element->mutable_pai_list()->Add();
-			pai_list->set_card_type((Asset::CARD_TYPE)crds.first); //牌类型
-			for (auto card_value : crds.second) pai_list->mutable_cards()->Add(card_value); //牌值
+			pai_list->add_cards(card.card_value());
 		}
 	}
 
@@ -135,12 +134,14 @@ void Game::OnStart()
 	BroadCast(saizi);
 }
 
-//
-//开局后,直接进行比较大小
+//开局后，庄家//地主补3张底牌
 //
 void Game::OnStarted(std::shared_ptr<Player> banker)
 {
-	Calculate(banker); //直接结算
+	if (!banker) return;
+
+	auto cards = FaPai(3);
+	banker->OnFaPai(cards);  
 }
 
 bool Game::OnGameOver(int64_t player_id)
@@ -176,10 +177,8 @@ void Game::ClearState()
 	_baopai.Clear();
 	_huipai.Clear();
 
-	//_oper_cache.Clear();
-
+	_last_oper.Clear();
 	_oper_list.clear();
-
 	_cards_pool.clear();
 	
 	_liuju = false;
@@ -188,6 +187,10 @@ void Game::ClearState()
 bool Game::CanPaiOperate(std::shared_ptr<Player> player, Asset::PaiOperation* pai_operate)
 {
 	if (!player) return false;
+	
+	//开局
+	//
+	if (!_last_oper.has_pai_oper()) return true; 
 	
 	auto curr_player = GetPlayerByOrder(_curr_player_index);
 	if (!curr_player) return false;
@@ -208,9 +211,7 @@ bool Game::CanPaiOperate(std::shared_ptr<Player> player, Asset::PaiOperation* pa
 		if (_last_oper.pai_oper().pais(i).card_value() <= pai_operate->pais(i).card_value()) return false; //必须排序后进行比较
 	}
 
-	LOG(ERROR, "房间:{} 局数:{} 当前缓存玩家索引:{} 当前操作玩家:{} 服务器缓存数据:{}", 
-			_room_id, _game_id, _curr_player_index, player->GetID(), _last_oper.ShortDebugString());
-	return false;
+	return true;
 }
 
 void Game::OnPlayerReEnter(std::shared_ptr<Player> player)
@@ -278,18 +279,11 @@ void Game::PaiPushDown()
 		player_info->set_player_id(player->GetID());
 		player_info->set_position(player->GetPosition());
 
-		const auto& cards = player->GetCardsInhand();
-
-		for (auto it = cards.begin(); it != cards.end(); ++it)
+		const auto& cards_inhand = player->GetCardsInhand();
+		for (const auto& card : cards_inhand)
 		{
 			auto pai = player_info->mutable_pai_list()->Add();
-
-			pai->set_card_type((Asset::CARD_TYPE)it->first); //牌类型
-
-			for (auto card_value : it->second)
-			{
-				pai->mutable_cards()->Add(card_value); //牌值
-			}
+			pai->mutable_cards()->Add(card.card_value()); //牌值
 		}
 	}
 
