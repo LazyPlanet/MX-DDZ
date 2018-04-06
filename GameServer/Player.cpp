@@ -648,6 +648,14 @@ void Player::OnGameStart()
 	ClearCards();  //游戏数据
 }
 
+int32_t Player::CmdClanOperate(pb::Message* message)
+{
+	auto clan_oper = dynamic_cast<Asset::ClanOperation*>(message);
+	if (!clan_oper) return 1;
+	
+	ClanInstance.OnOperate(shared_from_this(), clan_oper);
+	return 0;
+}
 /*
 int32_t Player::CmdPaiOperate(pb::Message* message)
 {
@@ -2473,4 +2481,124 @@ void PlayerManager::BroadCast(const pb::Message& message)
 	}
 }
 
+}
+	
+void Player::OnBind(std::string account)
+{
+	_stuff.set_agent_account(account);
+
+	SendPlayer(); //同步角色数据
+
+	_dirty = true;
+}
+	
+void Player::OnQuitClan(int64_t clan_id)
+{
+	for (int32_t i = 0; i < _stuff.clan_hosters().size(); ++i) //茶馆老板
+	{
+		if (clan_id != _stuff.clan_hosters(i)) continue;
+
+		_stuff.mutable_clan_hosters()->SwapElements(i, _stuff.clan_hosters().size() - 1);
+		_stuff.mutable_clan_hosters()->RemoveLast();
+	}
+	
+	for (int32_t i = 0; i < _stuff.clan_joiners().size(); ++i) //茶馆成员
+	{
+		if (clan_id != _stuff.clan_joiners(i)) continue;
+
+		_stuff.mutable_clan_joiners()->SwapElements(i, _stuff.clan_joiners().size() - 1);
+		_stuff.mutable_clan_joiners()->RemoveLast();
+	}
+	
+	if (_stuff.selected_clan_id() == clan_id) _stuff.set_selected_clan_id(0);
+
+	Asset::ClanOperation message;
+	message.set_oper_type(Asset::CLAN_OPER_TYPE_CLAN_LIST_QUERY);
+	ClanInstance.OnQueryClanList(shared_from_this(), &message);
+
+	DEBUG("玩家:{} 退出茶馆:{} 成功", _player_id, clan_id);
+
+	_dirty = true;
+}
+	
+void Player::OnClanCreated(int64_t clan_id) 
+{ 
+	auto it = std::find(_stuff.clan_hosters().begin(), _stuff.clan_hosters().end(), clan_id);
+	if (it != _stuff.clan_hosters().end()) return;
+	
+	DEBUG("玩家:{} 成功创建茶馆:{}", _player_id, clan_id);
+
+	_stuff.mutable_clan_hosters()->Add(clan_id); 
+	_dirty = true; 
+}
+	
+bool Player::OnClanJoin(int64_t clan_id) 
+{ 
+	auto it = std::find(_stuff.clan_joiners().begin(), _stuff.clan_joiners().end(), clan_id);
+	if (it != _stuff.clan_joiners().end()) return false;
+
+	DEBUG("玩家:{} 成功加入茶馆:{}", _player_id, clan_id);
+ 
+	_stuff.mutable_clan_joiners()->Add(clan_id); 
+	_dirty = true; 
+
+	return true;
+}
+
+void Player::SetCurrClan(int64_t clan_id) 
+{ 
+	if (clan_id == _stuff.selected_clan_id()) return; 
+	_stuff.set_selected_clan_id(clan_id); 
+	_dirty = true; 
+} 
+
+void Player::OnClanCheck()
+{
+	std::vector<int64_t> clan_list;
+
+	for (int32_t i = 0; i < _stuff.clan_hosters().size(); ++i) //茶馆老板
+	{
+		auto clan_id = _stuff.clan_hosters(i);
+
+		Asset::Clan clan;
+		bool has_clan = ClanInstance.GetClan(clan_id, clan);
+
+		if (!has_clan || clan.dismiss()) continue;
+
+		clan_list.push_back(clan_id);
+	}
+
+	_stuff.mutable_clan_hosters()->Clear(); //删除茶馆
+	for (auto clan_id : clan_list) _stuff.mutable_clan_hosters()->Add(clan_id);
+	
+	clan_list.clear();
+
+	for (int32_t i = 0; i < _stuff.clan_joiners().size(); ++i) //茶馆成员
+	{
+		auto clan_id = _stuff.clan_joiners(i);
+		
+		Asset::Clan clan;
+		bool has_clan = ClanInstance.GetClan(clan_id, clan);
+
+		if (!has_clan || clan.dismiss()) continue;
+
+		clan_list.push_back(clan_id);
+	}
+	
+	_stuff.mutable_clan_joiners()->Clear(); //删除茶馆
+	for (auto clan_id : clan_list) _stuff.mutable_clan_joiners()->Add(clan_id);
+
+	if (_stuff.clan_hosters().size() == 0 && _stuff.clan_joiners().size() == 0) _stuff.set_selected_clan_id(0); //如果尚未存在，则直接删除
+}
+
+bool Player::IsHoster(int64_t clan_id)
+{
+	if (clan_id <= 0) return true;
+
+	for (int32_t i = 0; i < _stuff.clan_hosters().size(); ++i) //茶馆老板
+	{
+		if (clan_id == _stuff.clan_hosters(i)) return true;
+	}
+
+	return false;
 }
