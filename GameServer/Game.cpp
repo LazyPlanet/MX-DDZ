@@ -185,12 +185,58 @@ void Game::ClearState()
 	_liuju = false;
 }
 
+bool Game::CanPaiOperate(std::shared_ptr<Player> player)
+{
+	if (!player) return false;
+
+	if (/*_oper_cache.time_out() < CommonTimerInstance.GetTime() && 超时检查*/_oper_cache.player_id() == player->GetID()) 
+	{
+		return true; //玩家操作：碰、杠、胡牌
+	}
+
+	auto player_index = GetPlayerOrder(player->GetID());
+	if (player_index < 0) return false;
+
+	if (_curr_player_index == player_index) 
+	{
+		return true; //轮到该玩家
+	}
+	
+	LOG(ERROR, "房间:{} 局数:{} 当前缓存玩家索引:{} 当前操作玩家索引:{} 当前操作玩家:{} 服务器缓存数据:{}", 
+			_room_id, _game_id, _curr_player_index, player_index, player->GetID(), _oper_cache.ShortDebugString());
+	return false;
+}
 void Game::OnPlayerReEnter(std::shared_ptr<Player> player)
 {
 	if (!player) return;
 	
 }
 
+void Game::OnPaiOperate(std::shared_ptr<Player> player, pb::Message* message)
+{
+	if (!player || !message || !_room) return;
+	
+	Asset::PaiOperation* pai_operate = dynamic_cast<Asset::PaiOperation*>(message);
+	if (!pai_operate) return; 
+
+	AddPlayerOperation(*pai_operate);  //回放记录
+	
+	auto player_index = GetPlayerOrder(player->GetID());
+
+	auto curr_player_id = player->GetID();
+	auto pai_operate_string = pai_operate->ShortDebugString();
+	auto oper_limit_string = _oper_cache.ShortDebugString();
+
+	DEBUG("房间:{} 当前牌局:{} 当前操作玩家ID:{} 位置索引:{} 进行的操作:{} 服务器记录的当前可操作玩家索引:{} 服务器缓存玩家操作:{}", _room_id, _game_id, curr_player_id, player_index, pai_operate_string, _curr_player_index, oper_limit_string);
+
+	if (!CanPaiOperate(player)) 
+	{
+		player->AlertMessage(Asset::ERROR_GAME_NO_PERMISSION); //没有权限，没到玩家操作，防止外挂
+
+		ERROR("尚未轮到该玩家:{} 操作:{}", curr_player_id, pai_operate_string);
+		return; //不允许操作
+	}
+}
 void Game::PaiPushDown()
 {
 	Asset::PaiPushDown proto;
