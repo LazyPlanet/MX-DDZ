@@ -306,7 +306,7 @@ public:
 	//玩家操作
 	//
 	virtual int32_t CmdGameOperate(pb::Message* message); //游戏操作
-	//virtual int32_t CmdPaiOperate(pb::Message* message); //牌操作
+	virtual int32_t CmdPaiOperate(pb::Message* message); //牌操作
 	virtual int32_t CmdGetReward(pb::Message* message); //领取奖励
 	virtual int32_t CmdLoadScene(pb::Message* message); //加载场景
 	virtual int32_t CmdLuckyPlate(pb::Message* message); //幸运转盘
@@ -494,7 +494,7 @@ public:
 	const std::map<int32_t, std::vector<int32_t>>& GetCardsInhand() { return _cards_inhand; }
 	//const std::map<int32_t, std::vector<int32_t>>& GetCardsOuthand() { return _cards_outhand; }
 
-	//void Add2CardsPool(Asset::PaiElement pai) { _cards_pool.push_back(pai); }
+	void Add2CardsPool(Asset::PaiElement pai) { _cards_pool.push_back(pai); }
 	//const std::list<Asset::PaiElement>& GetCardsPool() { return _cards_pool; }
 	/*
 	void CardsPoolPop() { 
