@@ -1,0 +1,17 @@
+#!/bin/bash
+
+#协议
+ln -sf ../ThirdParty .
+ln -sf ThirdParty/protobuf-2.6.1/src/google .
+
+#协议
+ln -sf ../GameServer/P_Server.proto .
+ln -sf ../GameServer/P_Command.proto .
+ln -sf ../GameServer/P_Protocol.proto .
+ln -sf ../GameServer/P_Asset.proto .
+
+#文件
+ln -sf ../GameServer/Config.h .
+ln -sf ../GameServer/Config.cpp .
+ln -sf ../GameServer/Asset.h .
+ln -sf ../GameServer/Asset.cpp .

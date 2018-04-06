@@ -1,0 +1,7 @@
+#!/bin/bash
+
+cd GameServer && make clean && make -j2
+cd ..
+cd GmtServer && make clean && make -j2
+cd ..
+cd CenterServer && make clean && make -j2
