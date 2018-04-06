@@ -70,9 +70,6 @@ public:
 	void AlertMessage(Asset::ERROR_CODE error_code, Asset::ERROR_TYPE error_type = Asset::ERROR_TYPE_NORMAL, 
 			Asset::ERROR_SHOW_TYPE error_show_type = Asset::ERROR_SHOW_TYPE_NORMAL);
 private:
-	//Asset::WechatUnion _wechat; //微信数据
-	//Asset::WechatAccessToken _access_token;
-	
 	Asset::User _user; 
 	Asset::Account _account;
 
@@ -126,16 +123,15 @@ public:
 	void RemoveServer(int64_t server_id);
 	std::shared_ptr<WorldSession> GetServerSession(int64_t server_id);
 
-	//玩家逻辑服务器会话
-	//void SetGameServerSession(int64_t player_id, std::shared_ptr<WorldSession> session) { _player_gs[player_id] = session; }
-	//std::shared_ptr<WorldSession> GetGameServerSession(int64_t player_id) { return _player_gs[player_id]; }
-
 	int64_t RandomServer(); //随机选择游戏逻辑服务器
 	
-	void BroadCast2GameServer(const pb::Message& message); //游戏逻辑服务器
+	void BroadCast2GameServer(const pb::Message& message); //游戏逻辑服务器协议广播
 	void BroadCast2GameServer(const pb::Message* message); 
 	
-	void BroadCast(const pb::Message& message); //玩家
+	void SendProtocol2GameServer(int32_t server_id, const pb::Message& message); //游戏逻辑服务器
+	void SendProtocol2GameServer(int32_t server_id, const pb::Message* message);
+	
+	void BroadCast(const pb::Message& message); //玩家协议广播
 	void BroadCast(const pb::Message* message); 
 	
 	bool StartNetwork(boost::asio::io_service& io_service, const std::string& bind_ip, int32_t port, int thread_count = 1) override;

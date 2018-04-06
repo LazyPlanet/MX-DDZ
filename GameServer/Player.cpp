@@ -15,6 +15,7 @@
 #include "PlayerCommonReward.h"
 #include "PlayerCommonLimit.h"
 #include "PlayerMatch.h"
+#include "Clan.h"
 
 namespace Adoter
 {
@@ -29,7 +30,7 @@ Player::Player()
 	//协议处理回调初始化
 	AddHandler(Asset::META_TYPE_SHARE_CREATE_ROOM, std::bind(&Player::CmdCreateRoom, this, std::placeholders::_1));
 	AddHandler(Asset::META_TYPE_SHARE_GAME_OPERATION, std::bind(&Player::CmdGameOperate, this, std::placeholders::_1));
-	//AddHandler(Asset::META_TYPE_SHARE_PAI_OPERATION, std::bind(&Player::CmdPaiOperate, this, std::placeholders::_1));
+	AddHandler(Asset::META_TYPE_SHARE_PAI_OPERATION, std::bind(&Player::CmdPaiOperate, this, std::placeholders::_1));
 	AddHandler(Asset::META_TYPE_SHARE_BUY_SOMETHING, std::bind(&Player::CmdBuySomething, this, std::placeholders::_1));
 	AddHandler(Asset::META_TYPE_SHARE_ENTER_ROOM, std::bind(&Player::CmdEnterRoom, this, std::placeholders::_1));
 	AddHandler(Asset::META_TYPE_SHARE_SIGN, std::bind(&Player::CmdSign, this, std::placeholders::_1));
@@ -46,6 +47,7 @@ Player::Player()
 	AddHandler(Asset::META_TYPE_C2S_LOAD_SCENE, std::bind(&Player::CmdLoadScene, this, std::placeholders::_1));
 	AddHandler(Asset::META_TYPE_C2S_GET_ROOM_DATA, std::bind(&Player::CmdGetRoomData, this, std::placeholders::_1));
 	AddHandler(Asset::META_TYPE_C2S_UPDATE_ROOM, std::bind(&Player::CmdUpdateRoom, this, std::placeholders::_1));
+	AddHandler(Asset::META_TYPE_SHARE_CLAN_OPERATION, std::bind(&Player::CmdClanOperate, this, std::placeholders::_1));
 	
 	//中心服务器协议处理
 	AddHandler(Asset::META_TYPE_S2S_KICKOUT_PLAYER, std::bind(&Player::OnKickOut, this, std::placeholders::_1));
@@ -68,7 +70,6 @@ Player::Player(int64_t player_id, std::shared_ptr<WorldSession> session) : Playe
 int32_t Player::Load()
 {
 	//加载数据库
-	//auto redis = make_unique<Redis>();
 	auto success = RedisInstance.GetPlayer(_player_id, _stuff);
 	if (!success) return 1;
 		
@@ -92,6 +93,8 @@ int32_t Player::Load()
 			if (!enum_value) break;
 		}
 	} while(false);
+
+	OnClanCheck();
 	
 	return 0;
 }
@@ -103,31 +106,15 @@ int32_t Player::Save(bool force)
 	if (!force && !IsDirty()) return 1;
 
 	auto success = RedisInstance.SavePlayer(_player_id, _stuff);
-	if (!success) 
-	{
-		LOG(ERROR, "保存玩家:{}数据:{}失败", _player_id, _stuff.ShortDebugString());
-		return 2;
-	}
+	if (!success) return 2;
 	
 	_dirty = false;
 
 	return 0;
 }
 	
-int32_t Player::OnLogin()
+void Player::OnLogin()
 {
-	if (Load()) 
-	{
-		LOG(ERROR, "玩家:{}加载数据失败", _player_id);
-		return 1;
-	}
-
-	//DEBUG("玩家:{}数据:{}", _player_id, _stuff.ShortDebugString())
-	
-	PlayerInstance.Emplace(_player_id, shared_from_this()); //玩家管理
-	SetLocalServer(ConfigInstance.GetInt("ServerID", 1));
-
-	return 0;
 }
 
 int32_t Player::Logout(pb::Message* message)
@@ -151,8 +138,6 @@ int32_t Player::Logout(pb::Message* message)
 
 			_tuoguan_server = true; //服务器托管
 
-			/*
-
 			if (HasTuoGuan() && _game->CanPaiOperate(shared_from_this())) //轮到该玩家操作
 			{
 				Asset::PaiElement pai;
@@ -174,7 +159,6 @@ int32_t Player::Logout(pb::Message* message)
 
 				CmdPaiOperate(&pai_operation);
 			}
-			*/
 
 			return 2; //不能退出游戏
 		}
@@ -216,16 +200,35 @@ int32_t Player::OnLogout(Asset::KICK_OUT_REASON reason)
 		auto room = RoomInstance.Get(_stuff.room_id());
 		if (room) room->Remove(_player_id);
 	}
+	
+	//
+	//避免中心服务器先进行退出，然后逻辑服务器退出，返回给中心服务器退出成功后，中心服务器没有找到玩家的情况
+	//
+	//处理问题：https://www.teambition.com/project/592ad0fd66e46f0dd7503429/tasks/scrum/592ad0fe4e2b442b01e8753d/task/5aba0214bc23685b35b6a896
+	//https://www.teambition.com/project/592ad0fd66e46f0dd7503429/tasks/scrum/592ad0fe4e2b442b01e8753d/task/5ab9e9a11adffc7755dc4df4
+	//
+	//因此，次序必须保证
+	if (reason == Asset::KICK_OUT_REASON_LOGOUT)
+	{
+		_stuff.set_login_time(0); //不在逻辑服务器进行在线或离线状态更新//真正离线
+		_stuff.set_logout_time(CommonTimerInstance.GetTime());
 
-	_stuff.clear_server_id(); //退出游戏逻辑服务器
-
+		PlayerInstance.Remove(_player_id); //删除玩家
+	}
+	else if (reason == Asset::KICK_OUT_REASON_CHANGE_SERVER) //切换服务器直接退出当前服务器，玩家状态还是在线
+	{
+		PlayerInstance.Remove(_player_id); //删除玩家
+	}
+	
 	Save(true);	//存档数据库
-	PlayerInstance.Remove(_player_id); //删除玩家
 
 	Asset::KickOutPlayer kickout_player; //通知中心服务器退出
 	kickout_player.set_player_id(_player_id);
 	kickout_player.set_reason(reason);
 	SendProtocol(kickout_player);
+		
+	WARN("玩家:{} 服务器:{} 数据:{} 当前所在服务器:{} 成功退出逻辑服务器:{} 原因:{}", 
+			_player_id, g_server_id, _stuff.ShortDebugString(), _stuff.server_id(), g_server_id, kickout_player.ShortDebugString());
 	
 	return 0;
 }
@@ -256,7 +259,7 @@ int64_t Player::ConsumeRoomCard(Asset::ROOM_CARD_CHANGED_TYPE changed_type, int6
 	
 	SyncCommonProperty();
 	
-	LOG(INFO, "玩家:{}消耗房卡，原因:{} 数量:{}成功", _player_id, changed_type, count);
+	LOG(INFO, "玩家:{} 消耗房卡，原因:{} 数量:{} 成功", _player_id, Asset::ROOM_CARD_CHANGED_TYPE_Name(changed_type), count);
 	return count;
 }
 
@@ -268,8 +271,8 @@ int64_t Player::GainRoomCard(Asset::ROOM_CARD_CHANGED_TYPE changed_type, int64_t
 	_dirty = true;
 	
 	SyncCommonProperty();
-	
-	LOG(INFO, "玩家:{}获得房卡，原因:{} 数量:{}成功", _player_id, changed_type, count);
+
+	LOG(INFO, "玩家:{} 获得房卡，原因:{} 数量:{} 成功", _player_id, Asset::ROOM_CARD_CHANGED_TYPE_Name(changed_type), count);
 	return count;
 }
 
@@ -301,7 +304,7 @@ int64_t Player::ConsumeHuanledou(Asset::HUANLEDOU_CHANGED_TYPE changed_type, int
 	
 	SyncCommonProperty();
 	
-	LOG(INFO, "玩家:{}消耗欢乐豆，原因:{} 数量:{}成功", _player_id, changed_type, count);
+	LOG(INFO, "玩家:{} 消耗欢乐豆，原因:{} 数量:{} 成功", _player_id, Asset::HUANLEDOU_CHANGED_TYPE_Name(changed_type), count);
 	return count;
 }
 
@@ -314,7 +317,7 @@ int64_t Player::GainHuanledou(Asset::HUANLEDOU_CHANGED_TYPE changed_type, int64_
 	
 	SyncCommonProperty();
 	
-	LOG(INFO, "玩家:{}获得欢乐豆，原因:{} 数量:{}成功", _player_id, changed_type, count);
+	LOG(INFO, "玩家:{} 获得欢乐豆，原因:{} 数量:{} 成功", _player_id, Asset::HUANLEDOU_CHANGED_TYPE_Name(changed_type), count);
 	return count;
 }
 
@@ -351,7 +354,7 @@ int64_t Player::ConsumeDiamond(Asset::DIAMOND_CHANGED_TYPE changed_type, int64_t
 	
 	SyncCommonProperty();
 	
-	LOG(INFO, "玩家:{}消耗钻石:{}原因:{}", _player_id, count, changed_type);
+	LOG(INFO, "玩家:{} 消耗钻石:{} 原因:{} 成功", _player_id, count, Asset::DIAMOND_CHANGED_TYPE_Name(changed_type));
 	return count;
 }
 
@@ -364,7 +367,7 @@ int64_t Player::GainDiamond(Asset::DIAMOND_CHANGED_TYPE changed_type, int64_t co
 
 	SyncCommonProperty();
 	
-	LOG(INFO, "玩家:{}获得钻石:{}原因:{}", _player_id, count, changed_type);
+	LOG(INFO, "玩家:{} 获得钻石:{} 原因:{}", _player_id, count, Asset::DIAMOND_CHANGED_TYPE_Name(changed_type));
 	return count;
 }
 
@@ -373,9 +376,24 @@ bool Player::CheckDiamond(int64_t count)
 	int64_t curr_count = _stuff.common_prop().diamond();
 	return curr_count >= count;
 }
+	
+bool Player::HasClan(int64_t clan_id)
+{
+	if (clan_id <= 0) return true;
 
+	auto it = std::find(_stuff.clan_hosters().begin(), _stuff.clan_hosters().end(), clan_id);
+	if (it != _stuff.clan_hosters().end()) return true;
+
+	it = std::find(_stuff.clan_joiners().begin(), _stuff.clan_joiners().end(), clan_id);
+	if (it != _stuff.clan_joiners().end()) return true;
+
+	return false;
+}
+	
 int32_t Player::OnEnterGame() 
 {
+	DEBUG("玩家:{} 进入逻辑服务器:{}", _player_id, g_server_id);
+
 	if (Load()) 
 	{
 		LOG(ERROR, "玩家:{}加载数据失败", _player_id);
@@ -389,7 +407,7 @@ int32_t Player::OnEnterGame()
 	//
 	SetLocalServer(ConfigInstance.GetInt("ServerID", 1));
 
-	//SendPlayer(); //发送数据给玩家
+	SendPlayer(); //发送数据给玩家
 	
 	_stuff.set_login_time(CommonTimerInstance.GetTime());
 	_stuff.set_logout_time(0);
@@ -400,6 +418,8 @@ int32_t Player::OnEnterGame()
 
 	//WorldSessionInstance.Emplace(_player_id, _session); //网络会话数据
 	PlayerInstance.Emplace(_player_id, shared_from_this()); //玩家管理
+
+	OnLogin(); //进入逻辑服务器后，登陆成功
 
 	return 0;
 }
@@ -424,7 +444,7 @@ void Player::SendPlayer()
 int32_t Player::CmdCreateRoom(pb::Message* message)
 {
 	int32_t result = CreateRoom(message);
-	if (result) OnLogout(); //创建失败
+	if (result) OnLogout(Asset::KICK_OUT_REASON_LEAVE_ROOM); //创建失败
 
 	return result;
 }
@@ -434,7 +454,7 @@ int32_t Player::CreateRoom(pb::Message* message)
 	Asset::CreateRoom* create_room = dynamic_cast<Asset::CreateRoom*>(message);
 	if (!create_room) return 1;
 	
-	if (_room) 
+	if (_room && create_room->room().clan_id() == 0) 
 	{
 		auto room = RoomInstance.Get(_room->GetID());
 
@@ -446,17 +466,21 @@ int32_t Player::CreateRoom(pb::Message* message)
 		}
 	}
 
+	auto clan_limit = dynamic_cast<Asset::ClanLimit*>(AssetInstance.Get(g_const->clan_id()));
+	if (!clan_limit) return 12;
+
+	if (clan_limit->hoster_create_room() && !IsHoster(create_room->room().clan_id())) return 11; //非茶馆老板，不能创建茶馆房
+	
 	//
 	//检查是否活动限免房卡
 	//
 	//否则，检查房卡是否满足要求
 	//
-	auto activity_id = g_const->room_card_limit_free_activity_id();
-	if (ActivityInstance.IsOpen(activity_id))
+	if (ActivityInstance.IsOpen(g_const->room_card_limit_free_activity_id()))
 	{
-		WARN("当前活动:{}开启，玩家ID:{}", activity_id, _player_id);
+		WARN("限免活动开启中，玩家ID:{} 正常开房...", _player_id);
 	}
-	else
+	else if (create_room->room().clan_id() == 0) //非茶馆房间
 	{
 		auto open_rands = create_room->room().options().open_rands(); //局数
 		auto pay_type = create_room->room().options().pay_type(); //付费方式
@@ -474,7 +498,8 @@ int32_t Player::CreateRoom(pb::Message* message)
 				{
 					AlertMessage(Asset::ERROR_ROOM_CARD_NOT_ENOUGH); //房卡不足
 
-					LOG(ERROR, "玩家:{}开房房卡不足，当前房卡数量:{}需要消耗房卡数量:{}，开局数量:{}，单个房卡可以开房数量:{}", _player_id, _stuff.common_prop().room_card_count(), consume_count, open_rands, room_card->rounds());
+					LOG(ERROR, "玩家:{}开房房卡不足，当前房卡数量:{}需要消耗房卡数量:{}，开局数量:{}，单个房卡可以开房数量:{}", 
+							_player_id, _stuff.common_prop().room_card_count(), consume_count, open_rands, room_card->rounds());
 					return 5;
 				}
 			}
@@ -494,14 +519,17 @@ int32_t Player::CreateRoom(pb::Message* message)
 
 			default:
 			{
+				ERROR("玩家:{} 创建房间错误:{}", _player_id, message->ShortDebugString());
 				return 7;
 			}
 			break;
 		}
 	}
+	
+	if (!HasClan(create_room->room().clan_id())) return 10; //茶馆检查
 
 	int64_t room_id = RoomInstance.AllocRoom();
-	if (!room_id) return 2;
+	if (!room_id) return 9;
 
 	create_room->mutable_room()->set_room_id(room_id);
 	create_room->mutable_room()->set_room_type(Asset::ROOM_TYPE_FRIEND); //创建房间，其实是好友房
@@ -524,6 +552,9 @@ void Player::OnCreateRoom(Asset::CreateRoom* create_room)
 {
 	if (!create_room) return; //理论不会如此
 
+	_stuff.mutable_last_room_options()->CopyFrom(create_room->room().options()); //存储开房玩法
+	_dirty = true;
+
 	Asset::Room asset_room;
 	asset_room.CopyFrom(create_room->room());
 
@@ -539,7 +570,6 @@ int32_t Player::CmdGameOperate(pb::Message* message)
 	if (!game_operate) return 1;
 	
 	game_operate->set_source_player_id(_player_id); //设置当前操作玩家
-	_player_prop.set_beilv(game_operate->beilv()); //倍率
 
 	switch(game_operate->oper_type())
 	{
@@ -904,7 +934,7 @@ void Player::SyncCommonProperty(Asset::SyncCommonProperty_SYNC_REASON_TYPE reaso
 int32_t Player::CmdEnterRoom(pb::Message* message) 
 {
 	int32_t result = EnterRoom(message);
-	if (result) OnLogout(); //进入失败
+	if (result) OnLogout(Asset::KICK_OUT_REASON_LEAVE_ROOM); //进入失败
 
 	return result;
 }
@@ -1018,7 +1048,15 @@ int32_t Player::EnterRoom(pb::Message* message)
 			}
 			else
 			{
-				if (locate_room->GetOptions().pay_type() == Asset::ROOM_PAY_TYPE_AA && !ActivityInstance.IsOpen(g_const->room_card_limit_free_activity_id())) //AA付卡
+				if (!HasClan(locate_room->GetClan())) 
+				{
+					enter_room->set_error_code(Asset::ERROR_CLAN_ROOM_ENTER_NO_CLAN); 
+					SendProtocol(enter_room);
+					return Asset::ERROR_CLAN_ROOM_ENTER_NO_CLAN; //非茶馆成员，不能加入
+				}
+
+				if (locate_room->GetOptions().pay_type() == Asset::ROOM_PAY_TYPE_AA && 
+						!ActivityInstance.IsOpen(g_const->room_card_limit_free_activity_id())) //AA付卡
 				{
 					const Asset::Item_RoomCard* room_card = dynamic_cast<const Asset::Item_RoomCard*>(AssetInstance.Get(g_const->room_card_id()));
 					if (!room_card || room_card->rounds() <= 0) return Asset::ERROR_INNER;
@@ -1114,6 +1152,12 @@ bool Player::HandleMessage(const Asset::MsgItem& item)
 	if (!msg) return false;
 
 	auto message = msg->New();
+	
+	defer {
+		delete message;
+		message = nullptr;
+	};
+
 	auto result = message->ParseFromString(item.content());
 
 	if (!result) return false;      //非法协议
@@ -1124,7 +1168,7 @@ bool Player::HandleMessage(const Asset::MsgItem& item)
 	{
 		case Asset::META_TYPE_SHARE_PAI_OPERATION:
 		{
-			//CmdPaiOperate(message);
+			CmdPaiOperate(message);
 		}
 		break;
 
@@ -1176,14 +1220,6 @@ void Player::SendProtocol(const pb::Message* message)
 
 void Player::SendProtocol(const pb::Message& message)
 {
-	/*
-	if (!g_center_session) 
-	{
-		LOG(ERROR, "玩家:{}尚未建立连接，目前所在服务器:{}", _player_id, _stuff.server_id());
-		return; //尚未建立网络连接
-	}
-	*/
-
 	if (!Connected()) return; //尚未建立网络连接
 
 	const pb::FieldDescriptor* field = message.GetDescriptor()->FindFieldByName("type_t");
@@ -1200,7 +1236,6 @@ void Player::SendProtocol(const pb::Message& message)
 	std::string content = meta.SerializeAsString();
 	if (content.empty()) return;
 
-	//g_center_session->AsyncSendMessage(content);
 	_session->AsyncSendMessage(content);
 
 	//DEBUG("玩家:{} 发送协议，类型:{} 内容:{}", _player_id, type_t,  message.ShortDebugString());
@@ -1261,6 +1296,8 @@ int32_t Player::DefaultMethod(pb::Message* message)
 
 bool Player::HandleProtocol(int32_t type_t, pb::Message* message)
 {
+	if (!message) return false;
+
 	SetOffline(false); //玩家在线
 
 	_pings_count = 0;
@@ -1414,7 +1451,7 @@ void Player::OnLeaveRoom(Asset::GAME_OPER_TYPE reason)
 	//
 	//逻辑服务器的退出房间，则退出
 	//
-	OnLogout(Asset::KICK_OUT_REASON_LOGOUT);
+	OnLogout(Asset::KICK_OUT_REASON_LEAVE_ROOM); //架构调整：退出房间不进行逻辑服务器退出//退出房间
 
 	//
 	//房间状态同步
@@ -1447,6 +1484,8 @@ void Player::AlertMessage(Asset::ERROR_CODE error_code, Asset::ERROR_TYPE error_
 	message.set_error_type(error_type);
 	message.set_error_show_type(error_show_type);
 	message.set_error_code(error_code);
+
+	ERROR("玩家:{} 消息错误:{}", _player_id, message.ShortDebugString());
 
 	SendProtocol(message);
 }
@@ -1546,7 +1585,7 @@ int32_t Player::CmdGetReward(pb::Message* message)
 
 		default:
 		{
-
+			DeliverReward(reward_id);
 		}
 		break;
 	}
@@ -1583,7 +1622,7 @@ int32_t Player::CmdGetRoomData(pb::Message* message)
 		{
 			AlertMessage(Asset::ERROR_ROOM_QUERY_NOT_FORBID);
 			
-			OnLogout(Asset::KICK_OUT_REASON_LOGOUT); //查询之后退出，否则会残留在此服务器
+			//OnLogout(Asset::KICK_OUT_REASON_LOGOUT); //查询之后退出，否则会残留在此服务器//架构调整：直接驻留在本服务器内
 			return 2;
 		}
 
@@ -1607,13 +1646,14 @@ int32_t Player::CmdGetRoomData(pb::Message* message)
 
 		Asset::RoomQueryResult proto;
 		proto.set_room_id(room->GetID());
+		proto.set_clan_id(room->GetClan());
 		proto.set_create_time(room->GetCreateTime());
 		proto.mutable_options()->CopyFrom(room->GetOptions());
 		proto.mutable_information()->CopyFrom(room_information);
 
 		SendProtocol(proto);
 	
-		OnLogout(Asset::KICK_OUT_REASON_LOGOUT); //查询之后退出
+		//OnLogout(Asset::KICK_OUT_REASON_LOGOUT); //查询之后退出//架构调整：直接驻留在本服务器内
 	}
 	else
 	{
@@ -1641,7 +1681,6 @@ int32_t Player::CmdUpdateRoom(pb::Message* message)
 	
 	return 0;
 }
-
 
 int32_t Player::CmdLoadScene(pb::Message* message)
 {

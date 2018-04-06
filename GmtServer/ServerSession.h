@@ -58,11 +58,12 @@ public:
 	bool OnInnerProcess(const Asset::InnerMeta& meta); //内部协议处理
 	Asset::COMMAND_ERROR_CODE OnCommandProcess(const Asset::Command& command);
 	Asset::COMMAND_ERROR_CODE OnSendMail(const Asset::SendMail& command);
+	Asset::COMMAND_ERROR_CODE OnBindPlayer(const Asset::BindPlayer& command);
 	Asset::COMMAND_ERROR_CODE OnSystemBroadcast(const Asset::SystemBroadcast& command);
 	Asset::COMMAND_ERROR_CODE OnActivityControl(const Asset::ActivityControl& command);
 
 	void SetSession(int64_t session_id) { _session_id = session_id; }
-	bool IsGmtServer() { return Asset::SERVER_TYPE_GMT == _server_type; }
+	bool IsWebServer() { return Asset::SERVER_TYPE_GMT == _server_type; } //WEB平台
 private:
 	boost::asio::ip::tcp::endpoint _remote_endpoint;
 	std::string _ip_address;
@@ -94,6 +95,9 @@ public:
 	void BroadCastProtocol(const pb::Message* message);
 
 	void BroadCastInnerMeta(const pb::Message& message);
+	
+	void SendInnerMeta2Player(int64_t player_id, const Asset::InnerMeta& message);
+	void SendInnerMeta2Player(int64_t player_id, const Asset::InnerMeta* message);
 
 	void Add(int64_t server_id, std::shared_ptr<ServerSession> session);
 	void Remove(int64_t server_id);
@@ -103,10 +107,12 @@ public:
 
 	void AddGmtServer(std::shared_ptr<ServerSession> session);
 	std::shared_ptr<ServerSession> GetGmtServer(int64_t session_id);
-	bool IsGmtServer(std::shared_ptr<ServerSession> sesssion) {
+	bool IsWebServer(std::shared_ptr<ServerSession> sesssion) {
 		if (!sesssion) return false;
-		return sesssion->IsGmtServer();
+		return sesssion->IsWebServer();
 	}
+	int64_t RandomServer();
+	int64_t GetLocolServer(int64_t player_id){ int64_t server_id = player_id >> 20; return server_id; }
 protected:        
 	NetworkThread<ServerSession>* CreateThreads() const override;
 private:        

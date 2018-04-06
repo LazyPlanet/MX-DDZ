@@ -20,6 +20,9 @@ ln -sf ../GameServer/Protocol.cpp .
 ln -sf ../GameServer/pbjson.cpp .
 ln -sf ../GameServer/PlayerCommonReward.h .
 ln -sf ../GameServer/PlayerCommonLimit.h .
+ln -sf ../GameServer/PlayerCoolDown.h .
 ln -sf ../GameServer/PlayerName.h .
 ln -sf ../GameServer/Mall.h .
 ln -sf ../GameServer/Activity.h .
+ln -sf ../GameServer/NameLimit.h .
+ln -sf ../GameServer/LockedQueue.h .

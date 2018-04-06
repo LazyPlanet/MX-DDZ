@@ -4,9 +4,13 @@
 #include "MXLog.h"
 #include "Activity.h"
 #include "WhiteBlackManager.h"
+#include "Clan.h"
+#include "NameLimit.h"
 
 namespace Adoter
 {
+
+int32_t g_server_id = 0;
 
 const Asset::CommonConst* g_const = nullptr;
 std::shared_ptr<GmtSession> g_gmt_client = nullptr;
@@ -23,6 +27,12 @@ bool World::Load()
 	if (!AssetInstance.Load()) 
 	{
 		ERROR("资源加载失败.");
+		return false;
+	}
+
+	if (!NameLimitInstance.Load())
+	{
+		ERROR("屏蔽字库加载失败.");
 		return false;
 	}
 
@@ -45,6 +55,8 @@ bool World::Load()
 	//
 	//游戏内初始化
 	//
+	
+	g_server_id = ConfigInstance.GetInt("ServerID", 1); 
 
 	//特殊ID定义表
 	pb::Message* message = AssetInstance.Get(458753); 
@@ -73,6 +85,7 @@ void World::Update(int32_t diff)
 	if (_heart_count % 60 == 0) ActivityInstance.Update(diff);
 
 	PlayerInstance.Update(diff);
+	ClanInstance.Update(diff);
 
 	g_gmt_client->Update();
 }

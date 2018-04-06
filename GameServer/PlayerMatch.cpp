@@ -59,7 +59,7 @@ void PlayerMatch::DoMatch()
 
 	_scheduler.Schedule(std::chrono::milliseconds(500), [this](TaskContext task) {
 
-		DEBUG("匹配中,持续匹配...");
+		//DEBUG("匹配中,持续匹配...");
 			
 		for (auto it = _match_list.begin(); it != _match_list.end(); ++it)
 		{

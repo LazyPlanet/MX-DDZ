@@ -76,6 +76,10 @@ public:
 	void SetLocalServer(int32_t server_id);
 	int32_t GetLocalServer() { return _stuff.server_id(); } //玩家当前所在服务器
 
+	void SetRoom(int64_t room_id) { _stuff.set_room_id(room_id); _dirty = true; }
+	int64_t GetRoom() { return _stuff.room_id(); }
+	bool IsInRoom() { return _stuff.room_id() != 0; }
+
 	virtual int64_t GetID() { return _stuff.common_prop().player_id(); } //获取ID
 	virtual void SetID(int64_t player_id) { 
 		_player_id = player_id; //缓存
@@ -84,13 +88,15 @@ public:
 
 	//获取名字
 	virtual std::string GetName() { return _stuff.common_prop().name(); }
-	virtual void SetName(std::string name) { _stuff.mutable_common_prop()->set_name(name); } 
+	virtual void SetName(std::string name) { _stuff.mutable_common_prop()->set_name(name); _dirty = true; } 
 	//账号
 	virtual std::string GetAccount() { return _stuff.account(); }
 	virtual void SetAccount(std::string account, Asset::ACCOUNT_TYPE account_type) { 
 		_stuff.set_account(account); 
 		_account_type = account_type; //账号类型
+		_dirty = true;
 	} 
+	void SetRegisterServer(int32_t server_id) { _stuff.mutable_common_prop()->set_local_server_id(server_id); _dirty = true; }
 	//获取级别
 	virtual int32_t GetLevel() { return _stuff.common_prop().level(); }
 	//获取性别
@@ -107,7 +113,8 @@ public:
 	virtual void SendGmtProtocol(const pb::Message* message, int64_t session_id);
 	virtual void SendGmtProtocol(const pb::Message& message, int64_t session_id);
 
-	Asset::ERROR_CODE CommonCheck(int32_t type_t);
+	int32_t CommonCheck(int32_t type_t, pb::Message* message);
+	int32_t CheckCreateRoom(pb::Message* message);
 	//玩家登出
 	virtual int32_t Logout(pb::Message* message);
 	virtual int32_t OnLogout();
@@ -152,6 +159,8 @@ public:
 	virtual int32_t CmdPlayBack(pb::Message* message);
 	//匹配信息
 	virtual int32_t CmdGetMatchStatistics(pb::Message* message);
+	//茶馆
+	virtual int32_t CmdClanOperate(pb::Message* message);
 public:
 	//获取所有包裹
 	const Asset::Inventory& GetInventory() { return _stuff.inventory();	}
@@ -159,7 +168,7 @@ public:
 	const Asset::Inventory_Element& GetInventory(Asset::INVENTORY_TYPE type) { return _stuff.inventory().inventory(type); }	
 	Asset::Inventory_Element* GetMutableInventory(Asset::INVENTORY_TYPE type) { return _stuff.mutable_inventory()->mutable_inventory(type);	}	
 	//通用错误码提示
-	void AlertMessage(Asset::ERROR_CODE error_code, Asset::ERROR_TYPE error_type = Asset::ERROR_TYPE_NORMAL, 
+	void AlertMessage(int32_t error_code, Asset::ERROR_TYPE error_type = Asset::ERROR_TYPE_NORMAL, 
 			Asset::ERROR_SHOW_TYPE error_show_type = Asset::ERROR_SHOW_TYPE_NORMAL);
 
 	//
@@ -217,6 +226,12 @@ public:
 	Asset::ACCOUNT_TYPE GetAccountType() { return _account_type; } //账号类型
 
 	void MultiplyRoomCard();
+
+	int32_t GetHosterCount() { return _stuff.clan_hosters().size(); } //拥有茶馆数量
+	int32_t GetMemberCount() { return _stuff.clan_joiners().size(); } //加入茶馆数量
+
+	//void OnClanCreated(int64_t clan_id) { _stuff.mutable_clan_hosters()->Add(clan_id); }
+	//void OnClanJoin(int64_t clan_id) { _stuff.mutable_clan_joiners()->Add(clan_id); }
 };
 
 class PlayerManager : public std::enable_shared_from_this<PlayerManager>
@@ -231,6 +246,9 @@ public:
 		static PlayerManager _instance;
 		return _instance;
 	}
+	
+	virtual bool SendProtocol2GameServer(int64_t player_id, const pb::Message& message);
+	virtual bool SendProtocol2GameServer(int64_t player_id, const pb::Message* message);
 
 	void Update(int32_t diff);
 	bool BeenMaxPlayer(); //最大玩家上限
@@ -242,8 +260,12 @@ public:
 	std::shared_ptr<Player> GetPlayer(int64_t player_id);
 	std::shared_ptr<Player> Get(int64_t player_id);
 	int32_t GetOnlinePlayerCount(); //获取在线玩家数量//带缓存
+
+	bool GetCache(int64_t player_id, Asset::Player& player);
+	bool Save(int64_t player_id, Asset::Player& player);
 	
 	virtual void BroadCast(const pb::Message& message);
+	bool IsLocal(int64_t player_id);
 };
 
 #define PlayerInstance PlayerManager::Instance()

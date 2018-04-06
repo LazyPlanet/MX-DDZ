@@ -122,12 +122,14 @@ int main(int argc, const char* argv[])
 		//signals.async_wait(SignalHandler);
 		//
 
+		/*
 		std::string server_ip = ConfigInstance.GetString("ServerIP", "0.0.0.0");
 		if (server_ip.empty()) return 4;
 		
 		int32_t server_port = ConfigInstance.GetInt("ServerPort", 50001);
 		if (server_port <= 0 || server_port > 0xffff) return 5;
-		
+		*/
+
 		int32_t thread_count = ConfigInstance.GetInt("ThreadCount", 5);
 		if (thread_count <= 0) return 6;
 
@@ -138,12 +140,6 @@ int main(int argc, const char* argv[])
 		//连接中心服
 		//
 		std::string center_server_address = ConfigInstance.GetString("Center_ServerIP", "0.0.0.0");
-		/*
-		int32_t center_server_port = ConfigInstance.GetInt("Center_ServerPort", 50000); 
-		boost::asio::ip::tcp::endpoint center_endpoint(boost::asio::ip::address::from_string(center_server_address), center_server_port);
-		g_center_session = std::make_shared<CenterSession>(_io_service, center_endpoint);
-		g_center_session->AsyncConnect();
-		*/
 
 		int32_t center_server_port1 = ConfigInstance.GetInt("Center_ServerPort1", 49999); 
 		int32_t center_server_port2 = ConfigInstance.GetInt("Center_ServerPort2", 50000); 

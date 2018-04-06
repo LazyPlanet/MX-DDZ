@@ -5,6 +5,7 @@
 #include <cpp_redis/cpp_redis>
 
 #include "Room.h"
+#include "Clan.h"
 #include "Game.h"
 #include "MXLog.h"
 #include "CommonUtil.h"
@@ -52,7 +53,7 @@ Asset::ERROR_CODE Room::TryEnter(std::shared_ptr<Player> player)
 		return Asset::ERROR_ROOM_BEEN_DISMISS; //房间已经解散
 	}
 
-	DEBUG("玩家:{}进入房间:{}成功", player->GetID(), GetID());
+	DEBUG("玩家:{} 进入房间:{} 成功", player->GetID(), GetID());
 
 	return Asset::ERROR_SUCCESS;
 }
@@ -125,6 +126,8 @@ bool Room::Enter(std::shared_ptr<Player> player)
 		_players.push_back(player); //进入房间
 		player->SetPosition((Asset::POSITION_TYPE)_players.size()); //设置位置
 	}
+	
+	UpdateClanStatus(); //茶馆房间状态同步
 	
 	return true;
 }
@@ -214,6 +217,8 @@ void Room::OnReEnter(std::shared_ptr<Player> op_player)
 
 void Room::OnPlayerLeave(int64_t player_id)
 {
+	UpdateClanStatus(); //茶馆房间状态同步
+
 	SyncRoom(); //同步当前房间内玩家数据
 }
 
@@ -224,6 +229,13 @@ std::shared_ptr<Player> Room::GetHoster()
 
 bool Room::IsHoster(int64_t player_id)
 {
+	if (_stuff.clan_id()) //茶馆房，老板可以作为房主逻辑
+	{
+		Asset::Clan clan;
+		bool has_clan = ClanInstance.GetCache(_stuff.clan_id(), clan);
+		if (has_clan && clan.hoster_id() == player_id) return true;
+	}
+
 	auto host = GetHoster();
 	if (!host) return false;
 
@@ -277,14 +289,12 @@ void Room::OnPlayerOperate(std::shared_ptr<Player> player, pb::Message* message)
 			if (IsFriend() && !HasDisMiss() && HasStarted() && !HasBeenOver()) return; //好友房没有开局，且没有对战完，则不允许退出
 			
 			if (IsMatch() && IsGaming()) return; //非好友房结束可以直接退出
-			//
-			//如果房主离开房间，且此时尚未开局，则直接解散
-			//
-			if (IsHoster(player->GetID()))
+
+			if (IsHoster(player->GetID()) && !IsClan()) //非茶馆房间
 			{
 				if (_games.size() == 0) //尚未开局
 				{
-					KickOutPlayer();
+					KickOutPlayer(); //如果房主离开房间，且此时尚未开局，则直接解散
 				}
 				else
 				{
@@ -622,24 +632,40 @@ void Room::AddHupai(int64_t player_id)
 	player->SetStreakWins(1);
 }
 
+void Room::OnClanOver()
+{
+	if (!IsClan()) return;
+	
+	//RedisInstance.SaveRoomHistory(_stuff.room_id(), _history); //茶馆房间，存储战绩信息
+	//if (_history.list().size() == 0) return;
+	
+	Asset::ClanRoomStatusChanged proto;
+	proto.set_created_time(_created_time);
+	proto.mutable_room()->CopyFrom(_stuff);
+	proto.set_status(Asset::CLAN_ROOM_STATUS_TYPE_OVER);
+	proto.mutable_player_list()->CopyFrom(_history.player_brief_list());
+	proto.set_games_count(GetGamesCount()); //开局数量
+
+	WorldInstance.BroadCast2CenterServer(proto); //通知茶馆房间结束
+}
+
 void Room::OnGameOver(int64_t player_id)
 {
 	if (_game) _game.reset();
 	
 	if (!IsFriend()) return; //非好友房没有总结算
 	
-	/*
+	UpdateClanStatus(); //茶馆房间状态同步
+	
 	AddHupai(player_id); //记录
 
 	if (player_id != 0 && _banker != player_id) 
 	{
 		auto city_type = GetCity();
 
-		if (city_type == Asset::CITY_TYPE_CHAOYANG) //朝阳
-		{
-			_banker_index = (_banker_index + 1) % MAX_PLAYER_COUNT; //下庄
-		}
-		else if (city_type == Asset::CITY_TYPE_JIANPING) //建平
+		_banker_index = (_banker_index + 1) % MAX_PLAYER_COUNT; //下庄
+
+		if (city_type == Asset::CITY_TYPE_JIANPING) //建平
 		{
 			_banker_index = GetPlayerOrder(player_id); //谁胡下一局谁坐庄
 		}
@@ -653,7 +679,6 @@ void Room::OnGameOver(int64_t player_id)
 	{
 		++_streak_wins[player_id];
 	}
-	*/
 
 	if (!HasBeenOver() && !HasDisMiss()) return; //没有对局结束，且没有解散房间
 
@@ -695,10 +720,18 @@ void Room::OnGameOver(int64_t player_id)
 				if (player_id == _history.list(i).list(j).player_id())
 					record->set_score(record->score() + _history.list(i).list(j).score());
 
+		auto player_brief = _history.mutable_player_brief_list()->Add();
+		player_brief->set_player_id(player_id);
+		player_brief->set_nickname(player->GetNickName());
+		player_brief->set_headimgurl(player->GetHeadImag());
+		player_brief->set_score(record->score());
+		player_brief->set_hupai_count(record->win_count());
+		player_brief->set_dianpao_count(record->dianpao_count());
+
 		player->AddRoomScore(record->score()); //总积分
 	}
 
-	LOG(INFO, "房间:{}整局结算，房间局数:{}实际局数:{}结算数据:{}", _stuff.room_id(), _stuff.options().open_rands(), _games.size(), message.ShortDebugString());
+	LOG(INFO, "房间:{} 整局结算，房间局数:{} 实际局数:{} 结算数据:{}", _stuff.room_id(), _stuff.options().open_rands(), _games.size(), message.ShortDebugString());
 
 	for (auto player : _players)
 	{
@@ -706,6 +739,8 @@ void Room::OnGameOver(int64_t player_id)
 
 		player->SendProtocol(message);
 	}
+	
+	OnClanOver(); //茶馆房间数据同步
 	
 	_history.Clear();
 	_bankers.clear();
@@ -756,13 +791,23 @@ void Room::OnRemove()
 		player->OnRoomRemoved();
 		player.reset();
 	}
+	
+	/*
+	Asset::ClanRoomStatusChanged proto;
+	proto.mutable_room()->CopyFrom(_stuff);
+	proto.set_created_time(_created_time);
+	proto.set_status(Asset::CLAN_ROOM_STATUS_TYPE_OVER);
+	WorldInstance.BroadCast2CenterServer(proto); //通知茶馆房间结束
+	*/
+
+	OnClanOver();
 }
 
 void Room::OnDisMiss(int64_t player_id, pb::Message* message)
 {
 	if (!message) return;
 
-	if (IsGmtOpened() && (!HasStarted() || HasBeenOver())) return; //代开房没开局不允许解散
+	if ((IsGmtOpened() || IsClan()) && (!HasStarted() || HasBeenOver())) return; //代开房//茶馆房没开局不允许解散
 
 	if (_dismiss_time == 0) 
 	{
@@ -792,7 +837,7 @@ void Room::OnDisMiss(int64_t player_id, pb::Message* message)
 
 void Room::DoDisMiss()
 {
-	DEBUG("房间:{}解散成功", _stuff.room_id());
+	DEBUG("房间:{} 解散成功", _stuff.room_id());
 
 	_is_dismiss = true;
 					
@@ -898,6 +943,8 @@ void Room::OnCreated(std::shared_ptr<Player> hoster)
 	_history.set_room_id(GetID());
 	_history.set_create_time(CommonTimerInstance.GetTime()); //创建时间
 	_history.mutable_options()->CopyFrom(GetOptions());
+	
+	UpdateClanStatus(); //茶馆房间状态同步
 
 	LOG(INFO, "玩家:{} 创建房间:{} 玩法:{}成功", _hoster_id, _stuff.room_id(), _stuff.ShortDebugString());
 }
@@ -936,17 +983,28 @@ bool Room::CanStarGame()
 			LOG(INFO, "GMT开房，不消耗房卡数据:{}", _stuff.ShortDebugString());
 			return true;
 		}
-		else if (!_hoster)
+			
+		const auto room_card = dynamic_cast<const Asset::Item_RoomCard*>(AssetInstance.Get(g_const->room_card_id()));
+		if (!room_card || room_card->rounds() <= 0) return false;
+
+		auto consume_count = GetOptions().open_rands() / room_card->rounds(); //待消耗房卡数
+
+		if (IsClan()) //茶馆：开局消耗，到中心服务器消耗
 		{
-			return false; //没有房主
+			if (_games.size()) return true; //已经开局，不再进行房卡检查
+
+			Asset::Clan clan;
+			auto has_record = ClanInstance.GetClan(_stuff.clan_id(), clan);
+			if (!has_record || clan.room_card_count() < consume_count) return false;
+
+			if (_games.size() == 0) OnClanCreated(); //茶馆房
+			return true;
 		}
+
+		if (!_hoster) return false; //没有房主，正常消耗
 
 		if (_hoster && _games.size() == 0) //开局消耗
 		{
-			const auto room_card = dynamic_cast<const Asset::Item_RoomCard*>(AssetInstance.Get(g_const->room_card_id()));
-			if (!room_card || room_card->rounds() <= 0) return false;
-
-			auto consume_count = GetOptions().open_rands() / room_card->rounds(); //待消耗房卡数
 			auto pay_type = GetOptions().pay_type(); //付费方式
 		
 			switch (pay_type)
@@ -1048,6 +1106,17 @@ bool Room::CanStarGame()
 	return true;
 }
 
+void Room::OnClanCreated()
+{
+	if (!IsClan()) return;
+
+	Asset::ClanRoomStatusChanged message;
+	message.set_status(Asset::CLAN_ROOM_STATUS_TYPE_START);
+	message.mutable_room()->CopyFrom(_stuff);
+
+	WorldInstance.BroadCast2CenterServer(message);
+}
+
 bool Room::CanDisMiss()
 {
 	for (auto player : _players)
@@ -1091,6 +1160,46 @@ void Room::Update()
 	{
 		DoDisMiss(); //解散
 	}
+}
+
+void Room::UpdateClanStatus()
+{
+	if (!IsFriend()) return; //非好友房没有总结算
+
+	if (!IsClan()) return; //非茶馆房间不同步
+	
+	Asset::ClanRoomSync message;
+
+	Asset::RoomInformation room_information;
+	room_information.set_sync_type(Asset::ROOM_SYNC_TYPE_QUERY); //外服查询房间信息
+			
+	for (const auto player : _players)
+	{
+		if (!player) continue;
+
+		auto p = room_information.mutable_player_list()->Add();
+		p->set_position(player->GetPosition());
+		p->set_player_id(player->GetID());
+		p->set_oper_type(player->GetOperState());
+		p->mutable_common_prop()->CopyFrom(player->CommonProp());
+		p->mutable_wechat()->CopyFrom(player->GetWechat());
+		p->set_ip_address(player->GetIpAddress());
+		p->set_voice_member_id(player->GetVoiceMemberID());
+	}
+
+	Asset::RoomQueryResult room_info;
+	room_info.set_room_id(GetID());
+	room_info.set_clan_id(GetClan());
+	room_info.set_create_time(GetCreateTime());
+	room_info.mutable_options()->CopyFrom(GetOptions());
+	room_info.mutable_information()->CopyFrom(room_information);
+	room_info.set_curr_count(GetGamesCount());
+
+	message.set_room_status(room_info.SerializeAsString());
+
+	DEBUG("逻辑服务器:{} 向中心服务器广播茶馆房间信息:{}", g_server_id, room_info.ShortDebugString());
+
+	WorldInstance.BroadCast2CenterServer(message);
 }
 	
 /////////////////////////////////////////////////////

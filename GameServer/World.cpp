@@ -7,12 +7,13 @@
 #include "MXLog.h"
 #include "Activity.h"
 #include "CenterSession.h"
+#include "NameLimit.h"
 
 namespace Adoter
 {
 
+int32_t g_server_id = 0;
 const Asset::CommonConst* g_const = nullptr;
-//std::shared_ptr<CenterSession> g_center_session = nullptr;
 
 bool World::Load()
 {
@@ -21,7 +22,7 @@ bool World::Load()
 	//
 	if (!ProtocolInstance.Load()) 
 	{
-		ERROR("ProtocolInstance load error.");
+		ERROR("协议加载失败");
 		return false;
 	}
 
@@ -30,7 +31,13 @@ bool World::Load()
 	//
 	if (!AssetInstance.Load()) 
 	{
-		ERROR("AssetInstance load error.");
+		ERROR("资源加载失败");
+		return false;
+	}
+	
+	if (!NameLimitInstance.Load()) 
+	{
+		ERROR("屏蔽字库加载失败.");
 		return false;
 	}
 
@@ -88,5 +95,48 @@ void World::Update(int32_t diff)
 	for (auto session : _sessions) session->Update();
 }
 	
+void World::BroadCast2CenterServer(const pb::Message& message, int except_server_id)
+{
+	for (auto session : _sessions)
+	{
+		if (!session) continue;
+
+		auto center_server_id = session->GetCenterServerID();
+		if (center_server_id == except_server_id) continue;
+
+		session->SendProtocol(message);
+	}
+}
+
+void World::BroadCast2CenterServer(const pb::Message* message, int except_server_id) 
+{
+	if (!message) return;
+
+	BroadCast2CenterServer(*message, except_server_id);
+}
+	
+bool World::SendProtocol2CenterServer(const pb::Message& message, int server_id)
+{
+	for (auto session : _sessions)
+	{
+		if (!session) continue;
+		
+		auto center_server_id = session->GetCenterServerID();
+		if (center_server_id == server_id) 
+		{
+			session->SendProtocol(message);
+			return true;;
+		}
+	}
+
+	return false;
+}
+
+bool World::SendProtocol2CenterServer(const pb::Message* message, int server_id) 
+{
+	if (!message) return false;
+
+	return SendProtocol2CenterServer(*message, server_id);
+}
 
 }

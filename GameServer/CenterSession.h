@@ -21,6 +21,8 @@ namespace pb = google::protobuf;
 
 class Player;
 
+extern int32_t g_server_id;
+
 class CenterSession : public ClientSocket
 {
 public:
@@ -33,10 +35,11 @@ public:
 	Asset::COMMAND_ERROR_CODE OnCommandProcess(const Asset::Command& command);
     
 	virtual void OnConnected(); //连接上服务器
-	bool OnMessageProcess(const Asset::Meta& meta); //内部协议处理
+	bool OnMessageProcess(const Asset::Meta& meta); //内部协议处理：包括玩家发往逻辑服务器的协议
+	bool OnInnerProcess(const Asset::Meta& meta); //服务器间协议处理
 	
-	void SendProtocol(pb::Message& message);
-	void SendProtocol(pb::Message* message);
+	void SendProtocol(const pb::Message& message);
+	void SendProtocol(const pb::Message* message);
 
     virtual bool StartReceive();
     virtual bool StartSend();
@@ -54,6 +57,7 @@ public:
 	std::shared_ptr<Player> GetPlayer(int64_t player_id);
 
 	int32_t ServerID() { return _server_id; }
+	int32_t GetCenterServerID() { return _center_server_id; }
 private:
 	std::deque<std::string> _send_list;
 	std::deque<Asset::Meta> _receive_list;
@@ -64,6 +68,7 @@ private:
 	
 	int64_t _heart_count = 0; //心跳次数
 	int32_t _server_id = 0;
+	int32_t _center_server_id = 0; //连接的中心服务器
 };
 
 }

@@ -44,8 +44,8 @@ public:
 	}
 };
 
+extern int32_t g_server_id;
 extern const Asset::CommonConst* g_const;
-//extern std::shared_ptr<CenterSession> g_center_session;
 
 class Player : public std::enable_shared_from_this<Player>
 {
@@ -94,6 +94,7 @@ public:
 	}
 
 	Asset::Player& Get() { return _stuff; } //获取玩家数据
+	bool HasClan(int64_t clan_id);
 
 	//获取基础属性
 	const Asset::CommonProp& CommonProp() { return _stuff.common_prop(); }
@@ -105,6 +106,8 @@ public:
 	const std::string GetNickName();
 	const std::string GetHeadImag();
 	const std::string GetIpAddress();
+
+	void OnBind(std::string account);
 
 	int32_t GetLocalServer() { return _stuff.server_id(); } //玩家当前所在服务器
 	void SetLocalServer(int32_t server_id) { return _stuff.set_server_id(server_id); }
@@ -155,7 +158,7 @@ public:
 	void ClearMatching() { _stuff.clear_matching_room_type(); }
 
 	//玩家登录
-	virtual int32_t OnLogin();
+	void OnLogin();
 	//玩家登出
 	virtual int32_t Logout(pb::Message* message);
 	virtual int32_t OnLogout(Asset::KICK_OUT_REASON reason = Asset::KICK_OUT_REASON_LOGOUT);
@@ -193,6 +196,8 @@ public:
 	virtual int32_t CmdGameSetting(pb::Message* message);
 	//系统聊天
 	virtual int32_t CmdSystemChat(pb::Message* message);
+	//茶馆
+	virtual int32_t CmdClanOperate(pb::Message* message);
 
 	//踢下线
 	virtual int32_t OnKickOut(pb::Message* message);
@@ -293,8 +298,8 @@ private:
 
 	std::vector<Asset::PAI_OPER_TYPE> _xf_gang; //旋风杠所有操作
 	std::vector<std::tuple<bool, bool, bool>> _hu_result;
-	Asset::PAI_OPER_TYPE _oper_type; //玩家当前操作类型，主要用于处理杠上开的番次
-	Asset::PAI_OPER_TYPE _last_oper_type; //玩家上次操作类型，主要用于处理杠上开的番次
+	Asset::PAI_OPER_TYPE _oper_type; //玩家当前操作类型
+	Asset::PAI_OPER_TYPE _last_oper_type; //玩家上次操作类型
 
 public:
 	//
@@ -510,6 +515,17 @@ public:
 	bool AddRoomRecord(int64_t room_id);
 	void SendRoomState(); //房间状态
 	void AddRoomScore(int32_t score); //胜率
+	
+	int32_t GetHosterCount() { return _stuff.clan_hosters().size(); } //拥有茶馆数量
+	int32_t GetMemberCount() { return _stuff.clan_joiners().size(); } //加入茶馆数量
+	bool IsHoster(int64_t clan_id); //是否是该茶馆的老板
+
+	void OnClanCreated(int64_t clan_id); //成功创建茶馆//俱乐部
+	bool OnClanJoin(int64_t clan_id); //成功加入茶馆//俱乐部
+	void SetCurrClan(int64_t clan_id); //设置当前所在俱乐部
+	void OnQuitClan(int64_t clan_id); //成功退出茶馆//俱乐部
+	bool IsDaili() { return _stuff.agent_account().size() > 0;} //是否是代理账号
+	void OnClanCheck(); //通用检查
 };
 
 /////////////////////////////////////////////////////

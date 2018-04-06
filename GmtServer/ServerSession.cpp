@@ -95,9 +95,9 @@ bool ServerSession::OnInnerProcess(const Asset::InnerMeta& meta)
 			_server_id = message.server_id(); 
 			_server_type = message.server_type();
 			
-			DEBUG("GMT服务器接收其他服务器:{}的注册:{} 地址:{}", _server_id, message.ShortDebugString(), _ip_address);
+			DEBUG("GMT服务器接收服务器ID:{} 地址:{} 的注册数据:{}", _server_id, _ip_address, message.ShortDebugString());
 
-			if (message.server_type() == Asset::SERVER_TYPE_GMT) //GMT服务器
+			if (message.server_type() == Asset::SERVER_TYPE_GMT) //平台
 			{
 				ServerSessionInstance.AddGmtServer(shared_from_this());
 			}
@@ -123,14 +123,14 @@ bool ServerSession::OnInnerProcess(const Asset::InnerMeta& meta)
 				auto error_code = OnCommandProcess(message); //处理离线玩家的指令执行
 				if (Asset::COMMAND_ERROR_CODE_PLAYER_ONLINE == error_code) 
 				{
-					DEBUG("玩家{}当前在线，发往中心服务器进行处理", message.player_id());
+					DEBUG("玩家:{} 当前在线，发往中心服务器进行处理", message.player_id());
 					
 					Asset::InnerMeta inner_meta;
 					inner_meta.set_type_t(message.type_t());
 					inner_meta.set_session_id(_session_id);
 					inner_meta.set_stuff(message.SerializeAsString());
 
-					ServerSessionInstance.BroadCastInnerMeta(inner_meta); //处理在线玩家的指令执行
+					ServerSessionInstance.SendInnerMeta2Player(message.player_id(), inner_meta); //处理在线玩家的指令执行
 				}
 
 				if (Asset::COMMAND_ERROR_CODE_SUCCESS == error_code)
@@ -164,9 +164,11 @@ bool ServerSession::OnInnerProcess(const Asset::InnerMeta& meta)
 
 			DEBUG("接收指令:{} 来自服务器:{}", message.ShortDebugString(), _ip_address);
 
-			if (IsGmtServer()) //GMT服务器会话
+			if (IsWebServer()) //GMT服务器会话
 			{
-				auto center_server = ServerSessionInstance.Get(message.server_id());
+				auto server_id = ServerSessionInstance.RandomServer(); //随机选择一个中心服
+
+				auto center_server = ServerSessionInstance.Get(server_id);
 				if (!center_server) 
 				{
 					message.set_error_code(Asset::COMMAND_ERROR_CODE_SERVER_NOT_FOUND);
@@ -198,7 +200,7 @@ bool ServerSession::OnInnerProcess(const Asset::InnerMeta& meta)
 			auto result = message.ParseFromString(meta.stuff());
 			if (!result) return false;
 
-			if (IsGmtServer())
+			if (IsWebServer())
 			{
 				OnSendMail(message);
 			}
@@ -220,7 +222,7 @@ bool ServerSession::OnInnerProcess(const Asset::InnerMeta& meta)
 	
 			DEBUG("接收GMT跑马灯:{} 来自地址:{}", message.ShortDebugString(), _ip_address);
 
-			if (!ServerSessionInstance.IsGmtServer(shared_from_this())) return false; //处理GMT服务器发送的数据
+			if (!ServerSessionInstance.IsWebServer(shared_from_this())) return false; //处理GMT服务器发送的数据
 				
 			OnSystemBroadcast(message);
 		}
@@ -232,7 +234,7 @@ bool ServerSession::OnInnerProcess(const Asset::InnerMeta& meta)
 			auto result = message.ParseFromString(meta.stuff());
 			if (!result) return false;
 
-			if (ServerSessionInstance.IsGmtServer(shared_from_this())) //处理GMT服务器发送的数据
+			if (ServerSessionInstance.IsWebServer(shared_from_this())) //处理GMT服务器发送的数据
 			{
 				OnActivityControl(message);
 			}
@@ -245,16 +247,34 @@ bool ServerSession::OnInnerProcess(const Asset::InnerMeta& meta)
 			auto result = message.ParseFromString(meta.stuff());
 			if (!result) return false;
 	
-			//auto redis = make_unique<Redis>();
-
 			Asset::Player player; //玩家数据
 			auto success = RedisInstance.GetPlayer(message.player_id(), player);
 			if (!success) message.set_error_code(Asset::COMMAND_ERROR_CODE_NO_PLAYER);
-			else message.set_common_prop(player.common_prop().SerializeAsString());
+			else { message.set_common_prop(player.common_prop().SerializeAsString()); }
 
 			message.set_error_code(Asset::COMMAND_ERROR_CODE_SUCCESS);
 
 			SendProtocol(message);
+		}
+		break;
+		
+		case Asset::INNER_TYPE_BIND_PLAYER:
+		{
+			Asset::BindPlayer message;
+			auto result = message.ParseFromString(meta.stuff());
+			if (!result) return false;
+			
+			if (IsWebServer())
+			{
+				OnBindPlayer(message);
+			}
+			else //处理游戏服务器返回的数据
+			{
+				auto gmt_server = ServerSessionInstance.GetGmtServer(meta.session_id());
+				if (!gmt_server) return false;
+			
+				gmt_server->SendProtocol(message);
+			}
 		}
 		break;
 
@@ -309,6 +329,8 @@ Asset::COMMAND_ERROR_CODE ServerSession::OnCommandProcess(const Asset::Command& 
 	{
 		RETURN(Asset::COMMAND_ERROR_CODE_NO_PLAYER); //没有角色数据
 	}
+
+	WARN("针对玩家:{} 玩家数据:{} 执行GMT指令:{}", player_id, player.ShortDebugString(), command.ShortDebugString());
 
 	//
 	// 玩家在线不做回发处理，直接发到游戏逻辑服务器进行处理
@@ -468,27 +490,16 @@ Asset::COMMAND_ERROR_CODE ServerSession::OnSendMail(const Asset::SendMail& comma
 	if (player_id != 0) //玩家定向邮件
 	{
 		Asset::Player player; //玩家数据
-
-		///auto redis = make_unique<Redis>();
 		auto success = RedisInstance.GetPlayer(player_id, player);
-		if (!success)
-		{
-			RETURN(Asset::COMMAND_ERROR_CODE_NO_PLAYER); //数据错误
-		}
+		if (!success) { 	RETURN(Asset::COMMAND_ERROR_CODE_NO_PLAYER); } //数据错误
 
 		if (player.logout_time() == 0 && player.login_time() != 0) //玩家目前在线
 		{
 			auto server_id = player.server_id(); //直接发给玩家所在服务器
-
 			auto game_server = ServerSessionInstance.Get(server_id);
-			if (!game_server) 
-			{
-				RETURN(Asset::COMMAND_ERROR_CODE_SERVER_NOT_FOUND); //未能找到服务器
-			}
-			else
-			{
-				game_server->SendProtocol(command);
-			}
+
+			if (!game_server) {	RETURN(Asset::COMMAND_ERROR_CODE_SERVER_NOT_FOUND); } //未能找到服务器
+			else { game_server->SendProtocol(command); }
 		}
 		else
 		{
@@ -531,6 +542,34 @@ Asset::COMMAND_ERROR_CODE ServerSession::OnSendMail(const Asset::SendMail& comma
 	}
 	
 	RETURN(Asset::COMMAND_ERROR_CODE_SUCCESS); //成功执行
+}
+	
+Asset::COMMAND_ERROR_CODE ServerSession::OnBindPlayer(const Asset::BindPlayer& command)
+{
+	const auto player_id = command.player_id(); 
+	if (player_id <= 0) { RETURN(Asset::COMMAND_ERROR_CODE_NO_PLAYER); }
+
+	Asset::Player player; //玩家数据
+	auto success = RedisInstance.GetPlayer(player_id, player);
+	if (!success) { RETURN(Asset::COMMAND_ERROR_CODE_NO_PLAYER); } //数据错误：未找到玩家
+
+	if (player.logout_time() == 0 && player.login_time() != 0) //玩家目前在线
+	{
+		Asset::InnerMeta inner_meta;
+		inner_meta.set_type_t(command.type_t());
+		inner_meta.set_session_id(_session_id);
+		inner_meta.set_stuff(command.SerializeAsString());
+
+		ServerSessionInstance.SendInnerMeta2Player(player_id, inner_meta); //处理在线玩家的指令执行
+	}
+	else
+	{
+		player.set_agent_account(command.agent_account());
+		RedisInstance.SavePlayer(player_id, player); //存盘
+	}
+		
+	//RETURN(Asset::COMMAND_ERROR_CODE_SUCCESS); //成功执行//逻辑服务器进行执行
+	return Asset::COMMAND_ERROR_CODE_SUCCESS;
 }
 	
 Asset::COMMAND_ERROR_CODE ServerSession::OnSystemBroadcast(const Asset::SystemBroadcast& command)
@@ -584,7 +623,7 @@ void ServerSession::SendProtocol(const pb::Message& message)
 	std::string content = meta.SerializeAsString();
 	if (content.empty()) return;
 
-	DEBUG("GMT服务器向服务器ID:{} 地址:{} 发送协议数据:{} 具体内容:{}", _server_id, _ip_address, meta.ShortDebugString(), message.ShortDebugString());
+	DEBUG("GMT服务器向服务器ID:{} 类型:{} 地址:{} 发送协议数据:{} 具体内容:{}", _server_id, _server_type, _ip_address, meta.ShortDebugString(), message.ShortDebugString());
 	AsyncSend(content);
 }
 	
@@ -635,6 +674,8 @@ void ServerSessionManager::AddGmtServer(std::shared_ptr<ServerSession> session)
 
 	session->SetSession(_gmt_counter);
 	_gmt_sessions.emplace(_gmt_counter, session);
+
+	DEBUG("增加GMT指令，当前指令会话数量:{}", _gmt_counter);
 }
 	
 std::shared_ptr<ServerSession> ServerSessionManager::GetGmtServer(int64_t session_id)
@@ -681,6 +722,56 @@ bool ServerSessionManager::StartNetwork(boost::asio::io_service& io_service, con
 	_acceptor->SetSocketFactory(std::bind(&SuperSocketManager::GetSocketForAccept, this));    
 	_acceptor->AsyncAcceptWithCallback<&OnSocketAccept>();    
 	return true;
+}
+
+int64_t ServerSessionManager::RandomServer()
+{
+	std::lock_guard<std::mutex> lock(_server_mutex);
+
+	if (_sessions.size() == 0) return 0;
+
+	std::vector<int32_t> server_list;
+
+	for (auto it = _sessions.begin(); it != _sessions.end(); ) 
+	{
+		if (it->first == 0 || !it->second)
+		{
+			it = _sessions.erase(it);
+		}
+		else
+		{
+			server_list.push_back(it->first);
+
+			++it;
+		}
+	}
+	
+	if (server_list.size() == 0) return 0;
+
+	std::random_shuffle(server_list.begin(), server_list.end()); //随机
+
+	return server_list[0];
+}
+	
+void ServerSessionManager::SendInnerMeta2Player(int64_t player_id, const Asset::InnerMeta& message)
+{
+	auto server_id = GetLocolServer(player_id); //玩家注册的中心服务器
+
+	auto session = Get(server_id);
+	if (!session) 
+	{
+		ERROR("由于玩家:{} 所在服务器:{} 未找到，指令:{} 执行失败", player_id, server_id, message.ShortDebugString());
+		return; //理论上不会如此
+	}
+		
+	session->SendInnerMeta(message);
+}
+
+void ServerSessionManager::SendInnerMeta2Player(int64_t player_id, const Asset::InnerMeta* message)
+{
+	if (!message) return;
+
+	SendInnerMeta2Player(player_id, *message);
 }
 
 #undef RETURN

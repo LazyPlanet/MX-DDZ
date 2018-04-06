@@ -1,6 +1,7 @@
 #pragma once
 
 #include <random>
+#include <string>
 
 #include "Config.h"
 
@@ -136,5 +137,23 @@ public:
 
 		return true;		
 	}
+
+	static void DeleteAllMark(std::string &s, const std::string &mark)  
+	{  
+	    size_t size = mark.size();  
+	    while(1)  
+	    {  
+	        size_t pos = s.find(mark);  
+	        if(pos == std::string::npos) return;  
+	  
+	        s.erase(pos, size);  
+		}  
+	}  
+
+	static void Trim(std::string &s)
+	{
+		DeleteAllMark(s, " ");
+	}
+	  
 };
 

@@ -6,19 +6,27 @@
 #include "Timer.h"
 #include "Activity.h"
 
+//
+//GMT Client 程序
+//
+//连接GMT服务器，SendProtocol为直接对GMT服务器进行的协议返回
+//
+//如果要向逻辑服务器进行数据转发，需要直接执行玩家SendGmtProtocol发送指令
+//
+
 namespace Adoter
 {
-#define RETURN(x) \
+#define RETURN(x) { \
 	auto response = command; \
 	response.set_error_code(x); \
 	auto debug_string = command.ShortDebugString(); \
 	if (x) { \
-		LOG(ERR, "执行指令失败:{} 指令:{}", x, command.ShortDebugString()); \
+		LOG(ERR, "执行指令失败:{} 指令:{}", Asset::COMMAND_ERROR_CODE_Name(x), command.ShortDebugString()); \
 	} else { \
-		LOG(TRACE, "执行指令成功:{} 指令:{}", x, command.ShortDebugString()); \
+		LOG(TRACE, "执行指令成功，指令:{}", command.ShortDebugString()); \
 	} \
 	SendProtocol(response); \
-	return x; \
+	return x; } \
 
 GmtSession::GmtSession(boost::asio::io_service& io_service, const boost::asio::ip::tcp::endpoint& endpoint) : 
 	ClientSocket(io_service, endpoint)
@@ -43,7 +51,7 @@ bool GmtSession::OnInnerProcess(const Asset::InnerMeta& meta)
 	std::lock_guard<std::mutex> lock(_gmt_lock);
 	_session_id = meta.session_id();
 
-	DEBUG("中心服务器接收GMT服务器:{}协议:{}", _ip_address, meta.ShortDebugString());
+	DEBUG("中心服务器接收GMT服务器:{} 协议:{}", _ip_address, meta.ShortDebugString());
 
 	switch (meta.type_t())
 	{
@@ -107,6 +115,23 @@ bool GmtSession::OnInnerProcess(const Asset::InnerMeta& meta)
 			if (!result) return false;
 
 			OnActivityControl(message);
+		}
+		break;
+		
+		case Asset::INNER_TYPE_BIND_PLAYER: //绑定玩家
+		{
+			Asset::BindPlayer command;
+			auto result = command.ParseFromString(meta.stuff());
+			if (!result) return false;
+		
+			auto player_ptr = PlayerInstance.Get(command.player_id());
+			if (!player_ptr) 
+			{
+				RETURN(Asset::COMMAND_ERROR_CODE_PLAYER_OFFLINE); //玩家目前不在线
+				return false;
+			}
+
+			player_ptr->SendGmtProtocol(command, _session_id); //发给逻辑服务器处理
 		}
 		break;
 

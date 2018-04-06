@@ -45,22 +45,6 @@ bool GmtManager::OnInnerProcess(const Asset::InnerMeta& meta)
 			auto result = message.ParseFromString(meta.stuff());
 			if (!result) return false;
 
-			//
-			//获取策划好友房数据
-			//
-			/*
-			const auto& messages = AssetInstance.GetMessagesByType(Asset::ASSET_TYPE_ROOM);
-			auto it = std::find_if(messages.begin(), messages.end(), [](pb::Message* message){
-				 auto room_limit = dynamic_cast<Asset::RoomLimit*>(message);
-				 if (!room_limit) return false;
-				 return Asset::ROOM_TYPE_FRIEND == room_limit->room_type();
-			 });
-			if (it == messages.end()) return false;
-
-			auto room_limit = dynamic_cast<Asset::RoomLimit*>(*it);
-			if (!room_limit) return Asset::ERROR_ROOM_TYPE_NOT_FOUND;
-			*/
-
 			//房间设置
 			Asset::Room room;
 			room.set_room_type(Asset::ROOM_TYPE_FRIEND);
@@ -113,6 +97,16 @@ bool GmtManager::OnInnerProcess(const Asset::InnerMeta& meta)
 
 			OnActivityControl(message);
 		}
+		
+		case Asset::INNER_TYPE_BIND_PLAYER: //绑定玩家
+		{
+			Asset::BindPlayer message;
+			auto result = message.ParseFromString(meta.stuff());
+			if (!result) return false;
+
+			OnBindPlayer(message);
+		}
+		break;
 
 		default:
 		{
@@ -127,6 +121,18 @@ Asset::COMMAND_ERROR_CODE GmtManager::OnActivityControl(const Asset::ActivityCon
 {
 	auto ret = ActivityInstance.OnActivityControl(command);
 	RETURN(ret)
+}
+
+Asset::COMMAND_ERROR_CODE GmtManager::OnBindPlayer(const Asset::BindPlayer& command)
+{
+	auto player_ptr = PlayerInstance.Get(command.player_id());
+	if (!player_ptr)
+	{
+		RETURN(Asset::COMMAND_ERROR_CODE_PLAYER_OFFLINE); //玩家目前不在线
+	}
+
+	player_ptr->OnBind(command.agent_account());
+	RETURN(Asset::COMMAND_ERROR_CODE_SUCCESS); //成功执行
 }
 
 Asset::COMMAND_ERROR_CODE GmtManager::OnSendMail(const Asset::SendMail& command)
@@ -305,7 +311,6 @@ void GmtManager::SendProtocol(pb::Message& message)
 
 void GmtManager::SendInnerMeta(const Asset::InnerMeta& message)
 {
-    //if (!g_center_session)
 	if (!Connected())
     {
         ERROR("尚未连接中心服服务器");
@@ -316,9 +321,8 @@ void GmtManager::SendInnerMeta(const Asset::InnerMeta& message)
     gmt_meta.set_inner_meta(message.SerializeAsString());
 
     DEBUG("逻辑服务器处理GMT指令后发送数据到中心服务器:{}", gmt_meta.ShortDebugString());
-    //g_center_session->SendProtocol(gmt_meta);
     _session->SendProtocol(gmt_meta);
 }
-
+	
 #undef RETURN
 }

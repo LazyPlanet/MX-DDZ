@@ -48,6 +48,10 @@ public:
 	void SetGmtOpened() { _gmt_opened = true; }
 	bool IsGmtOpened() { return _gmt_opened; }
 
+	bool IsClan() { return _stuff.clan_id() != 0; }
+	int64_t GetClan() { return _stuff.clan_id(); }
+	void OnClanCreated();
+
 	const std::vector<std::shared_ptr<Player>> GetPlayers() { return _players; } 
 	int32_t GetCreateTime() { return _created_time; } //创建时间
 
@@ -62,7 +66,7 @@ public:
 	const Asset::RoomOptions& GetOptions() { return _stuff.options(); } //额外番型
 	void SetOptions(const Asset::RoomOptions& options) {	_stuff.mutable_options()->CopyFrom(options);}
 
-	//const Asset::NiuNiuRoomFan* GetFan(); //获取番数数据
+	const Asset::RoomFan* GetFan(); //获取番数数据
 	int32_t GetMultiple(int32_t fan_type);
 	int32_t MaxFan() { return _stuff.options().top_mutiple(); }
 	Asset::CITY_TYPE GetCity() { return _stuff.options().city_type(); } //城市玩法
@@ -147,6 +151,7 @@ public:
 	void OnPlayerStateChanged();
 	//游戏结束
 	void OnGameOver(int64_t player_id = 0/*胡牌玩家*/);
+	void OnClanOver(); //茶馆房间结束
 	
 	//庄家信息
 	void SetBanker(int64_t player_id) { _banker = player_id; AddBanker(player_id); } //设置庄家
@@ -163,6 +168,8 @@ public:
 	bool HasDisMiss() { return _is_dismiss; } //是否解散状态
 	void ClearDisMiss(); //清除解散状态
 	void OnRemove();
+
+	void UpdateClanStatus(); //同步茶馆开房房间数据
 };
 
 /////////////////////////////////////////////////////

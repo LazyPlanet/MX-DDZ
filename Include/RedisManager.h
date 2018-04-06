@@ -92,6 +92,35 @@ public:
 		}
 	
 		value = reply.as_string();
+		if (value == "") return false;
+
+		return true;
+	}
+	
+	bool GetArray(const std::string& key, std::vector<std::string>& values, bool async = true)
+	{
+		if (!Connect()) return false;
+
+		auto get = _client.keys(key);
+		
+		if (async) {
+			_client.commit(); 
+		} else {
+			_client.sync_commit(std::chrono::milliseconds(100)); 
+		}
+		
+		auto reply = get.get();
+		if (!reply.is_array()) return false;
+
+		const auto& reply_list = reply.as_array();
+	
+		for (const auto& reply : reply_list)
+		{
+			if (!reply.is_string()) continue;
+
+			values.push_back(reply.as_string());
+		}
+
 		return true;
 	}
 	
@@ -212,10 +241,8 @@ public:
 		//
 		//角色ID带有服务器ID
 		//
-		//每个服务器含有65536个角色，从游戏角度数量足够
-		//
 		int32_t server_id = ConfigInstance.GetInt("ServerID", 1); //服务器ID
-		player_id = (server_id << 16) + player_id; 
+		player_id = (server_id << 20) + player_id; 
 
 		return player_id;
 	}
@@ -415,6 +442,28 @@ public:
 		if (!success) return false;
 
 		return true;
+	}
+	
+	int64_t CreateClan()
+	{
+		if (!Connect()) return false;
+
+		auto incrby = _client.incrby("clan_counter", 1);
+		_client.commit();
+
+		int64_t clan_id = 0;
+
+		auto reply = incrby.get();
+		if (reply.is_integer()) clan_id = reply.as_integer();
+
+		/*
+		if (clan_id == 0) return 0;
+
+		int64_t server_id = ConfigInstance.GetInt("ServerID", 1); //服务器ID
+		clan_id = (server_id << 32) + clan_id; 
+		*/
+
+		return clan_id;
 	}
 };
 

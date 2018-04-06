@@ -17,6 +17,7 @@ namespace Adoter
 {
 
 namespace spd = spdlog;
+extern int32_t g_server_id;
 extern const Asset::CommonConst* g_const;
 	
 WorldSession::~WorldSession()
@@ -106,7 +107,7 @@ void WorldSession::OnProcessMessage(const Asset::Meta& meta)
 		message = nullptr;
 	};
 
-	if (meta.stuff().size() == 0) return;
+	//if (meta.stuff().size() == 0) return; //可以发只包含type_t的协议
 	
 	auto result = message->ParseFromArray(meta.stuff().c_str(), meta.stuff().size());
 	if (!result) 
@@ -150,10 +151,10 @@ void WorldSession::OnProcessMessage(const Asset::Meta& meta)
 		auto player = PlayerInstance.Get(meta.player_id());
 		if (!player) 
 		{
-			ERROR("未能找到玩家:{}", meta.player_id());
+			ERROR("未能找到玩家:{} 协议数据:{}", meta.player_id(), message->ShortDebugString());
 			return;
 		}
-		player->SendProtocol(message);
+		player->SendProtocol(message); //直接进行转发
 	}
 	else //if (meta.player_id() == 0)
 	{
@@ -171,7 +172,7 @@ void WorldSession::OnProcessMessage(const Asset::Meta& meta)
 		_expire_time = 0;
 		_hi_time = CommonTimerInstance.GetTime(); 
 		
-		if (Asset::META_TYPE_C2S_LOGIN == meta.type_t()) //账号登陆
+		if (Asset::META_TYPE_C2S_LOGIN == meta.type_t()) //账号登陆：MMO选人界面
 		{
 			Asset::Login* login = dynamic_cast<Asset::Login*>(message);
 			if (!login) return; 
@@ -235,7 +236,6 @@ void WorldSession::OnProcessMessage(const Asset::Meta& meta)
 				if (player_id == 0) return;
 				
 				_player = std::make_shared<Player>(player_id);
-				_player->SetLocalServer(ConfigInstance.GetInt("ServerID", 1));
 				
 				WorldSessionInstance.AddPlayer(player_id, shared_from_this()); //在线玩家
 				
@@ -244,11 +244,14 @@ void WorldSession::OnProcessMessage(const Asset::Meta& meta)
 				std::string player_name = NameInstance.Get();
 				_player->SetName(player_name);
 				_player->SetAccount(login->account().username(), _account.account_type());
+				
+				_player->SetRegisterServer(g_server_id);
+				//_player->SetLocalServer(g_server_id); //触发服务器切换，中心服务器->逻辑服务器
 
-				_player->Save(true); //存盘，防止数据库无数据
+				_player->Save(true); //存盘，防止数据库无数据//此时尚未加载到场景，因此无法通过心跳进行存盘
 				_user.mutable_player_list()->Add(player_id);
 				
-				LOG(INFO, "账号:{}下尚未创建角色，创建角色:{} 账号数据:{}", login->account().username(), player_id, _user.ShortDebugString());
+				LOG(INFO, "账号:{} 下尚未创建角色，创建角色:{} 账号数据:{}", login->account().username(), player_id, _user.ShortDebugString());
 			}
 
 			if (_player_list.size()) _player_list.clear(); 
@@ -295,7 +298,7 @@ void WorldSession::OnProcessMessage(const Asset::Meta& meta)
 				auto has_key = RedisInstance.Get(_user.client_info().imei(), account);
 				if (!has_key) 
 				{
-					LOG(ERROR, "玩家账号游客登录错误，手机唯一识别码:{}已经存在游客账号,不能再次游客登录，防止刷卡.", _user.client_info().imei());
+					LOG(ERROR, "玩家账号游客登录错误，手机唯一识别码:{} 已经存在游客账号,不能再次游客登录，防止刷卡.", _user.client_info().imei());
 					return;
 				}
 			}
@@ -354,7 +357,7 @@ void WorldSession::OnProcessMessage(const Asset::Meta& meta)
 			SetRoleType(Asset::ROLE_TYPE_PLAYER, _player->GetID());
 			WorldSessionInstance.AddPlayer(connect->player_id(), shared_from_this()); //在线玩家，获取网络会话
 
-			_player->SetLocalServer(ConfigInstance.GetInt("ServerID", 1));
+			//_player->SetLocalServer(ConfigInstance.GetInt("ServerID", 1)); //架构调整，玩家直接在逻辑服务器处理逻辑
 			_player->OnEnterGame(false);
 		}
 		else if (Asset::META_TYPE_C2S_GET_ROOM_DATA == meta.type_t()) //获取房间数据
@@ -371,22 +374,14 @@ void WorldSession::OnProcessMessage(const Asset::Meta& meta)
 			_player->SetLocalServer(server_id); //设置玩家当前所在服务器
 			_player->SendProtocol2GameServer(get_data); 
 		}
-		else if (Asset::META_TYPE_C2S_ENTER_GAME == meta.type_t()) //进入游戏
+		else if (Asset::META_TYPE_C2S_ENTER_GAME == meta.type_t()) //进入游戏：MMO进入场景
 		{
 			const Asset::EnterGame* enter_game = dynamic_cast<Asset::EnterGame*>(message);
 			if (!enter_game) return; 
 
-			if (enter_game->player_id() == 0)
-			{
-				DEBUG_ASSERT(false);
-				return;
-			}
+			if (enter_game->player_id() == 0) return;
 
-			if (_player_list.find(enter_game->player_id()) == _player_list.end())
-			{
-				LOG(ERROR, "player_id:{} has not found in username:{}, maybe it is cheated.", enter_game->player_id(), _account.username());
-				return; //账号下没有该角色数据
-			}
+			if (_player_list.find(enter_game->player_id()) == _player_list.end()) return; //账号下没有该角色数据
 
 			_player = PlayerInstance.Get(enter_game->player_id());
 
@@ -396,12 +391,14 @@ void WorldSession::OnProcessMessage(const Asset::Meta& meta)
 				WorldSessionInstance.AddPlayer(enter_game->player_id(), shared_from_this()); //在线玩家
 			}
 
+			/*
 			if (_player->Load())
 			{
 				LOG(ERROR, "玩家进入游戏，角色ID:{} 加载数据失败", enter_game->player_id());
 				return; //数据加载失败必须终止
 			}
-			
+			*/
+
 			SetRoleType(Asset::ROLE_TYPE_PLAYER, _player->GetID());
 			
 			//
@@ -411,12 +408,12 @@ void WorldSession::OnProcessMessage(const Asset::Meta& meta)
 			//
 			//对于MMORPG游戏，可以是任意一个场景或副本ID，此处记录为解决全球唯一服，通过Redis进行进程间通信，获取玩家所在服务器ID.
 			//
-			_player->SetLocalServer(ConfigInstance.GetInt("ServerID", 1));
+			//_player->SetLocalServer(ConfigInstance.GetInt("ServerID", 1)); //架构调整，玩家直接在逻辑服务器处理逻辑
 			
 			//
 			//账号未能存储成功在角色数据，则重新存储
 			//
-			if (_player->GetAccount().empty()) _player->Save(true); //存盘，防止数据库无数据
+			//if (_player->GetAccount().empty()) _player->Save(true); //存盘，防止数据库无数据
 				
 			_player->SetAccount(_account.username(), _account.account_type());
 
@@ -425,16 +422,6 @@ void WorldSession::OnProcessMessage(const Asset::Meta& meta)
 			//
 			//对于已经进入游戏内操作的玩家进行托管
 			//
-			/*
-			auto session = WorldSessionInstance.GetPlayerSession(_player->GetID());
-			if (session) //已经在线
-			{
-				//session->KickOutPlayer(Asset::KICK_OUT_REASON_OTHER_LOGIN);
-				//_player->SetSession(shared_from_this()); //重新设置网路连接会话，防止之前会话失效
-				WorldSessionInstance.AddPlayer(_player->GetID(), shared_from_this()); //在线玩家
-				//LOG(ERROR, "玩家{}目前在线，被踢掉", _player->GetID());
-			}
-			*/
 			WorldSessionInstance.AddPlayer(_player->GetID(), shared_from_this()); //在线玩家
 			
 			//
@@ -445,7 +432,10 @@ void WorldSession::OnProcessMessage(const Asset::Meta& meta)
 			if (_player->OnEnterGame()) //理论上不会出现
 			{
 				_player->AlertMessage(Asset::ERROR_DATABASE);
+				return;
 			}
+			
+			//_player->SendProtocol2GameServer(message); //进入逻辑服务器
 		}
 		else if (Asset::META_TYPE_C2S_SWITCH_ACCOUNT == meta.type_t()) //切换账号
 		{
@@ -458,7 +448,9 @@ void WorldSession::OnProcessMessage(const Asset::Meta& meta)
 
 			if (_user.player_list().size()) RedisInstance.SaveUser(_account.username(), _user); //存盘退出
 
-			_player->Save(true);
+			//_player->Save(true);
+	
+			_player->Logout(nullptr);
 			_player.reset();
 			
 			_user.Clear();
@@ -476,7 +468,7 @@ void WorldSession::OnProcessMessage(const Asset::Meta& meta)
 			Asset::EnterRoom* enter_room = dynamic_cast<Asset::EnterRoom*>(message);
 			if (!enter_room) return; 
 
-			WARN("玩家:{} 当前所在服务器:{} 进入房间:{}", _player->GetID(), _player->GetLocalServer(), enter_room->ShortDebugString());
+			//WARN("玩家:{} 当前所在服务器:{} 进入房间:{}", _player->GetID(), _player->GetLocalServer(), enter_room->ShortDebugString());
 
 			auto room_type = enter_room->room().room_type();
 			auto room_id = enter_room->room().room_id();
@@ -541,13 +533,15 @@ void WorldSession::OnProcessMessage(const Asset::Meta& meta)
 				kickout_player.set_player_id(_player->GetID());
 				kickout_player.set_reason(Asset::KICK_OUT_REASON_CHANGE_SERVER);
 
-				WARN("玩家:{}进入服务器:{} 和当前缓存服务器:{} 不同，发往原服踢出:{}", _player->GetID(), server_id, _player->GetLocalServer(), kickout_player.ShortDebugString());
+				WARN("玩家:{} 进入服务器:{} 房间:{}和当前缓存服务器:{}，房间:{}不同，发往原服踢出:{}", 
+						_player->GetID(), server_id, _player->GetRoom(), room_id, _player->GetLocalServer(), kickout_player.ShortDebugString());
 
 				_player->SendProtocol2GameServer(kickout_player); 
 			}
 	
-			WARN("玩家:{} 逻辑服务器:{} 进入房间:{}", _player->GetID(), server_id, enter_room->ShortDebugString());
+			WARN("玩家:{} 当前所在服务器:{} 即将进入逻辑服务器:{} 进入房间:{}", _player->GetID(), _player->GetLocalServer(), server_id, enter_room->ShortDebugString());
 
+			if (room_id) _player->SetRoom(room_id); //设置房间
 			if (server_id) _player->SetLocalServer(server_id); //设置玩家当前所在服务器
 			_player->SendProtocol2GameServer(enter_room); //转发
 		}
@@ -707,6 +701,8 @@ void WorldSession::SendProtocol(const pb::Message* message)
 
 void WorldSession::SendProtocol(const pb::Message& message)
 {
+	if (!IsConnect()) return; //网络已经断开
+
 	const pb::FieldDescriptor* field = message.GetDescriptor()->FindFieldByName("type_t");
 	if (!field) return;
 	
@@ -725,6 +721,8 @@ void WorldSession::SendProtocol(const pb::Message& message)
 
 void WorldSession::SendMeta(const Asset::Meta& meta)
 {
+	if (!IsConnect()) return; //网络已经断开
+
 	std::string content = meta.SerializeAsString();
 	if (content.empty()) return;
 
@@ -756,6 +754,21 @@ void WorldSessionManager::BroadCast2GameServer(const pb::Message& message)
 		if (!session.second) continue;
 		session.second->SendProtocol(message);
 	}
+}
+	
+void WorldSessionManager::SendProtocol2GameServer(int32_t server_id, const pb::Message& message)
+{
+	auto session = GetServerSession(server_id);
+	if (!session) return;
+
+	session->SendProtocol(message);
+}
+
+void WorldSessionManager::SendProtocol2GameServer(int32_t server_id, const pb::Message* message)
+{
+	if (server_id <= 0 || !message) return;
+
+	SendProtocol2GameServer(server_id, *message);
 }
 	
 void WorldSessionManager::BroadCast(const pb::Message& message)
