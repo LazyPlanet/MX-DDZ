@@ -160,7 +160,7 @@ public:
 	//玩家登录
 	void OnLogin();
 	//玩家登出
-	virtual int32_t Logout(pb::Message* message);
+	virtual int32_t Logout(pb::Message* message = nullptr);
 	virtual int32_t OnLogout(Asset::KICK_OUT_REASON reason = Asset::KICK_OUT_REASON_LOGOUT);
 	//离开房间
 	virtual int32_t CmdLeaveRoom(pb::Message* message);
