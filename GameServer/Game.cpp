@@ -176,7 +176,7 @@ void Game::ClearState()
 	_baopai.Clear();
 	_huipai.Clear();
 
-	_oper_cache.Clear();
+	//_oper_cache.Clear();
 
 	_oper_list.clear();
 
@@ -185,20 +185,31 @@ void Game::ClearState()
 	_liuju = false;
 }
 
-bool Game::CanPaiOperate(std::shared_ptr<Player> player)
+bool Game::CanPaiOperate(std::shared_ptr<Player> player, Asset::PaiOperation* pai_operate)
 {
 	if (!player) return false;
-
-	auto player_index = GetPlayerOrder(player->GetID());
-	if (player_index < 0) return false;
-
-	if (_curr_player_index == player_index) 
-	{
-		return true; //轮到该玩家
-	}
 	
-	LOG(ERROR, "房间:{} 局数:{} 当前缓存玩家索引:{} 当前操作玩家索引:{} 当前操作玩家:{} 服务器缓存数据:{}", 
-			_room_id, _game_id, _curr_player_index, player_index, player->GetID(), _oper_cache.ShortDebugString());
+	auto curr_player = GetPlayerByOrder(_curr_player_index);
+	if (!curr_player) return false;
+
+	//轮到玩家打牌
+	//
+	if (player == curr_player) return true; 
+
+	//下家管上家的牌
+	//
+	//必须每张牌都比上一张大
+	if (!pai_operate) return false;
+
+	if (pai_operate->pais().size() != _last_oper.pai_oper().pais().size()) return false;
+
+	for (int32_t i = 0; i < pai_operate->pais().size(); ++i)
+	{
+		if (_last_oper.pai_oper().pais(i).card_value() <= pai_operate->pais(i).card_value()) return false; //必须排序后进行比较
+	}
+
+	LOG(ERROR, "房间:{} 局数:{} 当前缓存玩家索引:{} 当前操作玩家:{} 服务器缓存数据:{}", 
+			_room_id, _game_id, _curr_player_index, player->GetID(), _last_oper.ShortDebugString());
 	return false;
 }
 
@@ -212,53 +223,33 @@ void Game::OnPaiOperate(std::shared_ptr<Player> player, pb::Message* message)
 	if (!player || !message || !_room) return;
 	
 	Asset::PaiOperation* pai_operate = dynamic_cast<Asset::PaiOperation*>(message);
-	if (!pai_operate) return; 
+	if (!pai_operate) return; //牌已排序
 
 	AddPlayerOperation(*pai_operate);  //回放记录
 	
-	auto player_index = GetPlayerOrder(player->GetID());
-
-	auto curr_player_id = player->GetID();
-	auto pai_operate_string = pai_operate->ShortDebugString();
-	auto oper_limit_string = _oper_cache.ShortDebugString();
-
-	DEBUG("房间:{} 当前牌局:{} 当前操作玩家ID:{} 位置索引:{} 进行的操作:{} 服务器记录的当前可操作玩家索引:{} 服务器缓存玩家操作:{}", 
-			_room_id, _game_id, curr_player_id, player_index, pai_operate_string, _curr_player_index, oper_limit_string);
-
-	if (!CanPaiOperate(player)) 
+	if (Asset::PAI_OPER_TYPE_DAPAI == pai_operate->oper_type() && !CanPaiOperate(player, pai_operate)) 
 	{
 		player->AlertMessage(Asset::ERROR_GAME_NO_PERMISSION); //没有权限，没到玩家操作，防止外挂
-
-		ERROR("尚未轮到该玩家:{} 操作:{}", curr_player_id, pai_operate_string);
 		return; //不允许操作
 	}
 	
-	//如果不是放弃，才是当前玩家的操作
-	//if (Asset::PAI_OPER_TYPE_GIVEUP != pai_operate->oper_type())
-	{
-		//_curr_player_index = player_index; //上面检查过，就说明当前该玩家可操作
-		BroadCast(message); //广播玩家操作，玩家放弃操作不能广播
-	}
+	BroadCast(message); //广播玩家操作，玩家放弃操作不能广播
 	
-	//const auto& pai = _oper_cache.pai(); //缓存的牌
-	const auto& pai = pai_operate->pai(); //玩家发上来的牌
-
-	//
-	//一个人打牌之后，要检查其余每个玩家手中的牌，且等待他们的操作，直到超时
-	//
 	switch (pai_operate->oper_type())
 	{
 		case Asset::PAI_OPER_TYPE_DAPAI: //打牌
 		{
-			//
-			//加入牌池
-			//
-			Add2CardsPool(pai);
+			Add2CardsPool(pai_operate->pai()); //加入牌池
+	
+			_last_oper.set_player_id(player->GetID());
+			_last_oper.set_source_player_id(player->GetID());
+			_last_oper.mutable_pai_oper()->CopyFrom(*pai_operate); //缓存牌操作
 		}
 		break;
 		
 		case Asset::PAI_OPER_TYPE_GIVEUP: //放弃//不要
 		{
+			_curr_player_index = (_curr_player_index + 1) % MAX_PLAYER_COUNT; //如果有玩家放弃操作，则继续下个玩家
 		}
 		break;
 		
@@ -268,8 +259,6 @@ void Game::OnPaiOperate(std::shared_ptr<Player> player, pb::Message* message)
 		}
 		break;
 	}
-			
-	_curr_player_index = (_curr_player_index + 1) % MAX_PLAYER_COUNT; //如果有玩家放弃操作，则继续下个玩家
 }
 
 void Game::PaiPushDown()
@@ -445,13 +434,6 @@ void Game::Calculate(std::shared_ptr<Player> banker)
 	
 	BroadCast(message);
 	OnGameOver(0); //结算之后才是真正结束
-	
-	auto room_id = _room->GetID();
-	auto curr_count = _room->GetGamesCount();
-	auto open_rands = _room->GetOpenRands();
-	auto message_string = message.ShortDebugString();
-
-	//LOG(INFO, "房间:{}第:{}/{}局结束，胡牌玩家:{} 点炮玩家:{}, 胡牌结算:{}", room_id, curr_count, open_rands, hupai_player_id, dianpao_player_id, message_string);
 }
 	
 void Game::BroadCast(pb::Message* message, int64_t exclude_player_id)

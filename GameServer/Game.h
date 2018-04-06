@@ -43,7 +43,8 @@ private:
 
 	Asset::PaiElement _huipai; //会儿牌
 	
-	Asset::PaiOperationCache _oper_cache; //牌操作缓存
+	//Asset::PaiOperationCache _oper_cache; //牌操作缓存
+	Asset::PaiOperationCache _last_oper; //上次操作缓存
 	std::vector<Asset::PaiOperationCache> _oper_list; //可操作列表
 
 	std::shared_ptr<Player> _players[MAX_PLAYER_COUNT]; //玩家数据：按照进房间的顺序，0->1->2->3...主要用于控制发牌和出牌顺序
@@ -69,13 +70,13 @@ public:
 	virtual void Add2CardsPool(Asset::CARD_TYPE card_type, int32_t card_value);
 	
 	void OnPaiOperate(std::shared_ptr<Player> player, pb::Message* message); //玩家牌操作响应
-	bool CanPaiOperate(std::shared_ptr<Player> player); //检查玩家是否具有操作权限
+	bool CanPaiOperate(std::shared_ptr<Player> player, Asset::PaiOperation* pai_operate = nullptr); //检查玩家是否具有操作权限
 	void OnPlayerReEnter(std::shared_ptr<Player> player);
 
 	void OnOperateTimeOut();
 	void ClearOperation();
-	void SetPaiOperation(const Asset::PaiOperationCache& oper) { _oper_cache = oper; } //牌操作限制
-	const Asset::PaiOperationCache& GetOperCache() { return _oper_cache; }
+	//void SetPaiOperation(const Asset::PaiOperationCache& oper) { _oper_cache = oper; } //牌操作限制
+	const Asset::PaiOperationCache& GetOperCache() { return _last_oper; }
 	//void SetPaiOperation(int64_t player_id, int64_t source_player_id, Asset::PaiElement pai, Asset::PAI_OPER_TYPE oper_type = Asset::PAI_OPER_TYPE_HUPAI);
 	//void SetZiMoCache(std::shared_ptr<Player> player, Asset::PaiElement pai);
 
