@@ -2099,9 +2099,9 @@ void Player::ClearCards()
 Asset::PaiElement Player::GetMaxPai()
 {
 	Asset::PaiElement pai;
+	/*
 	int32_t max_type = 0, max_value = 0;
 
-	/*
 	for (const auto& card : _cards_inhand)
 	{
 		for (auto card_value : card.second)
