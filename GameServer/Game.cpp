@@ -561,7 +561,7 @@ bool GameManager::Load()
 		auto it = _valid_cards.find(asset_card->card_type());
 		if (it == _valid_cards.end()) continue;
 		
-		for (int k = 0; k < asset_card->group_count(); ++k) //4组，麻将每张牌有4张
+		for (int k = 0; k < asset_card->group_count(); ++k) 
 		{
 			int32_t cards_count = std::min(asset_card->cards_count(), asset_card->cards_size());
 
@@ -579,7 +579,7 @@ bool GameManager::Load()
 
 	//if (_cards.size() != CARDS_COUNT) return false;
 	
-	DoCombine(); //生成排列组合序列
+	//DoCombine(); //生成排列组合序列
 
 	return true;
 }
