@@ -207,6 +207,7 @@ bool Game::CanPaiOperate(std::shared_ptr<Player> player, Asset::PaiOperation* pa
 	//
 	//2.最大数量的牌值大于前者;
 	if (!pai_operate) return false;
+
 	if (pai_operate->pais().size() != _last_oper.pai_oper().pais().size()) return false; //出牌数量不一致
 	if (_last_oper.pai_oper().paixing() != pai_operate->paixing()) return false; //牌型不一致
 	if (GameInstance.ComparePai(_last_oper.pai_oper().pai(), pai_operate->pai())) return false; //比较大小
