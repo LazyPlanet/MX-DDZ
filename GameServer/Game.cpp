@@ -311,9 +311,6 @@ void Game::Calculate(std::shared_ptr<Player> player_ptr)
 {
 	if (!_room || !player_ptr) return;
 
-	auto banker_id = _room->GetBanker();
-	if (banker_id <= 0) return;
-	
 	//1.推到牌
 	//
 	PaiPushDown();
@@ -338,10 +335,10 @@ void Game::Calculate(std::shared_ptr<Player> player_ptr)
 		record->set_nickname(player->GetNickName());
 		record->set_headimgurl(player->GetHeadImag());
 		
-		if (player_id == banker_id) continue;
+		if (player_id == _dizhu_player_id) continue;
 
 		auto score = base_score;
-		if (player_ptr->GetID() == banker_id) score = -base_score; //庄家先走
+		if (player_ptr->GetID() == _dizhu_player_id) score = -base_score; //庄家先走
 
 		score *= GetBeiLv(); //总分数
 
@@ -368,7 +365,7 @@ void Game::Calculate(std::shared_ptr<Player> player_ptr)
 		return it;
 	};
 	
-	auto record = get_record(banker_id); 
+	auto record = get_record(_dizhu_player_id); 
 	if (record == message.mutable_record()->mutable_list()->end()) return;
 
 	//好友房//匹配房记录消耗
