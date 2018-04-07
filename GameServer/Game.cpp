@@ -105,8 +105,6 @@ bool Game::Start(std::vector<std::shared_ptr<Player>> players, int64_t room_id, 
 		}
 	}
 
-	//OnStarted(player_banker); //开局成功
-
 	return true;
 }
 	
@@ -120,6 +118,7 @@ void Game::OnStart()
 	info.set_banker_player_id(_banker_player_id);
 	BroadCast(info);
 	
+	/*
 	Asset::RandomSaizi saizi; //开局股子广播
 	saizi.set_reason_type(Asset::RandomSaizi_REASON_TYPE_REASON_TYPE_START);
 
@@ -132,6 +131,7 @@ void Game::OnStart()
 	}
 
 	BroadCast(saizi);
+	*/
 }
 
 //开局后，庄家//地主补3张底牌
@@ -187,11 +187,11 @@ void Game::SavePlayBack()
 	
 void Game::ClearState()
 {
-	_baopai.Clear();
-	_huipai.Clear();
+	//_baopai.Clear();
+	//_huipai.Clear();
 
 	_last_oper.Clear();
-	_oper_list.clear();
+	//_oper_list.clear();
 	_cards_pool.clear();
 	
 	_beilv = 1; //倍率
@@ -199,7 +199,7 @@ void Game::ClearState()
 	_rob_dizhu_bl.clear(); //倍率表
 	_rob_dizhus.clear(); //倍率表
 	
-	_liuju = false;
+	//_liuju = false;
 }
 
 bool Game::CanPaiOperate(std::shared_ptr<Player> player, Asset::PaiOperation* pai_operate)
@@ -442,6 +442,7 @@ void Game::BroadCast(pb::Message& message, int64_t exclude_player_id)
 	_room->BroadCast(message, exclude_player_id);
 }
 
+/*
 std::vector<int32_t> Game::TailPai(size_t card_count)
 {
 	std::vector<int32_t> tail_cards;
@@ -460,6 +461,7 @@ std::vector<int32_t> Game::TailPai(size_t card_count)
 	
 	return tail_cards;
 }
+*/
 	
 std::vector<int32_t> Game::FaPai(size_t card_count)
 {
@@ -519,13 +521,6 @@ bool Game::IsBanker(int64_t player_id)
 { 
 	if (!_room) return false;
 	return _room->IsBanker(player_id); 
-}
-
-int32_t Game::GetMultiple(int32_t fan_type)
-{
-	if (!_room) return 0;
-	
-	return _room->GetMultiple(fan_type);
 }
 
 void Game::SelectBanker()

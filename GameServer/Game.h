@@ -33,24 +33,12 @@ private:
 	int32_t _curr_player_index = 0; //当前在操作的玩家索引
 	int64_t _banker_player_id = 0; //庄家
 	int64_t _dizhu_player_id = 0; //地主
-	std::vector<int64_t> _ting_players; //听牌玩家
 	int64_t _room_id = 0;
 	int32_t _game_id = 0;
 
-	Asset::PaiElement _baopai; //宝牌
-	int32_t _random_result = 0; //宝牌随机：1~6
-	std::unordered_set<int32_t> _random_result_list; //宝牌历史随机结果
-	std::vector<int32_t> _saizi_random_result; //开局股子缓存
-
-	Asset::PaiElement _huipai; //会儿牌
-	
-	//Asset::PaiOperationCache _oper_cache; //牌操作缓存
 	Asset::PaiOperationCache _last_oper; //上次操作缓存
-	std::vector<Asset::PaiOperationCache> _oper_list; //可操作列表
-
 	std::shared_ptr<Player> _players[MAX_PLAYER_COUNT]; //玩家数据：按照进房间的顺序，0->1->2->3...主要用于控制发牌和出牌顺序
 
-	bool _liuju = false; //是否流局
 	std::vector<Asset::PaiElement> _cards_pool; //牌池，玩家已经打的牌缓存
 
 	Asset::PlayBack _playback; //回放数据
@@ -63,24 +51,26 @@ public:
 	virtual void Init(std::shared_ptr<Room> room); //初始化
 	virtual bool Start(std::vector<std::shared_ptr<Player>> players, int64_t room_id = 0, int32_t game_id = 0); //开始游戏
 	virtual void OnStart(); //开始游戏回调
-	virtual void OnStarted(std::shared_ptr<Player> banker); //开始游戏,玩家已经进入游戏
+	virtual void OnStarted(std::shared_ptr<Player> banker); //开始游戏,玩家已经进入游戏且抢完地主
+	
+	bool CanStart(); //是否可以开局
 
 	virtual bool OnGameOver(int64_t player_id); //游戏结束
 	void ClearState(); //清理状态
 
 	virtual std::vector<int32_t> FaPai(size_t card_count); //发牌
-	virtual std::vector<int32_t> TailPai(size_t card_count); //后楼发牌
-	void FaPaiAndCommonCheck();
+	//virtual std::vector<int32_t> TailPai(size_t card_count); //后楼发牌
+	//void FaPaiAndCommonCheck();
 
 	virtual void Add2CardsPool(Asset::PaiElement pai);
 	virtual void Add2CardsPool(Asset::CARD_TYPE card_type, int32_t card_value);
 	
-	void OnPaiOperate(std::shared_ptr<Player> player, pb::Message* message); //玩家牌操作响应
 	bool CanPaiOperate(std::shared_ptr<Player> player, Asset::PaiOperation* pai_operate = nullptr); //检查玩家是否具有操作权限
+	void OnPaiOperate(std::shared_ptr<Player> player, pb::Message* message); //玩家牌操作响应
+
 	void OnPlayerReEnter(std::shared_ptr<Player> player);
 
 	void OnOperateTimeOut();
-	void ClearOperation();
 	const Asset::PaiOperationCache& GetOperCache() { return _last_oper; }
 
 	std::shared_ptr<Player> GetNextPlayer(int64_t player_id); //获取下家
@@ -97,7 +87,6 @@ public:
 	void BroadCast(pb::Message* message, int64_t exclude_player_id = 0);
 	void BroadCast(pb::Message& message, int64_t exclude_player_id = 0);
 
-	int32_t GetMultiple(int32_t fan_type);
 	void Calculate(std::shared_ptr<Player> player);
 	void PaiPushDown();
 
@@ -112,13 +101,13 @@ public:
 	void SelectBanker(); //随机地主
 	void IncreaseBeiLv(int32_t beilv = 2) { if (beilv <= 0) beilv = 2; _beilv *= beilv; } //加倍
 	int32_t GetBeiLv() { return _beilv; } //获取倍率
+
 	int32_t GetDiZhuPlayerCount() { return _rob_dizhu_bl.size(); } //获取抢地主玩家数量//叫分
 	int64_t GetDiZhu() { return _dizhu_player_id; } //地主
 
 	void OnRobDiZhu(int64_t player_id, int32_t beilv) { _rob_dizhu_bl[player_id] = beilv; } //叫分抢地主
 	void OnRobDiZhu(int64_t player_id, bool is_rob); //加倍抢地主
 	bool HasRobDiZhu(int64_t player_id) { return _rob_dizhus.find(player_id) != _rob_dizhus.end(); } //是否叫过地主
-	bool CanStart(); //是否可以开局
 };
 
 /////////////////////////////////////////////////////
