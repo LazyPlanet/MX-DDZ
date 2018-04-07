@@ -2020,7 +2020,7 @@ int32_t Player::OnFaPai(std::vector<int32_t>& cards)
 
 	for (const auto& pai : _cards_inhand)
 	{
-		auto pai_ptr = notify.mutable_pais()->Add();
+		auto pai_ptr = notify.mutable_cards()->Add();
 		pai_ptr->CopyFrom(pai);
 	}
 	
@@ -2037,54 +2037,23 @@ int32_t Player::OnFaPai(std::vector<int32_t>& cards)
 	return 0;
 }
 	
-void Player::SynchronizePai()
-{
-	return;
-
-	Asset::PaiNotify notify; /////玩家当前牌数据发给Client
-
-	/*
-	for (auto pai : _cards_inhand)
-	{
-		auto pais = notify.mutable_pais()->Add();
-
-		pais->set_card_type((Asset::CARD_TYPE)pai.first); //牌类型
-
-		for (auto value : pai.second)
-			std::cout << value << " ";
-		std::cout << std::endl;
-
-		::google::protobuf::RepeatedField<int32_t> cards(pai.second.begin(), pai.second.end());
-		pais->mutable_cards()->CopyFrom(cards); //牌值
-	}
-	
-	notify.set_data_type(Asset::PaiNotify_CARDS_DATA_TYPE_CARDS_DATA_TYPE_SYNC); //操作类型：同步数据
-	*/
-
-	SendProtocol(notify); //发送
-}
-
 void Player::PrintPai()
 {
 	if (!_room || !_game) return;
 
 	std::stringstream card_value_list;
 
-	/*
 	for (const auto& pai : _cards_inhand)
 	{
-		std::stringstream inhand_list;
-		for (auto card_value : pai.second) 
-			inhand_list << card_value << " ";
-
-		if (inhand_list.str().size()) card_value_list << "[牌内]"	<< " card_type:" << pai.first << " card_value:" << inhand_list.str();
+		auto pai_str = pai.ShortDebugString();
+		card_value_list << pai_str;
 	}
 		
 	auto room_id = _room->GetID();
 	auto curr_count = _room->GetGamesCount();
 	auto open_rands = _room->GetOpenRands();
-	*/
-	//LOG(INFO, "玩家:{}在房间{}第{}/{}局牌数据:{}", _player_id, room_id, curr_count, open_rands, card_value_list.str());
+
+	LOG(INFO, "玩家:{} 在房间{}，第{}/{}局牌数据:{}", _player_id, room_id, curr_count, open_rands, card_value_list.str());
 }
 	
 Asset::GAME_OPER_TYPE Player::GetOperState() 
