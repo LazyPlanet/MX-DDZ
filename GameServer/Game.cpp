@@ -201,15 +201,15 @@ bool Game::CanPaiOperate(std::shared_ptr<Player> player, Asset::PaiOperation* pa
 
 	//下家管上家的牌
 	//
-	//必须每张牌都比上一张大
+	//必须满足条件:
+	//
+	//1.牌型一致;
+	//
+	//2.最大数量的牌值大于前者;
 	if (!pai_operate) return false;
-
 	if (pai_operate->pais().size() != _last_oper.pai_oper().pais().size()) return false;
-
-	for (int32_t i = 0; i < pai_operate->pais().size(); ++i)
-	{
-		if (_last_oper.pai_oper().pais(i).card_value() <= pai_operate->pais(i).card_value()) return false; //必须排序后进行比较
-	}
+	if (_last_oper.pai_oper().paixing() != pai_operate->paixing()) return false;
+	if (_last_oper.pai_oper().pai().card_value() >= pai_operate->pai().card_value()) return false;
 
 	return true;
 }
