@@ -869,11 +869,20 @@ int32_t Player::CmdPaiOperate(pb::Message* message)
 		{
 			if (!PaiXingCheck(pai_operate)) 
 			{
-				LOG(ERROR, "玩家:{} 在房间:{} 第:{}局不能打牌，牌数据:{}", _player_id, _room->GetID(), _game->GetID(), pai_operate->ShortDebugString());
+				LOG(ERROR, "玩家:{} 在房间:{}/{}局中不能打牌，牌数据:{}", _player_id, _game->GetID(), _room->GetID(), pai_operate->ShortDebugString());
 				return 3;
 			}
 
-			//Add2CardsPool(pai);
+			for (const auto& pai : pai_operate->pais())
+			{
+				if (!RemovePai(pai))
+				{
+					LOG(ERROR, "玩家:{} 在房间:{}/{}局中无法删除牌，牌数据:{}", _player_id, _game->GetID(), _room->GetID(), pai_operate->ShortDebugString());
+					return 4;
+				}
+			
+				Add2CardsPool(pai);
+			}
 		}
 		break;
 
@@ -1959,6 +1968,20 @@ bool Player::HasPai(const Asset::PaiElement& pai)
 }
 */
 	
+bool Player::RemovePai(const Asset::PaiElement& pai)
+{
+	if (pai.card_type() <= 0 || pai.card_value() == 0) return false;
+
+	auto it = std::find_if(_cards_inhand.begin(), _cards_inhand.end(), [pai](const Asset::PaiElement& card){
+				return card.card_type() == pai.card_type() && card.card_value() == pai.card_value();
+			});
+
+	if (it == _cards_inhand.end()) return false;
+
+	_cards_inhand.erase(it);
+	return true;
+}
+	
 int32_t Player::OnFaPai(std::vector<int32_t>& cards)
 {
 	//std::lock_guard<std::mutex> lock(_card_lock);
@@ -2130,28 +2153,16 @@ Asset::PaiElement Player::GetMaxPai()
 	return pai;
 }
 	
-int32_t Player::GetSumCardsInhand(std::vector<int32_t>& card_values)
+/*
+int32_t Player::GetSumCardsInhand()
 {
-	int32_t sum = 0;
-
-	/*
-	for (const auto& card : _cards_inhand)
-	{
-		for (auto card_value : card.second)
-		{
-			if (card_value >= 10) card_value = 10;
-			sum += card_value;
-
-			card_values.push_back(card_value);
-		}
-	}
-	*/
-
-	return sum;
+	return _cards_inhand.size();
 }
+*/
 
 int32_t Player::GetNiu()
 {
+	/*
 	int32_t niu_value = -1;
 
 	const auto& combines = GameInstance.GetCombine();
@@ -2185,6 +2196,8 @@ int32_t Player::GetNiu()
 	}
 
 	return niu_value;
+	*/
+	return 0;
 }
 	
 void Player::OnGameOver()

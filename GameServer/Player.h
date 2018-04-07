@@ -332,6 +332,7 @@ public:
 	bool IsInGame() { return _game != nullptr; }
 
 	virtual int32_t OnFaPai(std::vector<int32_t>& cards); //发牌
+	bool RemovePai(const Asset::PaiElement& pai); //删除手里的牌，返回是否删除成功
 	//virtual int32_t OnFaPai(const Asset::PaiElement& pai); //纯粹发牌，没有逻辑
 
 	//std::vector<Asset::PAI_OPER_TYPE> CheckPai(const Asset::PaiElement& pai, int64_t source_player_id);
@@ -490,11 +491,12 @@ public:
 	//bool ShouldZhuaPai(); //是否可以抓牌
 
 	Asset::PaiElement GetMaxPai();
-	int32_t GetSumCardsInhand(std::vector<int32_t>& card_values);
+	//int32_t GetSumCardsInhand();
 	int32_t GetNiu();
 	//const std::map<int32_t, std::vector<int32_t>>& GetCardsInhand() { return _cards_inhand; }
 	//const std::map<int32_t, std::vector<int32_t>>& GetCardsOuthand() { return _cards_outhand; }
 	const std::vector<Asset::PaiElement>& GetCardsInhand() { return _cards_inhand; } 
+	int32_t GetCardsCountInhand() { return _cards_inhand.size(); }
 
 	void Add2CardsPool(Asset::PaiElement pai) { _cards_pool.push_back(pai); }
 	//const std::list<Asset::PaiElement>& GetCardsPool() { return _cards_pool; }
