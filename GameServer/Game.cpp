@@ -293,8 +293,8 @@ void Game::Calculate(std::shared_ptr<Player> player_ptr)
 {
 	if (!_room || !player_ptr) return;
 
-	auto banker = _room->GetPlayer(_room->GetBanker());
-	if (!banker) return;
+	auto banker_id = _room->GetBanker();
+	if (banker_id <= 0) return;
 	
 	//1.推到牌
 	//
@@ -313,15 +313,17 @@ void Game::Calculate(std::shared_ptr<Player> player_ptr)
 	{
 		if (!player) continue;
 		
+		auto player_id = player->GetID();
+
 		auto record = message.mutable_record()->mutable_list()->Add(); //包括地主和农民
-		record->set_player_id(player->GetID());
+		record->set_player_id(player_id);
 		record->set_nickname(player->GetNickName());
 		record->set_headimgurl(player->GetHeadImag());
 		
-		if (player == banker) continue;
+		if (player_id == banker_id) continue;
 
 		auto score = base_score;
-		if (player_ptr == banker) score = -base_score; //庄家先走
+		if (player_ptr->GetID() == banker_id) score = -base_score; //庄家先走
 
 		score *= _room->GetBeiLv(); //总分数
 
@@ -348,7 +350,7 @@ void Game::Calculate(std::shared_ptr<Player> player_ptr)
 		return it;
 	};
 	
-	auto record = get_record(banker->GetID()); 
+	auto record = get_record(banker_id); 
 	if (record == message.mutable_record()->mutable_list()->end()) return;
 
 	//好友房//匹配房记录消耗
