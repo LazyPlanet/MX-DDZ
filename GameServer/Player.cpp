@@ -2025,6 +2025,7 @@ int32_t Player::OnFaPai(std::vector<int32_t>& cards)
 	}
 	
 	notify.set_data_type(Asset::PaiNotify_CARDS_DATA_TYPE_CARDS_DATA_TYPE_START); //操作类型：开局
+	if (_cards_inhand.size()) notify.set_data_type(Asset::PaiNotify_CARDS_DATA_TYPE_CARDS_DATA_TYPE_DIPAI); //底牌
 
 	auto remain_count = _game->GetRemainCount();
 	notify.set_cards_remain(remain_count); //当前剩余牌数量
