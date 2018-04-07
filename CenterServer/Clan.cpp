@@ -382,7 +382,7 @@ void Clan::Save(bool force)
 
 	DEBUG("存储茶馆:{} 数据:{} 成功", _clan_id, _stuff.ShortDebugString());
 		
-	RedisInstance.Save("clan:" + std::to_string(_clan_id), _stuff);
+	RedisInstance.Save("ddz_clan:" + std::to_string(_clan_id), _stuff);
 
 	_dirty = false;
 }
@@ -1201,7 +1201,7 @@ bool ClanManager::IsLocal(int64_t clan_id)
 
 bool ClanManager::GetClan(int64_t clan_id, Asset::Clan& clan)
 {
-	return RedisInstance.Get("clan:" + std::to_string(clan_id), clan);
+	return RedisInstance.Get("ddz_clan:" + std::to_string(clan_id), clan);
 }
 
 }

@@ -15,7 +15,7 @@
 namespace Adoter
 {
 
-#define CARDS_COUNT 136
+#define CARDS_COUNT 54
 	
 extern const int32_t MAX_PLAYER_COUNT; //玩家总数：有些地方不是4人麻将
 
@@ -31,7 +31,7 @@ private:
 	std::list<int32_t> _cards; //随机牌,每次开局更新,索引为GameManager牌中索引
 
 	int32_t _curr_player_index = 0; //当前在操作的玩家索引
-	int64_t _banker_player_id = 0; //庄家
+	int64_t _banker_player_id = 0; //庄家//起手叫地主
 	int64_t _dizhu_player_id = 0; //地主
 	int64_t _room_id = 0;
 	int32_t _game_id = 0;

@@ -669,12 +669,12 @@ void ClanManager::OnResult(const Asset::ClanOperation* message)
 
 bool ClanManager::GetClan(int64_t clan_id, Asset::Clan& clan)
 {
-	return RedisInstance.Get("clan:" + std::to_string(clan_id), clan);
+	return RedisInstance.Get("ddz_clan:" + std::to_string(clan_id), clan);
 }
 
 bool ClanManager::GetCache(int64_t clan_id, Asset::Clan& clan)
 {
-	return RedisInstance.Get("clan:" + std::to_string(clan_id), clan);
+	return RedisInstance.Get("ddz_clan:" + std::to_string(clan_id), clan);
 }
 
 void ClanManager::OnQueryClanList(std::shared_ptr<Player> player, Asset::ClanOperation* message)

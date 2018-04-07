@@ -448,7 +448,7 @@ public:
 	{
 		if (!Connect()) return false;
 
-		auto incrby = _client.incrby("clan_counter", 1);
+		auto incrby = _client.incrby("ddz_clan_counter", 1);
 		_client.commit();
 
 		int64_t clan_id = 0;
