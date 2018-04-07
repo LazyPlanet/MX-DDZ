@@ -58,7 +58,7 @@ public:
 	virtual void SetID(int64_t room_id) { return _stuff.set_room_id(room_id); }
 
 	virtual const Asset::Room& Get() { return _stuff; } //数据
-	virtual Asset::ROOM_TYPE GetType() { return _stuff.room_type(); } //数据
+	virtual const Asset::ROOM_TYPE& GetType() { return _stuff.room_type(); } //数据
 	virtual bool IsFriend() { return Asset::ROOM_TYPE_FRIEND == _stuff.room_type(); } //是否是好友房间
 	virtual bool IsMatch() { return Asset::ROOM_TYPE_FRIEND != _stuff.room_type(); } //是否是匹配房间
 	
