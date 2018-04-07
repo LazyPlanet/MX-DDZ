@@ -169,10 +169,11 @@ private:
 	std::vector<std::vector<int32_t>> _combines; //排列组合序列
 	std::unordered_map<int32_t, int32_t> _card_tye_weight = 
 	{
-		{Asset::CARD_TYPE_HEITAO, 4}, 
-		{Asset::CARD_TYPE_HONGTAO, 3}, 
-		{Asset::CARD_TYPE_MEIHUA, 2}, 
+		{Asset::CARD_TYPE_HEITAO, 1}, 
+		{Asset::CARD_TYPE_HONGTAO, 1}, 
+		{Asset::CARD_TYPE_MEIHUA, 1}, 
 		{Asset::CARD_TYPE_FANGPIAN, 1}, 
+		{Asset::CARD_TYPE_KINGS, 2}, 
 	};
 public:
 	static GameManager& Instance()
@@ -196,7 +197,7 @@ public:
 	void OnCreateGame(std::shared_ptr<Game> game);
 	void DoCombine();
 	const std::vector<std::vector<int32_t>>& GetCombine() { return _combines; } //排列组合序列
-	int32_t GetCardWeight(int32_t card_type);
+	int32_t GetCardWeight(const Asset::PaiElement& card);
 	bool ComparePai(const Asset::PaiElement& p1, const Asset::PaiElement& p2);
 };
 

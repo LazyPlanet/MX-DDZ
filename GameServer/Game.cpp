@@ -207,9 +207,9 @@ bool Game::CanPaiOperate(std::shared_ptr<Player> player, Asset::PaiOperation* pa
 	//
 	//2.最大数量的牌值大于前者;
 	if (!pai_operate) return false;
-	if (pai_operate->pais().size() != _last_oper.pai_oper().pais().size()) return false;
-	if (_last_oper.pai_oper().paixing() != pai_operate->paixing()) return false;
-	if (_last_oper.pai_oper().pai().card_value() >= pai_operate->pai().card_value()) return false;
+	if (pai_operate->pais().size() != _last_oper.pai_oper().pais().size()) return false; //出牌数量不一致
+	if (_last_oper.pai_oper().paixing() != pai_operate->paixing()) return false; //牌型不一致
+	if (GameInstance.ComparePai(_last_oper.pai_oper().pai(), pai_operate->pai())) return false; //比较大小
 
 	return true;
 }
@@ -612,9 +612,9 @@ void GameManager::DoCombine()
 	} while (std::prev_permutation(v.begin(), v.end()));
 }
 
-int32_t GameManager::GetCardWeight(int32_t card_type)
+int32_t GameManager::GetCardWeight(const Asset::PaiElement& card)
 {
-	auto it = _card_tye_weight.find(card_type);
+	auto it = _card_tye_weight.find(card.card_value());
 	if (it == _card_tye_weight.end()) return 0;
 
 	return it->second;
@@ -622,10 +622,15 @@ int32_t GameManager::GetCardWeight(int32_t card_type)
 	
 bool GameManager::ComparePai(const Asset::PaiElement& p1, const Asset::PaiElement& p2)
 {
-	if (p1.card_value() > p2.card_value()) return true;
-	if (p1.card_value() < p2.card_value()) return false;
+	if (GetCardWeight(p1) > GetCardWeight(p2)) return true; //除了大小王，其他的根据牌值进行判断
 
-	return GetCardWeight(p1.card_type()) > GetCardWeight(p2.card_type());
+	int32_t p1_value = p1.card_value();
+	int32_t p2_value = p2.card_value();
+
+	if (p1_value == 1 || p1_value == 2) p1_value += 13;
+	if (p2_value == 1 || p2_value == 2) p2_value += 13;
+
+	return p1_value > p2_value;
 }
 
 }
