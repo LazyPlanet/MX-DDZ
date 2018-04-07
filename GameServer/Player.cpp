@@ -916,8 +916,6 @@ int32_t Player::CmdPaiOperate(pb::Message* message)
 		break;
 	}
 
-	++_oper_count;
-
 	//牌内操作
 	//
 	_game->OnPaiOperate(shared_from_this(), message);
@@ -2076,112 +2074,16 @@ void Player::SetOffline(bool offline)
 
 void Player::ClearCards() 
 {
-	_fan_list.clear(); //番数
-	_juetouhuis.clear(); //绝头会儿
 	_cards_inhand.clear(); //清理手里牌
 	_cards_pool.clear(); //牌池
-	_cards_hu.clear(); //胡牌
-	_hu_result.clear(); //胡牌数据
-	_xf_gang.clear(); //旋风杠
  
- 	_minggang.clear(); //清理杠牌
-	_angang.clear(); //清理杠牌
-
-	_jiangang = _fenggang = 0; //清理旋风杠
-	
-	_oper_count_tingpai = 0;
-	_fapai_count = _oper_count = 0; 
-	_has_ting = _jinbao = false;
 	_tuoguan_server = false;
 	_last_oper_type = _oper_type = Asset::PAI_OPER_TYPE_BEGIN; //初始化操作
 	_player_prop.clear_game_oper_state(); //准备//离开
-	_baopai.Clear();
-	_zhuapai.Clear();
 
 	if (_game) _game.reset();
 }
 
-Asset::PaiElement Player::GetMaxPai()
-{
-	Asset::PaiElement pai;
-	/*
-	int32_t max_type = 0, max_value = 0;
-
-	for (const auto& card : _cards_inhand)
-	{
-		for (auto card_value : card.second)
-		{
-			if (card_value > max_value) 
-			{
-				max_type = card.first;
-				max_value = card_value; //最大牌值
-			}
-
-			if (card_value == max_value)
-			{
-				auto max_card_weight = GameInstance.GetCardWeight(max_type);
-				auto card_weight = GameInstance.GetCardWeight(card.first);
-
-				if (card_weight > max_card_weight) max_type = card.first; //牌值相同，比较花色的权重 
-			}
-		}
-	}
-
-	if (max_type == 0 || max_value == 0) return pai;
-
-	pai.set_card_type((Asset::CARD_TYPE)max_type);
-	pai.set_card_value(max_value);
-	*/
-	return pai;
-}
-	
-/*
-int32_t Player::GetSumCardsInhand()
-{
-	return _cards_inhand.size();
-}
-*/
-
-int32_t Player::GetNiu()
-{
-	/*
-	int32_t niu_value = -1;
-
-	const auto& combines = GameInstance.GetCombine();
-
-	std::vector<int32_t> niuniu; //任意牌组合
-	auto sum_total = GetSumCardsInhand(niuniu);
-
-	if (sum_total % 10 == 0)
-	{
-		DEBUG("玩家:{} 是牛牛, 5张牌之和:{}", _player_id, sum_total);
-		niu_value = 0; //牛牛
-	}
-	else
-	{
-		for (auto combine : combines)
-		{
-			int32_t sum_sub3 = 0; //3个数之和
-
-			for (auto index : combine) 
-			{
-				auto card_value = niuniu[index];
-				sum_sub3 += card_value; 
-			}
-			
-			if (sum_sub3 % 10 == 0)
-			{
-				niu_value = (sum_total - sum_sub3) % 10; //牛几
-				DEBUG("玩家:{} 有牛, 3张牌之和:{} 牛:{}", _player_id, sum_sub3, niu_value);
-			}
-		}
-	}
-
-	return niu_value;
-	*/
-	return 0;
-}
-	
 void Player::OnGameOver()
 {
 	ClearCards();

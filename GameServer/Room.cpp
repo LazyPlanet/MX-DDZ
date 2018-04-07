@@ -194,7 +194,7 @@ void Room::OnReEnter(std::shared_ptr<Player> op_player)
 		auto player_list = message.mutable_player_list()->Add();
 		player_list->set_player_id(player->GetID());
 		player_list->set_position(player->GetPosition());
-		player_list->set_pai_count_inhand(player->GetCardCount());
+		player_list->set_pai_count_inhand(player->GetCardsCountInhand());
 
 		if (op_player->GetID() == player->GetID())
 		{
