@@ -580,6 +580,8 @@ void Game::OnRobDiZhu(int64_t player_id, bool is_rob)
 //是否可以开局
 //
 //斗地主的开局在发牌之后进行叫地主操作
+//
+//每次游戏可以必须进行4次是否抢地主操作
 bool Game::CanStart()
 {
 	if (_rob_dizhus.size() < MAX_PLAYER_COUNT) return false;
