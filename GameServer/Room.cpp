@@ -274,8 +274,7 @@ void Room::OnPlayerOperate(std::shared_ptr<Player> player, pb::Message* message)
 
 			_game->Start(_players, _stuff.room_id(), _games.size()); //开始游戏
 
-			//for (int32_t i = 0; i < 8; ++i) //直接第8局
-				_games.push_back(_game); //游戏
+			_games.push_back(_game); //游戏
 
 			OnGameStart();
 		}
@@ -323,16 +322,6 @@ void Room::OnPlayerOperate(std::shared_ptr<Player> player, pb::Message* message)
 
 		case Asset::GAME_OPER_TYPE_DISMISS_AGREE: //解散
 		{
-			/*
-			auto curr_time = CommonTimerInstance.GetTime();
-
-			if (_dismiss_cooldown > 0 && curr_time <= _dismiss_cooldown) 
-			{
-				player->AlertMessage(Asset::ERROR_ROOM_DISMISS_COOLDOWN);
-				return;
-			}
-			*/
-
 			OnDisMiss(player->GetID(), game_operate);
 
 			//
@@ -390,133 +379,6 @@ bool Room::HasBeenOver()
 	return !_game && GetRemainCount() <= 0; 
 }
 
-bool Room::HasLaw(Asset::ROOM_EXTEND_TYPE type)
-{
-	const auto& city_type = GetCity(); //房间归属城市
-
-	if (city_type == Asset::CITY_TYPE_CHAOYANG && (type == Asset::ROOM_EXTEND_TYPE_28ZUOZHANG || type == Asset::ROOM_EXTEND_TYPE_SIGUIYI || 
-			type == Asset::ROOM_EXTEND_TYPE_HUANGZHUANGHUANGGANG/*朝阳流局直接荒庄荒杠*/))
-	{
-		return true; //朝阳支持
-	}
-
-	if (city_type == Asset::CITY_TYPE_JIANPING && type == Asset::ROOM_EXTEND_TYPE_JIAHU)
-	{
-		return true; //建平支持
-	}
-	
-	if (city_type == Asset::CITY_TYPE_YINGKOU && type == Asset::ROOM_EXTEND_TYPE_HUANGZHUANGHUANGGANG)
-	{
-		return false; //营口流局,杠依然算分
-	}
-
-	auto it = std::find(_stuff.options().extend_type().begin(), _stuff.options().extend_type().end(), type);
-	if (it == _stuff.options().extend_type().end()) return false; //常规规则检查
-
-	return true;
-}
-	
-bool Room::HasAnbao()
-{
-	return HasLaw(Asset::ROOM_EXTEND_TYPE_ANBAO);
-}
-
-bool Room::HasHuiPai()
-{
-	return HasLaw(Asset::ROOM_EXTEND_TYPE_HUIPAI);
-}
-
-bool Room::HasJueTouHui()
-{
-	return HasLaw(Asset::ROOM_EXTEND_TYPE_JUETOUHUI);
-}
-
-bool Room::HasQiDui()
-{
-	return HasLaw(Asset::ROOM_EXTEND_TYPE_QIDUI);
-}
-
-bool Room::HasBaopai()
-{
-	return HasLaw(Asset::ROOM_EXTEND_TYPE_BAOPAI);
-}
-
-bool Room::HasZhang28()
-{
-	return HasLaw(Asset::ROOM_EXTEND_TYPE_28ZUOZHANG);
-}
-
-//
-//中发白其中之一只要碰就算明飘
-//
-//本局必须胡飘，不勾选则正常
-//
-bool Room::HasMingPiao()
-{
-	return HasLaw(Asset::ROOM_EXTEND_TYPE_MINGPIAO);
-}
-
-//
-//流局杠分依然算
-//
-bool Room::HasHuangZhuang()
-{
-	return HasLaw(Asset::ROOM_EXTEND_TYPE_HUANGZHUANGHUANGGANG);
-}
-
-//
-//手里有4张一样的不可上听胡牌，杠除外
-//
-bool Room::HasSiGuiYi()
-{
-	return HasLaw(Asset::ROOM_EXTEND_TYPE_SIGUIYI);
-}
-
-bool Room::HasYiBianGao()
-{
-	return HasLaw(Asset::ROOM_EXTEND_TYPE_YIBIANGAO);
-}
-
-bool Room::HasZhanLi()
-{
-	return HasLaw(Asset::ROOM_EXTEND_TYPE_ZHANLIHU);
-}
-
-bool Room::HasJiaHu()
-{
-	return HasLaw(Asset::ROOM_EXTEND_TYPE_JIAHU);
-}
-
-bool Room::HasXuanFengGang()
-{
-	return HasLaw(Asset::ROOM_EXTEND_TYPE_XUANFENGGANG);
-}
-
-bool Room::HasDuanMen()
-{
-	return HasLaw(Asset::ROOM_EXTEND_TYPE_DUANMEN);
-}
-
-bool Room::HasQingYiSe()
-{
-	return HasLaw(Asset::ROOM_EXTEND_TYPE_QIYISE);
-}
-
-//
-//谁点谁给自己的点炮钱（不用帮其他两家给）
-//
-//其他两家不掏钱（别人杠要帮付，点杠不帮付）
-//
-bool Room::HasYiJiaFu()
-{
-	return HasLaw(Asset::ROOM_EXTEND_TYPE_YIJIAFU);
-}
-
-bool Room::HasBaoSanJia()
-{
-	return HasLaw(Asset::ROOM_EXTEND_TYPE_BAOSANJIA);
-}
-	
 int32_t Room::GetMultiple(int32_t fan_type)
 {
 	/*
@@ -649,6 +511,9 @@ void Room::OnClanOver()
 void Room::OnGameOver(int64_t player_id)
 {
 	if (_game) _game.reset();
+
+	_beilv = 1; //倍率
+	_zhuang_bl.clear(); //倍率表
 	
 	if (!IsFriend()) return; //非好友房没有总结算
 	
@@ -846,7 +711,14 @@ void Room::OnJiaoZhuang(int64_t player_id, int32_t beilv)
 {
 	if (player_id <= 0 || beilv <= 0) return;
 
-	_jiao_zhuang[player_id] = beilv;
+	if (_stuff.options().zhuang_type() == Asset::ZHUANG_TYPE_JIAOFEN)
+	{
+		_zhuang_bl[player_id] = beilv;
+	}
+	else if (_stuff.options().zhuang_type() == Asset::ZHUANG_TYPE_QIANGDIZHU)
+	{
+		_beilv *= 2; //倍率
+	}
 }
 
 void Room::SelectBanker()
@@ -855,7 +727,7 @@ void Room::SelectBanker()
 
 	std::vector<int64_t> bankers;
 
-	for (auto zhuang : _jiao_zhuang)
+	for (auto zhuang : _zhuang_bl)
 	{
 		if (zhuang.second >= beilv) 
 		{

@@ -240,11 +240,9 @@ void Game::OnPaiOperate(std::shared_ptr<Player> player, pb::Message* message)
 	{
 		case Asset::PAI_OPER_TYPE_DAPAI: //打牌
 		{
-			Add2CardsPool(pai_operate->pai()); //加入牌池
-	
-			_last_oper.set_player_id(player->GetID());
-			_last_oper.set_source_player_id(player->GetID());
-			_last_oper.mutable_pai_oper()->CopyFrom(*pai_operate); //缓存牌操作
+			for (const auto& pai : pai_operate->pais()) Add2CardsPool(pai); //加入牌池
+
+			if (player->GetCardsCountInhand() == 0) Calculate(player); //有一家出完所有牌则进入本局结算
 		}
 		break;
 		
@@ -290,26 +288,23 @@ void Game::PaiPushDown()
 	BroadCast(proto);
 }
 	
-void Game::Calculate(std::shared_ptr<Player> banker)
+void Game::Calculate(std::shared_ptr<Player> player_ptr)
 {
-	if (!_room || !banker) return;
+	if (!_room || !player_ptr) return;
+
+	auto banker = _room->GetPlayer(_room->GetBanker());
+	if (!banker) return;
 	
-	//
 	//1.推到牌
 	//
 	PaiPushDown();
 
-	//
 	//2.结算
 	//
-	
 	Asset::GameCalculate message;
 
-	//
 	//(1)各个玩家输牌积分
 	//
-	//std::unordered_map<int64_t, int32_t> player_score; //非庄家输赢分数
-	auto banker_niu = banker->GetNiu();
 	int32_t top_mutiple = _room->MaxFan(); //封顶番数
 	int32_t base_score = 1;
 
@@ -317,62 +312,33 @@ void Game::Calculate(std::shared_ptr<Player> banker)
 	{
 		if (!player) continue;
 		
-		auto record = message.mutable_record()->mutable_list()->Add();
+		auto record = message.mutable_record()->mutable_list()->Add(); //包括地主和农民
 		record->set_player_id(player->GetID());
 		record->set_nickname(player->GetNickName());
 		record->set_headimgurl(player->GetHeadImag());
 		
 		if (player == banker) continue;
 
-		auto niu = player->GetNiu();
-		auto fan = _room->GetMultiple(niu);
-		auto score = base_score * fan;
+		auto score = base_score;
+		if (player_ptr == banker) score = -base_score; //庄家先走
 
-		if (banker_niu != 0 && niu > banker_niu)
-		{
-			DEBUG("玩家:{} 牛:{} 大于庄家:{} 牛:{} 分数:{}", player->GetID(), niu, banker->GetID(), banker_niu, score);
-		}
-		else if (niu != 0 && niu < banker_niu)
-		{
-			score = -_room->GetMultiple(banker_niu);
-			DEBUG("玩家:{} 牛:{} 小于庄家:{} 牛:{} 分数:{}", player->GetID(), niu, banker->GetID(), score);
-		}
-		else //都牛牛或者都非牛牛
-		{
-			bool banker_win = GameInstance.ComparePai(banker->GetMaxPai(), player->GetMaxPai());
-			if (banker_win) 
-			{
-				score = -score;
-				DEBUG("玩家:{} 牛:{} 大于庄家:{} 牛:{} 分数:{}", player->GetID(), niu, banker->GetID(), banker_niu, score);
-			}
-			else
-			{
-				DEBUG("玩家:{} 牛:{} 小于庄家:{} 牛:{} 分数:{}", player->GetID(), niu, banker->GetID(), banker_niu, score);
-			}
-		}
-			
-		
-		//player_score.emplace(player->GetID(), score);
+		score *= _room->GetBeiLv(); //总分数
 
-		//
 		//牌型基础分值计算
 		//
 		auto detail = record->mutable_details()->Add();
-		detail->set_fan_type((Asset::FAN_TYPE)fan);
-		detail->set_score(-score);
+		//detail->set_fan_type((Asset::FAN_TYPE)fan);
+		detail->set_score(-score); //负数代表输分
 	
-		//
 		//输牌玩家番数上限封底
 		//
 		if (top_mutiple > 0) score = std::min(top_mutiple, score); //封顶
 
-		record->set_score(-score); //玩家所输积分
+		record->set_score(-score); //玩家总积分
 	}
 
+	//(2)地主积分
 	//
-	//(2)庄家积分
-	//
-
 	auto get_record = [&](int64_t player_id)->google::protobuf::internal::RepeatedPtrIterator<Adoter::Asset::GameRecord_GameElement> { 
 		auto it = std::find_if(message.mutable_record()->mutable_list()->begin(), message.mutable_record()->mutable_list()->end(), 
 				[player_id](const Asset::GameRecord_GameElement& ele){
@@ -383,7 +349,7 @@ void Game::Calculate(std::shared_ptr<Player> banker)
 	
 	auto record = get_record(banker->GetID()); 
 	if (record == message.mutable_record()->mutable_list()->end()) return;
-	//
+
 	//好友房//匹配房记录消耗
 	//
 	auto room_type = _room->GetType();

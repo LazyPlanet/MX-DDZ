@@ -42,7 +42,8 @@ private:
 	int32_t _dismiss_time = 0; //解散时间
 	int32_t _created_time = 0; //创建时间
 	int32_t _dismiss_cooldown = 0; //解散冷却时间
-	std::unordered_map<int64_t, int32_t> _jiao_zhuang; //倍率表
+	std::unordered_map<int64_t, int32_t> _zhuang_bl; //倍率表//缓存玩家叫分
+	int32_t _beilv = 1; //抢地主倍率
 public:
 	explicit Room(Asset::Room room) {  _stuff = room; }
 	void SetGmtOpened() { _gmt_opened = true; }
@@ -66,6 +67,9 @@ public:
 	const Asset::RoomOptions& GetOptions() { return _stuff.options(); } //额外番型
 	void SetOptions(const Asset::RoomOptions& options) {	_stuff.mutable_options()->CopyFrom(options);}
 
+	void IncreaseBeiLv() { _beilv *= 2; } //加倍
+	int32_t GetBeiLv() { return _beilv; } //获取倍率
+
 	const Asset::RoomFan* GetFan(); //获取番数数据
 	int32_t GetMultiple(int32_t fan_type);
 	int32_t MaxFan() { return _stuff.options().top_mutiple(); }
@@ -73,25 +77,6 @@ public:
 	bool IsChaoYang() { return _stuff.options().city_type() == Asset::CITY_TYPE_CHAOYANG; }
 	bool IsJianPing() { return _stuff.options().city_type() == Asset::CITY_TYPE_JIANPING; }
 	bool IsYingKou() { return _stuff.options().city_type() == Asset::CITY_TYPE_YINGKOU; }
-
-	bool HasLaw(Asset::ROOM_EXTEND_TYPE type); //支持玩法
-	bool HasAnbao(); //是否暗包
-	bool HasBaopai(); //是否带宝牌
-	bool HasZhang28(); //28是否可以做掌
-	bool HasZhanLi(); //是否可以站立胡
-	bool HasJiaHu(); //是否可以夹胡
-	bool HasXuanFengGang(); //是否支持旋风杠
-	bool HasDuanMen(); //是否支持断门
-	bool HasQingYiSe(); //是否支持清一色
-	bool HasBaoSanJia(); //是否支持包三家
-	bool HasMingPiao(); //是否支持明飘
-	bool HasHuangZhuang(); //是否支持荒庄杠
-	bool HasYiBianGao(); //是否支持一边高
-	bool HasSiGuiYi(); //是否支持四归一
-	bool HasYiJiaFu(); //点炮一家付
-	bool HasHuiPai(); //是否带会儿
-	bool HasJueTouHui(); //是否带绝头会儿
-	bool HasQiDui(); //是否带7对
 
 	bool IsVoiceOpen() { return _stuff.options().voice_open(); }
 

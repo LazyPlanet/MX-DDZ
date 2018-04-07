@@ -99,7 +99,7 @@ public:
 	int32_t GetMultiple(int32_t fan_type);
 	//void CalculateGangScore(Asset::GameCalculate& game_calculate);
 	//void Calculate(int64_t hupai_player_id/*胡牌玩家*/, int64_t dianpao_player_id/*点炮玩家*/, std::unordered_set<int32_t>& fan_list/*基础分*/);
-	void Calculate(std::shared_ptr<Player> banker);
+	void Calculate(std::shared_ptr<Player> player);
 	void PaiPushDown();
 
 	void AddTingPlayer(int64_t player_id) {	_ting_players.push_back(player_id);	} //增加听牌玩家

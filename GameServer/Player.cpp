@@ -665,6 +665,8 @@ int32_t Player::CmdClanOperate(pb::Message* message)
 //
 bool Player::PaiXingCheck(Asset::PaiOperation* pai_operate)
 {
+	if (!_room || !_game) return false;
+
 	if (!pai_operate) return false;
 
 	std::sort(pai_operate->mutable_pais()->begin(), pai_operate->mutable_pais()->end(), [](const Asset::PaiElement& x, const Asset::PaiElement& y){ 
@@ -705,6 +707,8 @@ bool Player::PaiXingCheck(Asset::PaiOperation* pai_operate)
 		{
 			if (chupai_count == 4) //炸弹
 			{
+				_room->IncreaseBeiLv(); //翻倍
+
 				pai_operate->set_paixing(Asset::PAIXING_TYPE_ZHADAN);
 				return true; 
 			}
@@ -867,7 +871,7 @@ int32_t Player::CmdPaiOperate(pb::Message* message)
 	{
 		case Asset::PAI_OPER_TYPE_DAPAI: //打牌
 		{
-			if (!PaiXingCheck(pai_operate)) 
+			if (!PaiXingCheck(pai_operate)) //牌型检查
 			{
 				LOG(ERROR, "玩家:{} 在房间:{}/{}局中不能打牌，牌数据:{}", _player_id, _game->GetID(), _room->GetID(), pai_operate->ShortDebugString());
 				return 3;
@@ -886,7 +890,7 @@ int32_t Player::CmdPaiOperate(pb::Message* message)
 		}
 		break;
 
-		case Asset::PAI_OPER_TYPE_GIVEUP: //不要
+		case Asset::PAI_OPER_TYPE_GIVEUP: //不要//过
 		{
 
 		}
