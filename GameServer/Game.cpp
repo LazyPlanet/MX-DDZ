@@ -195,7 +195,9 @@ void Game::ClearState()
 	_cards_pool.clear();
 	
 	_beilv = 1; //倍率
-	_zhuang_bl.clear(); //倍率表
+	_rob_dizhu_count = 0; 
+	_rob_dizhu_bl.clear(); //倍率表
+	_rob_dizhus.clear(); //倍率表
 	
 	_liuju = false;
 }
@@ -537,7 +539,7 @@ void Game::SelectBanker()
 
 	std::vector<int64_t> bankers;
 
-	for (auto zhuang : _zhuang_bl)
+	for (auto zhuang : _rob_dizhu_bl)
 	{
 		if (zhuang.second >= beilv) 
 		{
@@ -559,20 +561,22 @@ void Game::SelectBanker()
 //加倍抢地主
 //
 //庄家可以抢两次
-void Game::OnQiangDiZhu(int64_t player_id, bool qiangdizhu) 
+void Game::OnRobDiZhu(int64_t player_id, bool is_rob) 
 { 
-	if (_dizhus.find(player_id) != _dizhus.end())
+	++_rob_dizhu_count;
+
+	if (_rob_dizhus.find(player_id) != _rob_dizhus.end())
 	{
 		if (player_id != _banker_player_id) return; //非庄家不能多次叫地主
 	}
 
-	if (qiangdizhu) 
+	if (is_rob) 
 	{ 
-		++_dizhus[player_id]; 
+		++_rob_dizhus[player_id]; 
 	}
 	else 
 	{ 
-		_dizhus[player_id] = 0; 
+		_rob_dizhus[player_id] = 0; 
 	}
 } 
 	
@@ -581,9 +585,11 @@ void Game::OnQiangDiZhu(int64_t player_id, bool qiangdizhu)
 //斗地主的开局在发牌之后进行叫地主操作
 bool Game::CanStart()
 {
-	if (_dizhus.size() < MAX_PLAYER_COUNT) return false;
+	if (_rob_dizhus.size() < MAX_PLAYER_COUNT) return false;
 
-	for (const auto player : _dizhus)
+	if (_rob_dizhu_count != MAX_PLAYER_COUNT + 1) return false;
+
+	for (const auto player : _rob_dizhus)
 	{
 		if (player.second >= 1) _dizhu_player_id = player.first; //地主
 		

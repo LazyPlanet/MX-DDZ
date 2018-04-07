@@ -56,8 +56,9 @@ private:
 	Asset::PlayBack _playback; //回放数据
 	
 	int32_t _beilv = 1; //抢地主倍率
-	std::unordered_map<int64_t, int32_t> _zhuang_bl; //倍率表//缓存玩家叫分
-	std::unordered_map<int64_t, int32_t> _dizhus; //是否已经叫地主
+	int32_t _rob_dizhu_count = 0; //是否抢地主操作次数
+	std::unordered_map<int64_t, int32_t> _rob_dizhu_bl; //倍率表//缓存玩家叫分
+	std::unordered_map<int64_t, int32_t> _rob_dizhus; //是否已经叫地主
 public:
 	virtual void Init(std::shared_ptr<Room> room); //初始化
 	virtual bool Start(std::vector<std::shared_ptr<Player>> players, int64_t room_id = 0, int32_t game_id = 0); //开始游戏
@@ -111,12 +112,12 @@ public:
 	void SelectBanker(); //随机地主
 	void IncreaseBeiLv(int32_t beilv = 2) { if (beilv <= 0) beilv = 2; _beilv *= beilv; } //加倍
 	int32_t GetBeiLv() { return _beilv; } //获取倍率
-	int32_t GetDiZhuPlayerCount() { return _zhuang_bl.size(); } //获取抢地主玩家数量//叫分
+	int32_t GetDiZhuPlayerCount() { return _rob_dizhu_bl.size(); } //获取抢地主玩家数量//叫分
 	int64_t GetDiZhu() { return _dizhu_player_id; } //地主
 
-	void OnQiangDiZhu(int64_t player_id, int32_t beilv) { _zhuang_bl[player_id] = beilv; } //叫分抢地主
-	void OnQiangDiZhu(int64_t player_id, bool qiangdizhu); //加倍抢地主
-	bool HasQiangDiZhu(int64_t player_id) { return _dizhus.find(player_id) != _dizhus.end(); } //是否叫过地主
+	void OnRobDiZhu(int64_t player_id, int32_t beilv) { _rob_dizhu_bl[player_id] = beilv; } //叫分抢地主
+	void OnRobDiZhu(int64_t player_id, bool is_rob); //加倍抢地主
+	bool HasRobDiZhu(int64_t player_id) { return _rob_dizhus.find(player_id) != _rob_dizhus.end(); } //是否叫过地主
 	bool CanStart(); //是否可以开局
 };
 

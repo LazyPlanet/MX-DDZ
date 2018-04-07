@@ -712,7 +712,7 @@ bool Room::OnJiaoZhuang(int64_t player_id, int32_t beilv)
 
 	if (_stuff.options().zhuang_type() == Asset::ZHUANG_TYPE_JIAOFEN)
 	{
-		_game->OnQiangDiZhu(player_id, beilv);
+		_game->OnRobDiZhu(player_id, beilv);
 	
 		if (_game->GetDiZhuPlayerCount() < MAX_PLAYER_COUNT) return false; //有玩家尚未叫分
 	}
@@ -721,11 +721,11 @@ bool Room::OnJiaoZhuang(int64_t player_id, int32_t beilv)
 		if (beilv > 0) //叫地主
 		{
 			_game->IncreaseBeiLv(); 
-			_game->OnQiangDiZhu(player_id, true);
+			_game->OnRobDiZhu(player_id, true);
 		}
 		else //不叫
 		{
-			_game->OnQiangDiZhu(player_id, false);
+			_game->OnRobDiZhu(player_id, false);
 		}
 			
 		if (!_game->CanStart()) return false; //是否可以开局//检查是否都叫完地主
