@@ -42,8 +42,6 @@ private:
 	int32_t _dismiss_time = 0; //解散时间
 	int32_t _created_time = 0; //创建时间
 	int32_t _dismiss_cooldown = 0; //解散冷却时间
-	std::unordered_map<int64_t, int32_t> _zhuang_bl; //倍率表//缓存玩家叫分
-	int32_t _beilv = 1; //抢地主倍率
 public:
 	explicit Room(Asset::Room room) {  _stuff = room; }
 	void SetGmtOpened() { _gmt_opened = true; }
@@ -67,8 +65,6 @@ public:
 	const Asset::RoomOptions& GetOptions() { return _stuff.options(); } //额外番型
 	void SetOptions(const Asset::RoomOptions& options) {	_stuff.mutable_options()->CopyFrom(options);}
 
-	void IncreaseBeiLv() { _beilv *= 2; } //加倍
-	int32_t GetBeiLv() { return _beilv; } //获取倍率
 
 	const Asset::RoomFan* GetFan(); //获取番数数据
 	int32_t GetMultiple(int32_t fan_type);
@@ -144,7 +140,7 @@ public:
 	int32_t GetBankerIndex() { return _banker_index; } //庄家索引
 	bool IsBanker(int64_t player_id){ return _banker == player_id; } //是否是庄家
 	bool OnJiaoZhuang(int64_t player_id, int32_t beilv); //叫庄//倍率或分数//扑克游戏
-	void SelectBanker();
+	//void SelectBanker();
 
 	int32_t GetPlayerOrder(int32_t player_id); //获取玩家的顺序
 

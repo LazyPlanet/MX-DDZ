@@ -53,6 +53,9 @@ private:
 	std::vector<Asset::PaiElement> _cards_pool; //牌池，玩家已经打的牌缓存
 
 	Asset::PlayBack _playback; //回放数据
+	
+	int32_t _beilv = 1; //抢地主倍率
+	std::unordered_map<int64_t, int32_t> _zhuang_bl; //倍率表//缓存玩家叫分
 public:
 	virtual void Init(std::shared_ptr<Room> room); //初始化
 	virtual bool Start(std::vector<std::shared_ptr<Player>> players, int64_t room_id = 0, int32_t game_id = 0); //开始游戏
@@ -155,6 +158,13 @@ public:
 
 	void SavePlayBack(); //回放存储
 	void AddPlayerOperation(const Asset::PaiOperation& pai_operate) { _playback.mutable_oper_list()->Add()->CopyFrom(pai_operate); } //回放记录
+	
+	//斗地主
+	void IncreaseBeiLv() { _beilv *= 2; } //加倍
+	int32_t GetBeiLv() { return _beilv; } //获取倍率
+	int32_t GetQiangZhuangCount() { return _zhuang_bl.size(); }
+	void OnQiangDiZhu(int64_t player_id, int32_t beilv) { _zhuang_bl[player_id] = beilv; }
+	void SelectBanker();
 };
 
 /////////////////////////////////////////////////////

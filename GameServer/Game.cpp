@@ -194,6 +194,9 @@ void Game::ClearState()
 	_oper_list.clear();
 	_cards_pool.clear();
 	
+	_beilv = 1; //倍率
+	_zhuang_bl.clear(); //倍率表
+	
 	_liuju = false;
 }
 
@@ -338,7 +341,7 @@ void Game::Calculate(std::shared_ptr<Player> player_ptr)
 		auto score = base_score;
 		if (player_ptr->GetID() == banker_id) score = -base_score; //庄家先走
 
-		score *= _room->GetBeiLv(); //总分数
+		score *= GetBeiLv(); //总分数
 
 		//牌型基础分值计算
 		//
@@ -524,6 +527,33 @@ int32_t Game::GetMultiple(int32_t fan_type)
 	if (!_room) return 0;
 	
 	return _room->GetMultiple(fan_type);
+}
+
+void Game::SelectBanker()
+{
+	if (!_room) return;
+
+	int64_t banker_id = 0, beilv = 0;
+
+	std::vector<int64_t> bankers;
+
+	for (auto zhuang : _zhuang_bl)
+	{
+		if (zhuang.second >= beilv) 
+		{
+			banker_id = zhuang.first;	
+			beilv = zhuang.second;
+
+			bankers.push_back(banker_id); //最后从分数高的玩家中随机选择庄家
+		}
+	}
+
+	if (bankers.size() == 0) return;
+
+	std::random_shuffle(bankers.begin(), bankers.end());
+
+	auto banker = GetPlayer(bankers[0]);
+	OnStarted(banker); //开局
 }
 
 //

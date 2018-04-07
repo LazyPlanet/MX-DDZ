@@ -354,8 +354,10 @@ void Room::OnPlayerOperate(std::shared_ptr<Player> player, pb::Message* message)
 
 		case Asset::GAME_OPER_TYPE_JIAOZHUANG: //叫庄
 		{
+			if (!_game) break; //尚未开局
+
 			bool can_start = OnJiaoZhuang(player->GetID(), game_operate->beilv());
-			if (can_start) SelectBanker(); //选庄开始打牌
+			if (can_start) _game->SelectBanker(); //选庄开始打牌
 		}
 		break;
 		
@@ -470,7 +472,6 @@ void Room::OnGameStart()
 	for (auto player : _players)
 	{
 		if (!player) continue;
-
 		player->SetOperState(Asset::GAME_OPER_TYPE_ONLINE);
 	}
 }
@@ -511,9 +512,6 @@ void Room::OnGameOver(int64_t player_id)
 {
 	if (_game) _game.reset();
 
-	_beilv = 1; //倍率
-	_zhuang_bl.clear(); //倍率表
-	
 	if (!IsFriend()) return; //非好友房没有总结算
 	
 	UpdateClanStatus(); //茶馆房间状态同步
@@ -708,20 +706,25 @@ void Room::DoDisMiss()
 
 bool Room::OnJiaoZhuang(int64_t player_id, int32_t beilv)
 {
-	if (player_id <= 0 || beilv <= 0) return false;
+	if (!_game) return false; //尚未开局
+
+	if (player_id <= 0) return false;
 
 	if (_stuff.options().zhuang_type() == Asset::ZHUANG_TYPE_JIAOFEN)
 	{
-		_zhuang_bl[player_id] = beilv;
+		_game->OnQiangDiZhu(player_id, beilv);
 	}
 	else if (_stuff.options().zhuang_type() == Asset::ZHUANG_TYPE_QIANGDIZHU)
 	{
-		_beilv *= 2; //倍率
+		_game->IncreaseBeiLv(); //加倍
 	}
+
+	if (_game->GetQiangZhuangCount() < MAX_PLAYER_COUNT) return false; //都叫分
 
 	return true;
 }
 
+/*
 void Room::SelectBanker()
 {
 	if (!_game) return;
@@ -751,7 +754,7 @@ void Room::SelectBanker()
 	auto banker = GetPlayer(_banker);
 	_game->OnStarted(banker); //开局
 }
-	
+*/	
 	
 void Room::KickOutPlayer(int64_t player_id)
 {
