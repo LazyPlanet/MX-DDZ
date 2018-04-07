@@ -681,8 +681,19 @@ bool Player::PaiXingCheck(Asset::PaiOperation* pai_operate)
 	}
 
 	auto chupai_count = pai_operate->pais().size(); //出牌数量
-	auto max_value = 0, max_value_count = 0; //最大牌值和最大牌值数量
+	if (chupai_count <= 0) return false;
 
+	//是否是王炸
+	//
+	if (chupai_count == 2 && pai_operate->pais(0).card_type() == Asset::CARD_TYPE_KINGS && pai_operate->pais(1).card_type() == Asset::CARD_TYPE_KINGS)
+	{
+		_room->IncreaseBeiLv(); //翻倍
+
+		pai_operate->set_paixing(Asset::PAIXING_TYPE_ZHADAN);
+		return true;
+	}
+
+	auto max_value = 0, max_value_count = 0; //最大牌值和最大牌值数量
 	for (const auto& card : cards_value)
 	{
 		if (card.second >= max_value_count)
