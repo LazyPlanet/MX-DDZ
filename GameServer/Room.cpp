@@ -181,7 +181,7 @@ void Room::OnReEnter(std::shared_ptr<Player> op_player)
 
 	//牌局通用信息
 	message.set_curr_operator_position(Asset::POSITION_TYPE(_game->GetCurrPlayerIndex() + 1));
-	message.set_remain_cards_count(_game->GetRemainCount());
+	//message.set_remain_cards_count(_game->GetRemainCount());
 
 	//
 	//牌局相关数据推送
@@ -713,13 +713,23 @@ bool Room::OnJiaoZhuang(int64_t player_id, int32_t beilv)
 	if (_stuff.options().zhuang_type() == Asset::ZHUANG_TYPE_JIAOFEN)
 	{
 		_game->OnQiangDiZhu(player_id, beilv);
+	
+		if (_game->GetDiZhuPlayerCount() < MAX_PLAYER_COUNT) return false; //有玩家尚未叫分
 	}
 	else if (_stuff.options().zhuang_type() == Asset::ZHUANG_TYPE_QIANGDIZHU)
 	{
-		_game->IncreaseBeiLv(); //加倍
+		if (beilv > 0) //叫地主
+		{
+			_game->IncreaseBeiLv(); 
+			_game->OnQiangDiZhu(player_id, true);
+		}
+		else //不叫
+		{
+			_game->OnQiangDiZhu(player_id, false);
+		}
+			
+		if (!_game->CanStart()) return false; //是否可以开局//检查是否都叫完地主
 	}
-
-	if (_game->GetQiangZhuangCount() < MAX_PLAYER_COUNT) return false; //都叫分
 
 	return true;
 }
@@ -735,7 +745,6 @@ void Room::KickOutPlayer(int64_t player_id)
 		Remove(player->GetID(), Asset::GAME_OPER_TYPE_HOSTER_DISMISS); //踢人
 	}
 
-	//RoomInstance.Remove(GetID());
 	_is_dismiss = true;
 }
 	
@@ -810,9 +819,7 @@ bool Room::CanStarGame()
 	
 	auto room_type = _stuff.room_type();
 	
-	//
 	//开始游戏，消耗房卡//欢乐豆
-	//
 	if (Asset::ROOM_TYPE_FRIEND == room_type)
 	{
 		if (GetRemainCount() <= 0) 

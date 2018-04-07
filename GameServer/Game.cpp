@@ -114,7 +114,7 @@ void Game::OnStart()
 {
 	if (!_room) return;
 
-	_room->SetBanker(_banker_player_id); //设置庄家
+	_room->SetBanker(_banker_player_id); //设置庄家//庄家开始叫地主
 
 	Asset::GameInformation info; //游戏数据广播
 	info.set_banker_player_id(_banker_player_id);
@@ -555,6 +555,47 @@ void Game::SelectBanker()
 	auto banker = GetPlayer(bankers[0]);
 	OnStarted(banker); //开局
 }
+	
+//加倍抢地主
+//
+//庄家可以抢两次
+void Game::OnQiangDiZhu(int64_t player_id, bool qiangdizhu) 
+{ 
+	if (_dizhus.find(player_id) != _dizhus.end())
+	{
+		if (player_id != _banker_player_id) return; //非庄家不能多次叫地主
+	}
+
+	if (qiangdizhu) 
+	{ 
+		++_dizhus[player_id]; 
+	}
+	else 
+	{ 
+		_dizhus[player_id] = 0; 
+	}
+} 
+	
+//是否可以开局
+//
+//斗地主的开局在发牌之后进行叫地主操作
+bool Game::CanStart()
+{
+	if (_dizhus.size() < MAX_PLAYER_COUNT) return false;
+
+	for (const auto player : _dizhus)
+	{
+		if (player.second >= 1) _dizhu_player_id = player.first; //地主
+		
+		if (player.second == 2) 
+		{
+			_dizhu_player_id = player.first;
+			return true; //直接开始
+		}
+	}
+
+	return true;
+}
 
 //
 //游戏通用管理类
@@ -568,7 +609,9 @@ bool GameManager::Load()
 		Asset::MJCard* asset_card = dynamic_cast<Asset::MJCard*>(message); 
 		if (!asset_card) return false;
 
-		static std::set<int32_t> _valid_cards = { Asset::CARD_TYPE_HONGTAO, Asset::CARD_TYPE_FANGPIAN, Asset::CARD_TYPE_HEITAO, Asset::CARD_TYPE_MEIHUA }; //扑克
+		//扑克
+		//
+		static std::set<int32_t> _valid_cards = { Asset::CARD_TYPE_HONGTAO, Asset::CARD_TYPE_FANGPIAN, Asset::CARD_TYPE_HEITAO, Asset::CARD_TYPE_MEIHUA }; 
 
 		auto it = _valid_cards.find(asset_card->card_type());
 		if (it == _valid_cards.end()) continue;

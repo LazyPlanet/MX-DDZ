@@ -32,6 +32,7 @@ private:
 
 	int32_t _curr_player_index = 0; //当前在操作的玩家索引
 	int64_t _banker_player_id = 0; //庄家
+	int64_t _dizhu_player_id = 0; //地主
 	std::vector<int64_t> _ting_players; //听牌玩家
 	int64_t _room_id = 0;
 	int32_t _game_id = 0;
@@ -56,6 +57,7 @@ private:
 	
 	int32_t _beilv = 1; //抢地主倍率
 	std::unordered_map<int64_t, int32_t> _zhuang_bl; //倍率表//缓存玩家叫分
+	std::unordered_map<int64_t, int32_t> _dizhus; //是否已经叫地主
 public:
 	virtual void Init(std::shared_ptr<Room> room); //初始化
 	virtual bool Start(std::vector<std::shared_ptr<Player>> players, int64_t room_id = 0, int32_t game_id = 0); //开始游戏
@@ -78,79 +80,25 @@ public:
 
 	void OnOperateTimeOut();
 	void ClearOperation();
-	//void SetPaiOperation(const Asset::PaiOperationCache& oper) { _oper_cache = oper; } //牌操作限制
 	const Asset::PaiOperationCache& GetOperCache() { return _last_oper; }
-	//void SetPaiOperation(int64_t player_id, int64_t source_player_id, Asset::PaiElement pai, Asset::PAI_OPER_TYPE oper_type = Asset::PAI_OPER_TYPE_HUPAI);
-	//void SetZiMoCache(std::shared_ptr<Player> player, Asset::PaiElement pai);
 
-	//bool SendCheckRtn(); //发送当前可以操作的牌数据
-	//bool CheckPai(const Asset::PaiElement& pai, int64_t source_player_id); //检查玩家可以进行的牌操作,包括胡//杠//碰//吃
-	//bool CheckQiangGang(const Asset::PaiElement& pai, int64_t source_player_id); //抢杠胡
-	//bool IsQiangGang(int64_t player_id); //是否抢杠操作
-	
 	std::shared_ptr<Player> GetNextPlayer(int64_t player_id); //获取下家
 	std::shared_ptr<Player> GetPlayer(int64_t player_id); //获取玩家
 	std::shared_ptr<Player> GetPlayerByOrder(int32_t player_index);
+
 	int32_t GetPlayerOrder(int32_t player_id); //获取玩家的顺序
+
 	void SetRoom(std::shared_ptr<Room> room) {	_room = room; } //设置房间
 	int64_t GetID() { return _game_id; } //局数
+
 	bool IsBanker(int64_t player_id); //是否庄家
 
 	void BroadCast(pb::Message* message, int64_t exclude_player_id = 0);
 	void BroadCast(pb::Message& message, int64_t exclude_player_id = 0);
 
 	int32_t GetMultiple(int32_t fan_type);
-	//void CalculateGangScore(Asset::GameCalculate& game_calculate);
-	//void Calculate(int64_t hupai_player_id/*胡牌玩家*/, int64_t dianpao_player_id/*点炮玩家*/, std::unordered_set<int32_t>& fan_list/*基础分*/);
 	void Calculate(std::shared_ptr<Player> player);
 	void PaiPushDown();
-
-	void AddTingPlayer(int64_t player_id) {	_ting_players.push_back(player_id);	} //增加听牌玩家
-	void OnTingPai(std::shared_ptr<Player> player); //玩家听牌
-
-	/*
-	Asset::PaiElement GetBaoPai(int32_t tail_index); //随机宝牌
-	void SetBaoPai(const Asset::PaiElement& pai) { _baopai = pai; } //设置宝牌
-	const Asset::PaiElement& GetBaoPai() { return _baopai; } //获取当前宝牌
-	bool IsBaopai(const Asset::PaiElement& pai) {  //是否是宝牌
-		if (_baopai.card_type() == 0 || _baopai.card_value() == 0) return false;
-		return pai.card_type() == _baopai.card_type() && pai.card_value() == _baopai.card_value(); 
-	} 
-	*/
-
-	/*
-	bool HasBaopai() { return _baopai.card_type() != 0 && _baopai.card_value() != 0; } //当前是否含有宝牌
-	void OnRefreshBaopai(int64_t player_id, int32_t random_result); //刷新宝牌
-	void OnPlayerLookAtBaopai(int64_t player_id, Asset::RandomSaizi proto);
-	int32_t GetRemainBaopai(); //剩余宝牌数量
-	*/
-
-	void SetRandResult(int32_t random_result) { _random_result = random_result; }
-	int32_t GetRandResult() { return _random_result; }
-	const std::vector<int32_t>& GetSaizi() { return _saizi_random_result; }
-
-	/*
-	const Asset::PaiElement& GetHuiPai() { return _huipai; } //获取会儿牌
-	bool IsHuiPai(const Asset::PaiElement& pai) {  //是否是会儿牌
-		if (_huipai.card_type() == 0 || _huipai.card_value() == 0) return false;
-		return pai.card_type() == _huipai.card_type() && pai.card_value() == _huipai.card_value(); 
-	} 
-	bool IsHuiPai(int32_t card_type, int32_t card_value) {  //是否是会儿牌
-		if (_huipai.card_type() == 0 || _huipai.card_value() == 0) return false;
-		return card_type == _huipai.card_type() && card_value == _huipai.card_value();
-	}
-	*/
-
-	/*
-	bool CheckLiuJu(); //流局检查
-	bool IsLiuJu() { return _liuju; } //是否流局
-	void OnLiuJu(); //流局 
-	*/
-
-	int32_t GetRemainCount() { return _cards.size() - _random_result_list.size(); } //当前剩余牌数量
-	/*
-	bool SanJiaBi(int64_t hupai_player_id); //三家闭门
-	*/
 
 	void SetCurrPlayerIndex(int64_t curr_player_index) { _curr_player_index = curr_player_index; } //设置当前可操作的玩家
 	void SetCurrPlayerIndexByPlayer(int64_t player_id) { _curr_player_index = GetPlayerOrder(player_id); } //设置当前玩家索引//主要用于玩家发牌后操作
@@ -160,11 +108,16 @@ public:
 	void AddPlayerOperation(const Asset::PaiOperation& pai_operate) { _playback.mutable_oper_list()->Add()->CopyFrom(pai_operate); } //回放记录
 	
 	//斗地主
-	void IncreaseBeiLv() { _beilv *= 2; } //加倍
+	void SelectBanker(); //随机地主
+	void IncreaseBeiLv(int32_t beilv = 2) { if (beilv <= 0) beilv = 2; _beilv *= beilv; } //加倍
 	int32_t GetBeiLv() { return _beilv; } //获取倍率
-	int32_t GetQiangZhuangCount() { return _zhuang_bl.size(); }
-	void OnQiangDiZhu(int64_t player_id, int32_t beilv) { _zhuang_bl[player_id] = beilv; }
-	void SelectBanker();
+	int32_t GetDiZhuPlayerCount() { return _zhuang_bl.size(); } //获取抢地主玩家数量//叫分
+	int64_t GetDiZhu() { return _dizhu_player_id; } //地主
+
+	void OnQiangDiZhu(int64_t player_id, int32_t beilv) { _zhuang_bl[player_id] = beilv; } //叫分抢地主
+	void OnQiangDiZhu(int64_t player_id, bool qiangdizhu); //加倍抢地主
+	bool HasQiangDiZhu(int64_t player_id) { return _dizhus.find(player_id) != _dizhus.end(); } //是否叫过地主
+	bool CanStart(); //是否可以开局
 };
 
 /////////////////////////////////////////////////////

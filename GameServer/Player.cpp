@@ -687,7 +687,7 @@ bool Player::PaiXingCheck(Asset::PaiOperation* pai_operate)
 	//
 	if (chupai_count == 2 && pai_operate->pais(0).card_type() == Asset::CARD_TYPE_KINGS && pai_operate->pais(1).card_type() == Asset::CARD_TYPE_KINGS)
 	{
-		_room->IncreaseBeiLv(); //翻倍
+		_game->IncreaseBeiLv(); //翻倍
 
 		pai_operate->set_paixing(Asset::PAIXING_TYPE_ZHADAN);
 		return true;
@@ -718,7 +718,7 @@ bool Player::PaiXingCheck(Asset::PaiOperation* pai_operate)
 		{
 			if (chupai_count == 4) //炸弹
 			{
-				_room->IncreaseBeiLv(); //翻倍
+				_game->IncreaseBeiLv(); //翻倍
 
 				pai_operate->set_paixing(Asset::PAIXING_TYPE_ZHADAN);
 				return true; 
@@ -2027,9 +2027,6 @@ int32_t Player::OnFaPai(std::vector<int32_t>& cards)
 	notify.set_data_type(Asset::PaiNotify_CARDS_DATA_TYPE_CARDS_DATA_TYPE_START); //操作类型：开局
 	if (_cards_inhand.size()) notify.set_data_type(Asset::PaiNotify_CARDS_DATA_TYPE_CARDS_DATA_TYPE_DIPAI); //底牌
 
-	auto remain_count = _game->GetRemainCount();
-	notify.set_cards_remain(remain_count); //当前剩余牌数量
-	
 	SendProtocol(notify); //发牌给玩家
 
 	notify.mutable_pais()->Clear(); notify.mutable_pai()->Clear(); //其他玩家不能知道具体发了什么牌
