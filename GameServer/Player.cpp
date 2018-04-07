@@ -689,6 +689,9 @@ bool Player::PaiXingCheck(Asset::PaiOperation* pai_operate)
 			max_value_count = card.second;	
 		}
 	}
+
+	const auto max_pai = pai_operate->pai(); //Clinet最大数量牌值
+	const auto pai_xing = pai_operate->paixing(); //Client最大牌型
 	
 	pai_operate->mutable_pai()->set_card_value(max_value); //最大牌值
 	
@@ -832,11 +835,16 @@ bool Player::PaiXingCheck(Asset::PaiOperation* pai_operate)
 		}
 		break;
 
-		default://不符合规定，不让出牌
+		default: //不符合规定，不让出牌
 		{
 			return false;
 		}
 		break;
+	}
+
+	if (max_pai.card_value() != max_value || pai_operate->paixing() != pai_xing)
+	{
+		WARN("玩家:{} 出牌:{} 不符合条件，最大牌:{} 牌型:{}", _player_id, pai_operate->ShortDebugString(), max_value, Asset::PAIXING_TYPE_Name(pai_xing));
 	}
 
 	return false; //牌型不满足
