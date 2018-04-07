@@ -266,8 +266,6 @@ void Room::OnPlayerOperate(std::shared_ptr<Player> player, pb::Message* message)
 		{
 			if (!CanStarGame()) return;
 
-			SelectBanker(); //选庄
-
 			_game = std::make_shared<Game>();
 
 			_game->Init(shared_from_this()); //洗牌
@@ -356,7 +354,8 @@ void Room::OnPlayerOperate(std::shared_ptr<Player> player, pb::Message* message)
 
 		case Asset::GAME_OPER_TYPE_JIAOZHUANG: //叫庄
 		{
-			OnJiaoZhuang(player->GetID(), game_operate->beilv());
+			bool can_start = OnJiaoZhuang(player->GetID(), game_operate->beilv());
+			if (can_start) SelectBanker(); //选庄开始打牌
 		}
 		break;
 		
@@ -707,9 +706,9 @@ void Room::DoDisMiss()
 	else { OnGameOver(); }
 }
 
-void Room::OnJiaoZhuang(int64_t player_id, int32_t beilv)
+bool Room::OnJiaoZhuang(int64_t player_id, int32_t beilv)
 {
-	if (player_id <= 0 || beilv <= 0) return;
+	if (player_id <= 0 || beilv <= 0) return false;
 
 	if (_stuff.options().zhuang_type() == Asset::ZHUANG_TYPE_JIAOFEN)
 	{
@@ -719,10 +718,14 @@ void Room::OnJiaoZhuang(int64_t player_id, int32_t beilv)
 	{
 		_beilv *= 2; //倍率
 	}
+
+	return true;
 }
 
 void Room::SelectBanker()
 {
+	if (!_game) return;
+
 	int64_t banker_id = 0, beilv = 0;
 
 	std::vector<int64_t> bankers;
@@ -744,6 +747,9 @@ void Room::SelectBanker()
 
 	_banker = bankers[0];
 	_banker_index = GetPlayerOrder(_banker);
+
+	auto banker = GetPlayer(_banker);
+	_game->OnStarted(banker); //开局
 }
 	
 	

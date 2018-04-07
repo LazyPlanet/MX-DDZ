@@ -105,7 +105,7 @@ bool Game::Start(std::vector<std::shared_ptr<Player>> players, int64_t room_id, 
 		}
 	}
 
-	OnStarted(player_banker); //开局成功
+	//OnStarted(player_banker); //开局成功
 
 	return true;
 }
@@ -142,6 +142,19 @@ void Game::OnStarted(std::shared_ptr<Player> banker)
 
 	auto cards = FaPai(3);
 	banker->OnFaPai(cards);  
+
+	Asset::PaiNotify notify;
+	notify.set_player_id(banker->GetID());
+	notify.set_data_type(Asset::PaiNotify_CARDS_DATA_TYPE_CARDS_DATA_TYPE_DIPAI); //底牌
+
+	for (auto card_index : cards) //发牌到玩家手里
+	{
+		const auto& card = GameInstance.GetCard(card_index);
+		auto pai_ptr = notify.mutable_cards()->Add();
+		pai_ptr->CopyFrom(card);
+	}
+	
+	BroadCast(notify, banker->GetID()); //底牌
 }
 
 bool Game::OnGameOver(int64_t player_id)
