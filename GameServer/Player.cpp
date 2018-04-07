@@ -660,11 +660,186 @@ int32_t Player::CmdClanOperate(pb::Message* message)
 	return 0;
 }
 
+//
+//对玩家打牌分析
+//
 bool Player::PaiXingCheck(Asset::PaiOperation* pai_operate)
 {
 	if (!pai_operate) return false;
 
-	return true;
+	std::sort(pai_operate->mutable_pais()->begin(), pai_operate->mutable_pais()->end(), [](const Asset::PaiElement& x, const Asset::PaiElement& y){ 
+			return x.card_value() < y.card_value(); //由小到大
+		}); 
+
+	std::map<int32_t, int32_t> cards_value; //各个牌值数量
+
+	for (const auto& card : pai_operate->pais())
+	{
+		++cards_value[card.card_value()];
+	}
+
+	auto chupai_count = pai_operate->pais().size(); //出牌数量
+	auto max_value = 0, max_value_count = 0; //最大牌值和最大牌值数量
+
+	for (const auto& card : cards_value)
+	{
+		if (card.second >= max_value_count)
+		{
+			max_value = card.first;
+			max_value_count = card.second;	
+		}
+	}
+	
+	pai_operate->mutable_pai()->set_card_value(max_value); //最大牌值
+	
+	//cards_value.erase(max_value); //删除最大数量牌值，检查其他牌型
+
+	//根据牌面相同的最大数量判断类型
+	//
+	switch (max_value_count)
+	{
+		case 4:
+		{
+			if (chupai_count == 4) //炸弹
+			{
+				pai_operate->set_paixing(Asset::PAIXING_TYPE_ZHADAN);
+				return true; 
+			}
+			else if (chupai_count == 6) //四带两张
+			{
+				pai_operate->set_paixing(Asset::PAIXING_TYPE_42);
+				return true; 
+			}
+			else if (chupai_count == 8) //四带两对
+			{
+				for (const auto& mem : cards_value)
+				{
+					if (mem.second != 2 && mem.second != 4) return false; //不符合规则
+				}
+
+				pai_operate->set_paixing(Asset::PAIXING_TYPE_42);
+				return true; 
+			}
+		}
+		break;
+
+		case 3:
+		{
+			if (chupai_count == 3) //三条
+			{
+				pai_operate->set_paixing(Asset::PAIXING_TYPE_3);
+				return true; 
+			}
+			else if (chupai_count == 4) //三带一张
+			{
+				pai_operate->set_paixing(Asset::PAIXING_TYPE_31);
+				return true; 
+			}
+			else if (chupai_count == 5) //三带两张
+			{
+				for (const auto& mem : cards_value)
+				{
+					if (mem.second != 3 && mem.second != 2) return false; //不符合规则
+				}
+				
+				pai_operate->set_paixing(Asset::PAIXING_TYPE_32);
+				return true;
+			}
+
+			int32_t begin = 0, n = 0;
+
+			for (const auto& mem : cards_value) //判断连续的3张牌面的最大数量
+			{
+				if (mem.second == 3)
+				{
+					if (!begin || begin == mem.first) ++n;
+
+					if (!begin) begin = mem.first;
+					
+					if (begin != mem.first && n == 1){
+						n = 1;
+						begin = mem.first;
+					}
+					
+					++begin;
+				}
+			}
+		  
+			if (chupai_count == 3 * n) //三顺
+			{
+				pai_operate->set_paixing(Asset::PAIXING_TYPE_SHUN_3);
+				return true; 
+			}
+			else if (chupai_count == 4 * n) //飞机带单张的翅膀
+			{
+				pai_operate->set_paixing(Asset::PAIXING_TYPE_FEIJI_1);
+				return true; 
+			}
+			else if (chupai_count == 5 * n) //飞机带对子翅膀
+			{
+				for (auto mem : cards_value)
+				{
+					if (mem.second != 2 && mem.second != 3) return false; //牌不合规
+				}
+
+				pai_operate->set_paixing(Asset::PAIXING_TYPE_FEIJI_2);
+				return true; 
+			}
+		}
+		break;
+
+		case 2:
+		{
+			if (chupai_count == 2) //一对
+			{
+				pai_operate->set_paixing(Asset::PAIXING_TYPE_DUIZI);
+				return true;
+			}
+			else if (chupai_count >= 6 && !(chupai_count % 2)) //连对
+			{
+				int begin = 0;
+				for (auto mem : cards_value) //确定牌是连续的，并且都是成对的
+				{
+					if (!begin)	begin = mem.first;
+					if (begin++ != mem.first || mem.second != 2) return false; //牌不符合规定
+				}
+
+				pai_operate->set_paixing(Asset::PAIXING_TYPE_LIANDUI);
+				return true;
+			}
+		}
+		break;
+
+		case 1:
+		{
+			if (chupai_count == 1) //单张
+			{
+				pai_operate->set_paixing(Asset::PAIXING_TYPE_DANZHANG);
+				return true;
+			}
+			else if (chupai_count >= 5) //判断是否为顺子
+			{
+				int32_t begin = 0;
+				for (auto mem : cards_value)
+				{
+					if (!begin) begin = mem.first;
+					if (begin++ != mem.first || mem.first >= 15) return false; //牌不是连续的或者带了2及以上的牌
+				}
+
+				pai_operate->set_paixing(Asset::PAIXING_TYPE_DANSHUN);
+				return true;
+			}
+		}
+		break;
+
+		default://不符合规定，不让出牌
+		{
+			return false;
+		}
+		break;
+	}
+
+	return false; //牌型不满足
 }
 
 int32_t Player::CmdPaiOperate(pb::Message* message)
