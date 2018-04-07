@@ -140,7 +140,6 @@ public:
 	int32_t GetBankerIndex() { return _banker_index; } //庄家索引
 	bool IsBanker(int64_t player_id){ return _banker == player_id; } //是否是庄家
 	bool OnJiaoZhuang(int64_t player_id, int32_t beilv); //叫庄//倍率或分数//扑克游戏
-	//void SelectBanker();
 
 	int32_t GetPlayerOrder(int32_t player_id); //获取玩家的顺序
 

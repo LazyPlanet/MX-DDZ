@@ -724,38 +724,6 @@ bool Room::OnJiaoZhuang(int64_t player_id, int32_t beilv)
 	return true;
 }
 
-/*
-void Room::SelectBanker()
-{
-	if (!_game) return;
-
-	int64_t banker_id = 0, beilv = 0;
-
-	std::vector<int64_t> bankers;
-
-	for (auto zhuang : _zhuang_bl)
-	{
-		if (zhuang.second >= beilv) 
-		{
-			banker_id = zhuang.first;	
-			beilv = zhuang.second;
-
-			bankers.push_back(banker_id); //最后从分数高的玩家中随机选择庄家
-		}
-	}
-
-	if (bankers.size() == 0) return;
-
-	std::random_shuffle(bankers.begin(), bankers.end());
-
-	_banker = bankers[0];
-	_banker_index = GetPlayerOrder(_banker);
-
-	auto banker = GetPlayer(_banker);
-	_game->OnStarted(banker); //开局
-}
-*/	
-	
 void Room::KickOutPlayer(int64_t player_id)
 {
 	for (auto player : _players)
