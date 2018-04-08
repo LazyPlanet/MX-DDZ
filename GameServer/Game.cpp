@@ -143,6 +143,7 @@ void Game::OnStarted(std::shared_ptr<Player> banker)
 	auto cards = FaPai(3);
 	banker->OnFaPai(cards);  
 
+	/*
 	Asset::PaiNotify notify;
 	notify.set_player_id(banker->GetID());
 	notify.set_data_type(Asset::PaiNotify_CARDS_DATA_TYPE_CARDS_DATA_TYPE_DIPAI); //底牌
@@ -155,6 +156,7 @@ void Game::OnStarted(std::shared_ptr<Player> banker)
 	}
 	
 	BroadCast(notify, banker->GetID()); //底牌
+	*/
 }
 
 bool Game::OnGameOver(int64_t player_id)
