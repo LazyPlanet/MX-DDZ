@@ -81,7 +81,7 @@ bool Game::Start(std::vector<std::shared_ptr<Player>> players, int64_t room_id, 
 
 		player->SetGame(shared_from_this());
 
-		int32_t card_count = 17; //正常开启，普通玩家牌数量
+		int32_t card_count = 17; //正常开启，普通玩家牌数量//斗地主起手每人17张牌
 
 		if (banker_index % MAX_PLAYER_COUNT == i) _curr_player_index = i; //当前操作玩家//地主是庄家
 

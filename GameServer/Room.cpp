@@ -459,6 +459,11 @@ void Room::OnPlayerStateChanged()
 	BroadCast(message);
 }
 
+//
+//斗地主开局
+//
+//开局各发17张牌，剩余3张牌待叫完地主后进行发牌
+//
 void Room::OnGameStart()
 {
 	std::lock_guard<std::mutex> lock(_mutex);
