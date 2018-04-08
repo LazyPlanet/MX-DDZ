@@ -265,15 +265,8 @@ public:
 	{
 		if (!Connect()) return false;
 		
-		auto incrby = _client.incrby("room_counter", 1);
+		auto incrby = _client.incrby("ddz_room_counter", 1);
 		_client.commit();
-
-		/*
-		if (has_auth.get().ko()) {
-			LOG(ERROR, "数据库验证失败，原因:权限不足");
-			return false;
-		}
-		*/
 
 		int64_t room_id = 0;
 
@@ -291,6 +284,9 @@ public:
 
 		int32_t server_id = ConfigInstance.GetInt("ServerID", 1); //服务器ID
 		room_id = (server_id << 16) + room_id;
+		
+		int32_t game_type = ConfigInstance.GetInt("GameType", 1); //游戏类型
+		room_id = (game_type << 24) + room_id;
 		
 		return room_id;
 	}

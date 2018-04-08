@@ -13,6 +13,7 @@ namespace Adoter
 {
 
 int32_t g_server_id = 0;
+Asset::GAME_TYPE _game_type = Asset::GAME_TYPE_DOUDIZHU;
 const Asset::CommonConst* g_const = nullptr;
 
 bool World::Load()

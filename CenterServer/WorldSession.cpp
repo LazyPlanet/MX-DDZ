@@ -471,12 +471,14 @@ void WorldSession::OnProcessMessage(const Asset::Meta& meta)
 			//WARN("玩家:{} 当前所在服务器:{} 进入房间:{}", _player->GetID(), _player->GetLocalServer(), enter_room->ShortDebugString());
 
 			auto room_type = enter_room->room().room_type();
-			auto room_id = enter_room->room().room_id();
-			int64_t server_id = room_id >> 16;
+			int64_t room_id = enter_room->room().room_id();
+			int64_t game_type = room_id >> 24;
+			int64_t server_id = (room_id & 0x00FFFF) >> 16;
 
 			if (Asset::ROOM_TYPE_FRIEND == room_type)
 			{
-				if (g_const->guest_forbid_friend_room() && (_account.account_type() == 0 || Asset::ACCOUNT_TYPE_GUEST == _account.account_type())) //游客禁止进入好友房
+				if (g_const->guest_forbid_friend_room() && 
+						(_account.account_type() == 0 || Asset::ACCOUNT_TYPE_GUEST == _account.account_type())) //游客禁止进入好友房
 				{
 					_player->AlertMessage(Asset::ERROR_ROOM_FRIEND_NOT_FORBID, Asset::ERROR_TYPE_NORMAL, Asset::ERROR_SHOW_TYPE_MESSAGE_BOX); //通用错误码
 					return;
@@ -518,7 +520,8 @@ void WorldSession::OnProcessMessage(const Asset::Meta& meta)
 
 					if (server_id == 0) 
 					{
-						ERROR("玩家:{} 进入匹配房,所在服务器:{} 玩家传入房间错误,错误信息:{}", _player->GetID(), _player->GetLocalServer(), enter_room->ShortDebugString());
+						ERROR("玩家:{} 进入匹配房,所在服务器:{} 玩家传入房间错误,错误信息:{}", 
+								_player->GetID(), _player->GetLocalServer(), enter_room->ShortDebugString());
 						return;
 					}
 
@@ -539,7 +542,8 @@ void WorldSession::OnProcessMessage(const Asset::Meta& meta)
 				_player->SendProtocol2GameServer(kickout_player); 
 			}
 	
-			WARN("玩家:{} 当前所在服务器:{} 即将进入逻辑服务器:{} 进入房间:{}", _player->GetID(), _player->GetLocalServer(), server_id, enter_room->ShortDebugString());
+			WARN("玩家:{} 当前所在服务器:{} 即将进入逻辑服务器:{} 游戏类型:{} 进入房间:{}", 
+					_player->GetID(), _player->GetLocalServer(), server_id, game_type, enter_room->ShortDebugString());
 
 			if (room_id) _player->SetRoom(room_id); //设置房间
 			if (server_id) _player->SetLocalServer(server_id); //设置玩家当前所在服务器
