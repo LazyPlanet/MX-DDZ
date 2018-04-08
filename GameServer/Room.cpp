@@ -380,36 +380,6 @@ bool Room::HasBeenOver()
 	return !_game && GetRemainCount() <= 0; 
 }
 
-int32_t Room::GetMultiple(int32_t fan_type)
-{
-	/*
-	const auto fan_asset = GetFan();
-	if (!fan_asset) return 0;
-
-	auto it = std::find_if(fan_asset->fans().begin(), fan_asset->fans().end(), [fan_type](const Asset::NiuNiuRoomFan_FanElement& element){
-			return fan_type == element.fan_type();
-	});
-	if (it == fan_asset->fans().end()) return 0;
-
-	return it->multiple();
-	*/
-
-	return 0;
-}
-	
-/*
-const Asset::NiuNiuRoomFan* Room::GetFan()
-{
-	auto message = AssetInstance.Get(g_const->niuniu_fan_id());
-	if (!message) return nullptr;
-
-	const auto fan = dynamic_cast<const Asset::NiuNiuRoomFan*>(message);
-	if (!fan) return nullptr;
-
-	return fan;
-}
-*/
-
 bool Room::Remove(int64_t player_id, Asset::GAME_OPER_TYPE reason)
 {
 	std::lock_guard<std::mutex> lock(_mutex);

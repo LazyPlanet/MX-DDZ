@@ -44,11 +44,13 @@ private:
 	int32_t _dismiss_cooldown = 0; //解散冷却时间
 public:
 	explicit Room(Asset::Room room) {  _stuff = room; }
+
 	void SetGmtOpened() { _gmt_opened = true; }
 	bool IsGmtOpened() { return _gmt_opened; }
 
 	bool IsClan() { return _stuff.clan_id() != 0; }
 	int64_t GetClan() { return _stuff.clan_id(); }
+
 	void OnClanCreated();
 
 	const std::vector<std::shared_ptr<Player>> GetPlayers() { return _players; } 
@@ -66,13 +68,8 @@ public:
 	void SetOptions(const Asset::RoomOptions& options) {	_stuff.mutable_options()->CopyFrom(options);}
 
 
-	const Asset::RoomFan* GetFan(); //获取番数数据
-	int32_t GetMultiple(int32_t fan_type);
 	int32_t MaxFan() { return _stuff.options().top_mutiple(); }
 	Asset::CITY_TYPE GetCity() { return _stuff.options().city_type(); } //城市玩法
-	bool IsChaoYang() { return _stuff.options().city_type() == Asset::CITY_TYPE_CHAOYANG; }
-	bool IsJianPing() { return _stuff.options().city_type() == Asset::CITY_TYPE_JIANPING; }
-	bool IsYingKou() { return _stuff.options().city_type() == Asset::CITY_TYPE_YINGKOU; }
 
 	bool IsVoiceOpen() { return _stuff.options().voice_open(); }
 
@@ -87,8 +84,8 @@ public:
 	void AddJinBao(int64_t player_id) { ++_jinbao_players[player_id]; }
 public:
 	Asset::ERROR_CODE TryEnter(std::shared_ptr<Player> player);
-	bool Enter(std::shared_ptr<Player> player);
-	void OnReEnter(std::shared_ptr<Player> op_player);
+	bool Enter(std::shared_ptr<Player> player); //加入房间
+	void OnReEnter(std::shared_ptr<Player> op_player); //再次进入
 
 	void OnPlayerLeave(int64_t player_id);
 
@@ -102,12 +99,14 @@ public:
 
 	bool CanDisMiss(); //能否解散
 	int32_t GetRemainCount(); //剩余游戏次数
-	int32_t GetGamesCount() { return _games.size(); }
-	int32_t GetOpenRands() { return _stuff.options().open_rands(); }
-	bool HasStarted() { return _games.size() > 0; }
-	bool HasBeenOver();
+	int32_t GetGamesCount() { return _games.size(); } //当前开局数量
+	int32_t GetOpenRands() { return _stuff.options().open_rands(); } //开房总数量
+
+	bool HasStarted() { return _games.size() > 0; } //是否已经开局
+	bool HasBeenOver(); //牌局是否结束//总结算
+
 	std::shared_ptr<Game> GetGame() { return _game; }
-	bool IsGaming() { return _game != nullptr; }
+	bool IsGaming() { return _game != nullptr; } //牌局进行中，比如上局结束下局尚未开始则不在进行中
 
 	void OnPlayerOperate(std::shared_ptr<Player> player, pb::Message* message);
 
@@ -118,15 +117,14 @@ public:
 	void OnDisMiss(int64_t player_id, pb::Message* message); //解散房间
 	void DoDisMiss(); //解散房间
 
-	//获取房主
-	std::shared_ptr<Player> GetHoster();
-	//是否是房主
-	bool IsHoster(int64_t player_id);
-	//获取房间中的玩家
-	std::shared_ptr<Player> GetPlayer(int64_t player_id);
-	//删除玩家
-	bool Remove(int64_t player_id, Asset::GAME_OPER_TYPE reason = Asset::GAME_OPER_TYPE_LEAVE);
+	std::shared_ptr<Player> GetHoster(); //获取房主
+	bool IsHoster(int64_t player_id); //是否是房主
+
+	std::shared_ptr<Player> GetPlayer(int64_t player_id); //获取房间中的玩家
+	int32_t GetPlayerOrder(int32_t player_id); //获取玩家的顺序
+	bool Remove(int64_t player_id, Asset::GAME_OPER_TYPE reason = Asset::GAME_OPER_TYPE_LEAVE); //删除玩家
 	void KickOutPlayer(int64_t player_id = 0);
+
 	//游戏开始
 	void OnGameStart();
 	void OnPlayerStateChanged();
@@ -139,9 +137,6 @@ public:
 	int64_t GetBanker() { return _banker; } //获取庄家
 	int32_t GetBankerIndex() { return _banker_index; } //庄家索引
 	bool IsBanker(int64_t player_id){ return _banker == player_id; } //是否是庄家
-	bool OnJiaoZhuang(int64_t player_id, int32_t beilv); //叫庄//倍率或分数//扑克游戏
-
-	int32_t GetPlayerOrder(int32_t player_id); //获取玩家的顺序
 
 	bool IsExpired(); //是否过期
 	bool IsTimeOut(); //是否超时
@@ -149,7 +144,12 @@ public:
 	void ClearDisMiss(); //清除解散状态
 	void OnRemove();
 
+	//茶馆信息
 	void UpdateClanStatus(); //同步茶馆开房房间数据
+	
+	//斗地主
+	bool OnJiaoZhuang(int64_t player_id, int32_t beilv); //叫庄//倍率或分数//扑克游戏
+
 };
 
 /////////////////////////////////////////////////////
