@@ -189,11 +189,7 @@ void Game::SavePlayBack()
 	
 void Game::ClearState()
 {
-	//_baopai.Clear();
-	//_huipai.Clear();
-
 	_last_oper.Clear();
-	//_oper_list.clear();
 	_cards_pool.clear();
 	
 	_beilv = 1; //倍率
@@ -201,15 +197,17 @@ void Game::ClearState()
 	_rob_dizhu_bl.clear(); //倍率表
 	_rob_dizhus.clear(); //倍率表
 	
-	//_liuju = false;
+	_real_started = false;
 }
 
 bool Game::CanPaiOperate(std::shared_ptr<Player> player, Asset::PaiOperation* pai_operate)
 {
 	if (!player) return false;
-	
+
 	//开局
 	//
+	if (!_real_started) return false;
+	
 	if (!_last_oper.has_pai_oper()) return true; 
 	
 	auto curr_player = GetPlayerByOrder(_curr_player_index);
@@ -594,9 +592,13 @@ bool Game::CanStart()
 		if (player.second == 2) 
 		{
 			_dizhu_player_id = player.first;
+
+			_real_started = true;
 			return true; //直接开始
 		}
 	}
+
+	_real_started = true;
 
 	return true;
 }

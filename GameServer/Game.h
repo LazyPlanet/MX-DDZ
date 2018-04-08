@@ -36,6 +36,8 @@ private:
 	int64_t _room_id = 0;
 	int32_t _game_id = 0;
 
+	bool _real_started = false; //开局
+
 	Asset::PaiOperationCache _last_oper; //上次操作缓存
 	std::shared_ptr<Player> _players[MAX_PLAYER_COUNT]; //玩家数据：按照进房间的顺序，0->1->2->3...主要用于控制发牌和出牌顺序
 
@@ -83,6 +85,7 @@ public:
 	int64_t GetID() { return _game_id; } //局数
 
 	bool IsBanker(int64_t player_id); //是否庄家
+	bool IsStarted() { return _real_started; } //是否真正开局
 
 	void BroadCast(pb::Message* message, int64_t exclude_player_id = 0);
 	void BroadCast(pb::Message& message, int64_t exclude_player_id = 0);
