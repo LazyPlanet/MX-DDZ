@@ -356,8 +356,7 @@ void Room::OnPlayerOperate(std::shared_ptr<Player> player, pb::Message* message)
 		{
 			if (!_game) break; //尚未开局
 
-			bool can_start = OnJiaoZhuang(player->GetID(), game_operate->beilv());
-			if (can_start) _game->SelectBanker(); //选庄开始打牌
+			OnJiaoZhuang(player->GetID(), game_operate->beilv());
 		}
 		break;
 		
@@ -690,7 +689,7 @@ bool Room::OnJiaoZhuang(int64_t player_id, int32_t beilv)
 	{
 		_game->OnRobDiZhu(player_id, beilv);
 	
-		if (_game->GetDiZhuPlayerCount() < MAX_PLAYER_COUNT) return false; //有玩家尚未叫分
+		if (!_game->RandomDiZhu()) return false; //选庄开始打牌
 	}
 	else if (_stuff.options().zhuang_type() == Asset::ZHUANG_TYPE_QIANGDIZHU)
 	{
@@ -706,6 +705,13 @@ bool Room::OnJiaoZhuang(int64_t player_id, int32_t beilv)
 			
 		if (!_game->CanStart()) return false; //是否可以开局//检查是否都叫完地主
 	}
+
+	auto dizhu_ptr = GetPlayer(_game->GetDiZhu());
+	if (!dizhu_ptr) return false;
+
+	_game->OnStarted(dizhu_ptr); //直接开始
+
+	DEBUG("房间:{} 开局:{} 地主:{}", _stuff.room_id(), _game->GetID(), _game->GetDiZhu());
 
 	return true;
 }

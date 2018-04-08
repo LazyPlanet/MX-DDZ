@@ -133,27 +133,14 @@ void Game::OnStart()
 
 //开局后，庄家//地主补3张底牌
 //
-void Game::OnStarted(std::shared_ptr<Player> banker)
+void Game::OnStarted(std::shared_ptr<Player> dizhu_ptr)
 {
-	if (!banker) return;
+	if (!dizhu_ptr) return;
+	
+	_real_started = true;
 
 	auto cards = FaPai(3);
-	banker->OnFaPai(cards);  
-
-	/*
-	Asset::PaiNotify notify;
-	notify.set_player_id(banker->GetID());
-	notify.set_data_type(Asset::PaiNotify_CARDS_DATA_TYPE_CARDS_DATA_TYPE_DIPAI); //底牌
-
-	for (auto card_index : cards) //发牌到玩家手里
-	{
-		const auto& card = GameInstance.GetCard(card_index);
-		auto pai_ptr = notify.mutable_cards()->Add();
-		pai_ptr->CopyFrom(card);
-	}
-	
-	BroadCast(notify, banker->GetID()); //底牌
-	*/
+	dizhu_ptr->OnFaPai(cards);  
 }
 
 bool Game::OnGameOver(int64_t player_id)
@@ -520,31 +507,30 @@ bool Game::IsBanker(int64_t player_id)
 	return _room->IsBanker(player_id); 
 }
 
-void Game::SelectBanker()
+bool Game::RandomDiZhu()
 {
-	if (!_room) return;
+	if (!_room) return false;
+		
+	if (GetDiZhuPlayerCount() < MAX_PLAYER_COUNT) return false; //有玩家尚未叫分
 
-	int64_t banker_id = 0, beilv = 0;
-
+	int32_t max_score = 0; //最大分数
 	std::vector<int64_t> bankers;
 
 	for (auto zhuang : _rob_dizhu_bl)
 	{
-		if (zhuang.second >= beilv) 
+		if (zhuang.second >= max_score) 
 		{
-			banker_id = zhuang.first;	
-			beilv = zhuang.second;
-
-			bankers.push_back(banker_id); //最后从分数高的玩家中随机选择庄家
+			max_score = zhuang.second;
+			bankers.push_back(zhuang.first); //最后从分数高的玩家中随机选择庄家
 		}
 	}
 
-	if (bankers.size() == 0) return;
+	if (bankers.size() == 0) return false; //尚未地主可选
 
 	std::random_shuffle(bankers.begin(), bankers.end());
+	_dizhu_player_id = bankers[0]; //随机产生一个地主
 
-	auto banker = GetPlayer(bankers[0]);
-	OnStarted(banker); //开局
+	return true;
 }
 	
 //加倍抢地主
@@ -555,6 +541,8 @@ void Game::OnRobDiZhu(int64_t player_id, bool is_rob)
 	DEBUG("玩家:{} 叫地主数量:{}，是否抢地主:{} 此时庄家:{}", player_id, _rob_dizhu_count, is_rob, _banker_player_id);
 
 	++_rob_dizhu_count;
+
+	if (_rob_dizhu_count > MAX_PLAYER_COUNT + 1) return; //不能再抢
 
 	if (_rob_dizhus.find(player_id) != _rob_dizhus.end())
 	{
@@ -580,24 +568,39 @@ bool Game::CanStart()
 {
 	if (_rob_dizhus.size() < MAX_PLAYER_COUNT) return false;
 
-	//if (_rob_dizhu_count != MAX_PLAYER_COUNT + 1) return false;
-
-	for (const auto player : _rob_dizhus)
+	if (_rob_dizhus.size() == MAX_PLAYER_COUNT) //都已经叫(或不叫)了地主
 	{
-		if (player.second >= 1) _dizhu_player_id = player.first; //地主
-		
-		if (player.second == 2) 
+		int32_t rob_dizhu_count = 0; //抢地主玩家数量
+		for (const auto player : _rob_dizhus)
 		{
-			_dizhu_player_id = player.first;
+			if (player.second) 
+			{
+				_dizhu_player_id = player.first;
+				++rob_dizhu_count;
+			}
+		}
 
-			_real_started = true;
+		if (rob_dizhu_count == 1) //只有一个抢地主
+		{
 			return true; //直接开始
 		}
 	}
+	else
+	{
+		for (const auto player : _rob_dizhus)
+		{
+			if (player.second >= 1) _dizhu_player_id = player.first; //地主
+			
+			if (player.second == 2) 
+			{
+				_dizhu_player_id = player.first;
 
-	_real_started = true;
+				return true; //直接开始
+			}
+		}
+	}
 
-	return true;
+	return false;
 }
 
 //
