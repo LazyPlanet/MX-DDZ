@@ -211,9 +211,16 @@ bool Game::CanPaiOperate(std::shared_ptr<Player> player, Asset::PaiOperation* pa
 	//
 	if (!pai_operate) return false;
 
-	if (pai_operate->pais().size() != _last_oper.pai_oper().pais().size()) return false; //出牌数量不一致
-	if (_last_oper.pai_oper().paixing() != pai_operate->paixing()) return false; //牌型不一致
-	if (!GameInstance.ComparePai(pai_operate->pai(), _last_oper.pai_oper().pai())) return false; //比较大小
+	if (pai_operate->paixing() == Asset::PAIXING_TYPE_ZHADAN && _last_oper.pai_oper().paixing() != Asset::PAIXING_TYPE_ZHADAN)
+	{
+		return true; //炸弹可以管上任何非炸弹
+	}
+	else
+	{
+		if (pai_operate->pais().size() != _last_oper.pai_oper().pais().size()) return false; //出牌数量不一致
+		if (_last_oper.pai_oper().paixing() != pai_operate->paixing()) return false; //牌型不一致
+		if (!GameInstance.ComparePai(pai_operate->pai(), _last_oper.pai_oper().pai())) return false; //比较大小
+	}
 
 	return true;
 }
