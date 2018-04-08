@@ -296,12 +296,11 @@ public:
 	virtual int32_t CmdUpdateRoom(pb::Message* message); //更新房间数据
 	virtual int32_t CmdRecharge(pb::Message* message); //充值
 
-	//进入房间回调
-	void OnEnterScene(bool is_reenter);
-	//获取房间
+	void OnEnterScene(bool is_reenter); //进入房间回调
 	virtual std::shared_ptr<Room> GetRoom() { return _room; }	//获取当前房间
-	virtual void SetRoomID(int64_t room_id) { _player_prop.set_room_id(room_id); }	
-	virtual int32_t GetLocalRoomID();
+
+	virtual void SetRoomID(int64_t room_id) { _player_prop.set_room_id(room_id); }	//设置房间ID
+	virtual int32_t GetLocalRoomID(); //获取当前房间ID
 
 	virtual int32_t GetRoomID() { return _player_prop.room_id(); }
 	virtual bool HasRoom() { return _room != nullptr; }
@@ -329,7 +328,6 @@ public:
 	void SetPosition(Asset::POSITION_TYPE position) { _player_prop.set_position(position); }
 	
 	void PrintPai(); //打印牌玩家当前牌
-	void SynchronizePai(); //同步玩家牌给Client
 
 	const std::vector<Asset::PaiElement>& GetCardsInhand() { return _cards_inhand; } 
 	int32_t GetCardsCountInhand() { return _cards_inhand.size(); }
