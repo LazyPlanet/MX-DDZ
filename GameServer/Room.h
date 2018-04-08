@@ -14,7 +14,7 @@ namespace Adoter
 class Player;
 class Game;
 
-const int32_t MAX_PLAYER_COUNT = 1;
+const int32_t MAX_PLAYER_COUNT = 3;
 
 class Room : public std::enable_shared_from_this<Room>
 {

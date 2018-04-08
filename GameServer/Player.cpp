@@ -2021,30 +2021,26 @@ int32_t Player::OnFaPai(std::vector<int32_t>& cards)
 	notify.set_player_id(_player_id); //目标玩家
 	
 	notify.set_data_type(Asset::PaiNotify_CARDS_DATA_TYPE_CARDS_DATA_TYPE_START); //操作类型：开局
-	if (_cards_inhand.size()) notify.set_data_type(Asset::PaiNotify_CARDS_DATA_TYPE_CARDS_DATA_TYPE_DIPAI); //底牌
+
+	if (_cards_inhand.size()) //已经有牌，则证明本次发牌是底牌
+		notify.set_data_type(Asset::PaiNotify_CARDS_DATA_TYPE_CARDS_DATA_TYPE_DIPAI); //底牌
 
 	for (auto card_index : cards) //发牌到玩家手里
 	{
 		const auto& card = GameInstance.GetCard(card_index);
+
+		auto pai = notify.mutable_cards()->Add();
+		pai->CopyFrom(card);
+
 		_cards_inhand.push_back(card); //插入玩家手牌
-	}
-
-	//整理牌
-	//
-	std::sort(_cards_inhand.begin(), _cards_inhand.end(), [](const Asset::PaiElement& x, const Asset::PaiElement& y){ 
-			return GameInstance.ComparePai(y, x); //由小到大
-		}); 
-
-	for (const auto& pai : _cards_inhand)
-	{
-		auto pai_ptr = notify.mutable_cards()->Add();
-		pai_ptr->CopyFrom(pai);
 	}
 
 	SendProtocol(notify); //发牌给玩家
 
-	notify.mutable_cards()->Clear(); 
-	Send2Roomers(notify, _player_id); //玩家行为
+	if (Asset::PaiNotify_CARDS_DATA_TYPE_CARDS_DATA_TYPE_START == notify.data_type()) 
+		notify.mutable_cards()->Clear(); //开局牌数据不通知其他玩家
+
+	Send2Roomers(notify, _player_id); //通知其他玩家底牌
 
 	return 0;
 }
