@@ -207,12 +207,13 @@ bool Game::CanPaiOperate(std::shared_ptr<Player> player, Asset::PaiOperation* pa
 	//
 	//1.牌型一致;
 	//
-	//2.最大数量的牌值大于前者;
+	//2.最大数量的后出的牌值大于前者;
+	//
 	if (!pai_operate) return false;
 
 	if (pai_operate->pais().size() != _last_oper.pai_oper().pais().size()) return false; //出牌数量不一致
 	if (_last_oper.pai_oper().paixing() != pai_operate->paixing()) return false; //牌型不一致
-	if (GameInstance.ComparePai(_last_oper.pai_oper().pai(), pai_operate->pai())) return false; //比较大小
+	if (!GameInstance.ComparePai(pai_operate->pai(), _last_oper.pai_oper().pai())) return false; //比较大小
 
 	return true;
 }
@@ -236,6 +237,8 @@ void Game::OnPaiOperate(std::shared_ptr<Player> player, pb::Message* message)
 		player->AlertMessage(Asset::ERROR_GAME_NO_PERMISSION); //没有权限，没到玩家操作，防止外挂
 		return; //不允许操作
 	}
+
+	_last_oper.mutable_pai_oper()->CopyFrom(*pai_operate); //缓存上次牌数据
 	
 	BroadCast(message); //广播玩家操作，玩家放弃操作不能广播
 	
@@ -585,18 +588,19 @@ bool Game::CanStart()
 			return true; //直接开始
 		}
 	}
-	else
-	{
-		for (const auto player : _rob_dizhus)
-		{
-			if (player.second >= 1) _dizhu_player_id = player.first; //地主
-			
-			if (player.second == 2) 
-			{
-				_dizhu_player_id = player.first;
 
-				return true; //直接开始
-			}
+
+	//有人抢地主，可以再叫
+	//
+	for (const auto player : _rob_dizhus)
+	{
+		if (player.second >= 1) _dizhu_player_id = player.first; //地主
+		
+		if (player.second == 2) 
+		{
+			_dizhu_player_id = player.first;
+
+			return true; //直接开始
 		}
 	}
 
@@ -655,7 +659,7 @@ void GameManager::OnCreateGame(std::shared_ptr<Game> game)
 
 int32_t GameManager::GetCardWeight(const Asset::PaiElement& card)
 {
-	auto it = _card_tye_weight.find(card.card_value());
+	auto it = _card_tye_weight.find(card.card_type());
 	if (it == _card_tye_weight.end()) return 0;
 
 	return it->second;

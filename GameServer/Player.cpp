@@ -908,6 +908,8 @@ int32_t Player::CmdPaiOperate(pb::Message* message)
 			{
 				if (!RemovePai(pai))
 				{
+					PrintPai(); //打印出牌数据
+
 					LOG(ERROR, "玩家:{} 在房间:{}/{}局中无法删除牌，牌数据:{}", _player_id, _game->GetID(), _room->GetID(), pai_operate->ShortDebugString());
 					return 4;
 				}
