@@ -1365,9 +1365,9 @@ bool Player::GainItem(int64_t global_item_id, int32_t count)
 	if (!message) return false;
 
 	auto message_item = message->New(); 
-	message_item->CopyFrom(*message);
-
 	if (!message_item) return false; //内存不足
+
+	message_item->CopyFrom(*message);
 	
 	const pb::FieldDescriptor* prop_field = message_item->GetDescriptor()->FindFieldByName("item_common_prop"); //物品公共属性变量
 	if (!prop_field) return false; //不是物品
