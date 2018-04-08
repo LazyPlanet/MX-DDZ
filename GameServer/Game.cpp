@@ -303,7 +303,7 @@ void Game::Calculate(std::shared_ptr<Player> player_ptr)
 	//
 	Asset::GameCalculate message;
 
-	//(1)各个玩家输牌积分
+	//(1)农民输或赢牌积分
 	//
 	int32_t top_mutiple = _room->MaxFan(); //封顶番数
 	int32_t base_score = 1;
