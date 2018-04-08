@@ -884,7 +884,7 @@ int32_t Player::CmdPaiOperate(pb::Message* message)
 		{
 			if (!PaiXingCheck(pai_operate)) //牌型检查
 			{
-				LOG(ERROR, "玩家:{} 在房间:{}/{}局中不能打牌，牌数据:{}", _player_id, _game->GetID(), _room->GetID(), pai_operate->ShortDebugString());
+				AlertMessage(Asset::ERROR_PAI_UNSATISFIED); //不满足牌型
 				return 3;
 			}
 
@@ -2206,11 +2206,7 @@ int32_t Player::OnPlayerStateChanged(pb::Message* message)
 	
 const Asset::WechatUnion Player::GetWechat() 
 { 
-	if (!_user.has_wechat())
-	{
-		//auto redis = make_unique<Redis>();
-		RedisInstance.GetUser(_stuff.account(), _user);
-	}
+	if (!_user.has_wechat()) RedisInstance.GetUser(_stuff.account(), _user);
 
 	return _user.wechat();
 }
@@ -2316,7 +2312,6 @@ int32_t Player::CmdRecharge(pb::Message* message)
 //
 //玩家管理
 //
-
 void PlayerManager::Emplace(int64_t player_id, std::shared_ptr<Player> player)
 {
 	if (!player) return;
@@ -2348,15 +2343,6 @@ bool PlayerManager::Has(int64_t player_id)
 void PlayerManager::Remove(int64_t player_id)
 {
 	std::lock_guard<std::mutex> lock(_player_lock);
-
-	/*
-	auto player = _players[player_id];
-	if (player) player.reset();
-	
-	_players.erase(player_id);
-
-	if (g_center_session) g_center_session->RemovePlayer(player_id);
-	*/
 
 	auto it = _players.find(player_id);
 	if (it == _players.end()) return;
