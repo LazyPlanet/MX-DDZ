@@ -190,7 +190,7 @@ bool Game::CanPaiOperate(std::shared_ptr<Player> player, Asset::PaiOperation* pa
 
 	//开局
 	//
-	if (!_real_started) return false;
+	//if (!_real_started) return false;
 	
 	if (!_last_oper.has_pai_oper()) return true; 
 	

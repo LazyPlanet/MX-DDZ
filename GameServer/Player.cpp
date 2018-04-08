@@ -673,17 +673,11 @@ bool Player::PaiXingCheck(Asset::PaiOperation* pai_operate)
 			return x.card_value() < y.card_value(); //由小到大
 		}); 
 
-	std::map<int32_t, int32_t> cards_value; //各个牌值数量
-
-	for (const auto& card : pai_operate->pais())
-	{
-		++cards_value[card.card_value()];
-	}
 
 	auto chupai_count = pai_operate->pais().size(); //出牌数量
 	if (chupai_count <= 0) return false;
 
-	//是否是王炸
+	//王炸
 	//
 	if (chupai_count == 2 && pai_operate->pais(0).card_type() == Asset::CARD_TYPE_KINGS && pai_operate->pais(1).card_type() == Asset::CARD_TYPE_KINGS)
 	{
@@ -691,6 +685,28 @@ bool Player::PaiXingCheck(Asset::PaiOperation* pai_operate)
 
 		pai_operate->set_paixing(Asset::PAIXING_TYPE_ZHADAN);
 		return true;
+	}
+	
+	//单张王
+	//
+	if (chupai_count == 1 && pai_operate->pais(0).card_type() == Asset::CARD_TYPE_KINGS)
+	{
+		pai_operate->set_paixing(Asset::PAIXING_TYPE_DANZHANG);
+		return true;
+	}
+
+	//正常出牌，不带王
+	//
+	std::map<int32_t, int32_t> cards_value; //各个牌值数量
+
+	for (const auto& card : pai_operate->pais())
+	{
+		if (card.card_type() == Asset::CARD_TYPE_KINGS) return false; //王牌不能进行任何组合
+
+		int32_t card_value = card.card_value();
+		if (card_value == 1 || card_value == 2) card_value += 13;
+
+		++cards_value[card_value];
 	}
 
 	auto max_value = 0, max_value_count = 0; //最大牌值和最大牌值数量
