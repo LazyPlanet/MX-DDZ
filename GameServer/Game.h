@@ -151,7 +151,6 @@ public:
 	const std::vector<Asset::PaiElement>& GetPais() { return _pais; } 
 	
 	void OnCreateGame(std::shared_ptr<Game> game);
-	void DoCombine();
 	const std::vector<std::vector<int32_t>>& GetCombine() { return _combines; } //排列组合序列
 	int32_t GetCardWeight(const Asset::PaiElement& card);
 	bool ComparePai(const Asset::PaiElement& p1, const Asset::PaiElement& p2);

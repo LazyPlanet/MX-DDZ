@@ -13,9 +13,6 @@
 namespace Adoter
 {
 
-#define NIUNIU_FAPAI 5
-#define NIUNIU_XUANPAI 3
-
 extern const Asset::CommonConst* g_const;
 
 /////////////////////////////////////////////////////
@@ -24,7 +21,7 @@ extern const Asset::CommonConst* g_const;
 void Game::Init(std::shared_ptr<Room> room)
 {
 	_cards.clear();
-	_cards.resize(136);
+	_cards.resize(CARDS_COUNT);
 
 	std::iota(_cards.begin(), _cards.end(), 1);
 	std::vector<int32_t> cards(_cards.begin(), _cards.end());
@@ -583,7 +580,7 @@ bool Game::CanStart()
 {
 	if (_rob_dizhus.size() < MAX_PLAYER_COUNT) return false;
 
-	if (_rob_dizhu_count != MAX_PLAYER_COUNT + 1) return false;
+	//if (_rob_dizhu_count != MAX_PLAYER_COUNT + 1) return false;
 
 	for (const auto player : _rob_dizhus)
 	{
@@ -617,7 +614,8 @@ bool GameManager::Load()
 
 		//扑克
 		//
-		static std::set<int32_t> _valid_cards = { Asset::CARD_TYPE_HONGTAO, Asset::CARD_TYPE_FANGPIAN, Asset::CARD_TYPE_HEITAO, Asset::CARD_TYPE_MEIHUA }; 
+		static std::set<int32_t> _valid_cards = { Asset::CARD_TYPE_HONGTAO, Asset::CARD_TYPE_FANGPIAN, Asset::CARD_TYPE_HEITAO, Asset::CARD_TYPE_MEIHUA,
+			Asset::CARD_TYPE_KINGS}; 
 
 		auto it = _valid_cards.find(asset_card->card_type());
 		if (it == _valid_cards.end()) continue;
@@ -638,39 +636,18 @@ bool GameManager::Load()
 		}
 	}
 
-	//if (_cards.size() != CARDS_COUNT) return false;
+	if (_cards.size() != CARDS_COUNT) 
+	{
+		ERROR("加载牌数据失败，加载牌数量:{} 期望牌数量:{}", _cards.size(), CARDS_COUNT);
+		return false;
+	}
 	
-	//DoCombine(); //生成排列组合序列
-
 	return true;
 }
 
 void GameManager::OnCreateGame(std::shared_ptr<Game> game)
 {
 	_games.push_back(game);
-}
-
-void GameManager::DoCombine()
-{
-	std::vector<bool> v(NIUNIU_FAPAI);
-	std::fill(v.begin(), v.begin() + NIUNIU_XUANPAI, true);
-
-	do 
-	{
-		std::vector<int32_t> combine;
-
-		for (int i = 0; i < NIUNIU_FAPAI; ++i) 
-		{
-			if (v[i]) 
-			{
-				DEBUG("生成牛牛组合序列，索引:{}", i);
-				combine.push_back(i);
-			}
-		}
-
-		_combines.push_back(combine);
-
-	} while (std::prev_permutation(v.begin(), v.end()));
 }
 
 int32_t GameManager::GetCardWeight(const Asset::PaiElement& card)

@@ -473,7 +473,7 @@ void WorldSession::OnProcessMessage(const Asset::Meta& meta)
 			auto room_type = enter_room->room().room_type();
 			int64_t room_id = enter_room->room().room_id();
 			int64_t game_type = room_id >> 24;
-			int64_t server_id = (room_id & 0x00FFFF) >> 16;
+			int64_t server_id = (room_id & 0x00FFFFFF) >> 16;
 
 			if (Asset::ROOM_TYPE_FRIEND == room_type)
 			{
