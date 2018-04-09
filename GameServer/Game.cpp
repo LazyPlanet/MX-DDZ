@@ -358,7 +358,7 @@ void Game::Calculate(std::shared_ptr<Player> player_ptr)
 		if (player_id == _dizhu_player_id) continue;
 
 		auto score = base_score;
-		if (player_ptr->GetID() == _dizhu_player_id) score = -base_score; //庄家先走
+		if (player_ptr->GetID() == _dizhu_player_id) score = -base_score; //地主先走
 
 		score *= GetBeiLv(); //总分数
 
