@@ -150,6 +150,7 @@ void Room::OnReEnter(std::shared_ptr<Player> op_player)
 	//
 	Asset::RoomAll message;
 	message.set_current_rounds(_games.size());
+	message.set_zhuang_position(Asset::POSITION_TYPE(_banker_index + 1));
 	message.set_dizhu_position((Asset::POSITION_TYPE)GetPlayerOrder(_game->GetDiZhu()));
 	
 	for (const auto& record : _history.list())
