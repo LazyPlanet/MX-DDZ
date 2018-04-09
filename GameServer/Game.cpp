@@ -194,7 +194,11 @@ bool Game::CanPaiOperate(std::shared_ptr<Player> player, Asset::PaiOperation* pa
 	//
 	if (!_real_started) return false;
 	
-	if (!_last_oper.has_pai_oper() && _dizhu_player_id == player->GetID()) return true; 
+	if (!_last_oper.has_pai_oper())
+	{
+		if (_dizhu_player_id == player->GetID()) { return true; }
+		else { return false; }
+	}
 	
 	auto curr_player = GetPlayerByOrder(_curr_player_index);
 	if (!curr_player) return false;
