@@ -251,8 +251,8 @@ void Game::OnPaiOperate(std::shared_ptr<Player> player, pb::Message* message)
 	{
 		player->AlertMessage(Asset::ERROR_PAI_CANNOT_GUANGSHANG); //没到玩家操作，或者管不上上家出牌，防止外挂
 					
-		LOG(ERROR, "玩家:{} 可操作玩家索引:{} 在房间:{}/{}局中无法出牌，牌数据:{}", 
-				player->GetID(), _curr_player_index, GetID(), _room->GetID(), pai_operate->ShortDebugString());
+		LOG(ERROR, "玩家:{} 可操作玩家索引:{} 在房间:{}/{}局中无法出牌，牌数据:{} 缓存牌数据:{}", 
+				player->GetID(), _curr_player_index, GetID(), _room->GetID(), pai_operate->ShortDebugString(), _last_oper.pai_oper().ShortDebugString());
 		return; //不允许操作
 	}
 
