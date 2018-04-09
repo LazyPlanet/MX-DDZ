@@ -691,7 +691,6 @@ bool Player::PaiXingCheck(Asset::PaiOperation* pai_operate)
 	}
 	
 	//单张王
-	/*
 	if (chupai_count == 1 && pai_operate->pais(0).card_type() == Asset::CARD_TYPE_KINGS)
 	{
 		pai_operate->mutable_pai()->CopyFrom(pai_operate->pais(0)); //最大牌值
@@ -699,7 +698,6 @@ bool Player::PaiXingCheck(Asset::PaiOperation* pai_operate)
 		pai_operate->set_paixing(Asset::PAIXING_TYPE_DANZHANG);
 		return true;
 	}
-	*/
 
 	//正常出牌，不带王
 	//
@@ -730,7 +728,10 @@ bool Player::PaiXingCheck(Asset::PaiOperation* pai_operate)
 	
 	for (const auto& card : pai_operate->pais())
 	{
-		if (max_value == card.card_value()) 
+		int32_t card_value = card.card_value();
+		if (card_value == 1 || card_value == 2) card_value += 13;
+
+		if (max_value == card_value)
 		{
 			pai_operate->mutable_pai()->CopyFrom(card); //缓存最大牌值
 			break;
