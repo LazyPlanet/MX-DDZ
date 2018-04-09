@@ -245,7 +245,7 @@ void Game::OnPaiOperate(std::shared_ptr<Player> player, pb::Message* message)
 	
 	if (Asset::PAI_OPER_TYPE_DAPAI == pai_operate->oper_type() && !CanPaiOperate(player, pai_operate)) 
 	{
-		player->AlertMessage(Asset::ERROR_PAI_UNSATISFIED); //没到玩家操作，或者管不上上家出牌，防止外挂
+		player->AlertMessage(Asset::ERROR_PAI_CANNOT_GUANGSHANG); //没到玩家操作，或者管不上上家出牌，防止外挂
 					
 		LOG(ERROR, "玩家:{} 可操作玩家索引:{} 在房间:{}/{}局中无法出牌，牌数据:{}", 
 				player->GetID(), _curr_player_index, GetID(), _room->GetID(), pai_operate->ShortDebugString());
