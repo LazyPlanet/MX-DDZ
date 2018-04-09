@@ -151,7 +151,6 @@ void Room::OnReEnter(std::shared_ptr<Player> op_player)
 	Asset::RoomAll message;
 	message.set_current_rounds(_games.size());
 	message.set_zhuang_position(Asset::POSITION_TYPE(_banker_index + 1));
-	message.set_dizhu_position((Asset::POSITION_TYPE)GetPlayerOrder(_game->GetDiZhu()));
 	
 	for (const auto& record : _history.list())
 	{	
@@ -181,8 +180,9 @@ void Room::OnReEnter(std::shared_ptr<Player> op_player)
 	}
 
 	//牌局通用信息
+	message.set_dizhu_position((Asset::POSITION_TYPE)GetPlayerOrder(_game->GetDiZhu()));
 	message.set_curr_operator_position(Asset::POSITION_TYPE(_game->GetCurrPlayerIndex() + 1));
-	//message.set_remain_cards_count(_game->GetRemainCount());
+	message.mutable_pai_oper()->CopyFrom(_game->GetOperCache().pai_oper()); //上家打牌
 
 	//
 	//牌局相关数据推送
@@ -208,11 +208,9 @@ void Room::OnReEnter(std::shared_ptr<Player> op_player)
 		}
 	}
 
-	message.mutable_pai_oper()->CopyFrom(_game->GetOperCache().pai_oper()); //上家打牌
-
 	op_player->SendProtocol(message);
 
-	_game->OnPlayerReEnter(op_player); //玩家操作
+	//_game->OnPlayerReEnter(op_player); //玩家操作
 }
 
 void Room::OnPlayerLeave(int64_t player_id)
