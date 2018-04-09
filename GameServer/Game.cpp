@@ -341,8 +341,8 @@ void Game::Calculate(std::shared_ptr<Player> player_ptr)
 
 	//(1)农民输或赢牌积分
 	//
-	int32_t top_mutiple = _room->MaxFan(); //封顶番数
 	int32_t base_score = 1;
+	int32_t top_mutiple = _room->MaxFan(); //封顶番数
 
 	for (auto player : _players)
 	{
@@ -363,16 +363,16 @@ void Game::Calculate(std::shared_ptr<Player> player_ptr)
 		score *= GetBeiLv(); //总分数
 
 		//牌型基础分值计算
-		//
+		/*
 		auto detail = record->mutable_details()->Add();
 		//detail->set_fan_type((Asset::FAN_TYPE)fan);
 		detail->set_score(-score); //负数代表输分
-	
+		*/
 		//输牌玩家番数上限封底
 		//
 		if (top_mutiple > 0) score = std::min(top_mutiple, score); //封顶
 
-		record->set_score(-score); //玩家总积分
+		record->set_score(score); //玩家总积分
 	}
 
 	//(2)地主积分
@@ -387,6 +387,16 @@ void Game::Calculate(std::shared_ptr<Player> player_ptr)
 	
 	auto record = get_record(_dizhu_player_id); 
 	if (record == message.mutable_record()->mutable_list()->end()) return;
+
+	int32_t total_score = 0;
+	for (const auto& nongmin_record : message.record().list())
+	{
+		if (_dizhu_player_id == nongmin_record.player_id()) continue;
+
+		total_score += nongmin_record.score(); //分数
+	}
+
+	record->set_score(total_score); //地主总积分
 
 	//好友房//匹配房记录消耗
 	//
