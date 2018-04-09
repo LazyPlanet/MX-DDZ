@@ -683,17 +683,23 @@ bool Player::PaiXingCheck(Asset::PaiOperation* pai_operate)
 	{
 		_game->IncreaseBeiLv(); //翻倍
 
+		pai_operate->mutable_pai()->set_card_type(Asset::CARD_TYPE_KINGS); //最大牌值
+		pai_operate->mutable_pai()->set_card_value(2); 
+
 		pai_operate->set_paixing(Asset::PAIXING_TYPE_ZHADAN);
 		return true;
 	}
 	
 	//单张王
-	//
+	/*
 	if (chupai_count == 1 && pai_operate->pais(0).card_type() == Asset::CARD_TYPE_KINGS)
 	{
+		pai_operate->mutable_pai()->CopyFrom(pai_operate->pais(0)); //最大牌值
+
 		pai_operate->set_paixing(Asset::PAIXING_TYPE_DANZHANG);
 		return true;
 	}
+	*/
 
 	//正常出牌，不带王
 	//
@@ -722,9 +728,14 @@ bool Player::PaiXingCheck(Asset::PaiOperation* pai_operate)
 	const auto max_pai = pai_operate->pai(); //Clinet最大数量牌值
 	const auto pai_xing = pai_operate->paixing(); //Client最大牌型
 	
-	pai_operate->mutable_pai()->set_card_value(max_value); //最大牌值
-	
-	//cards_value.erase(max_value); //删除最大数量牌值，检查其他牌型
+	for (const auto& card : pai_operate->pais())
+	{
+		if (max_value == card.card_value()) 
+		{
+			pai_operate->mutable_pai()->CopyFrom(card); //缓存最大牌值
+			break;
+		}
+	}
 
 	//根据牌面相同的最大数量判断类型
 	//
