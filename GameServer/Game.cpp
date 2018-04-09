@@ -182,6 +182,7 @@ void Game::ClearState()
 	_rob_dizhus.clear(); //倍率表
 	
 	_real_started = false;
+	_dizhu_player_id = 0;
 }
 
 bool Game::CanPaiOperate(std::shared_ptr<Player> player, Asset::PaiOperation* pai_operate)
@@ -190,9 +191,9 @@ bool Game::CanPaiOperate(std::shared_ptr<Player> player, Asset::PaiOperation* pa
 
 	//开局
 	//
-	//if (!_real_started) return false;
+	if (!_real_started) return false;
 	
-	if (!_last_oper.has_pai_oper()) return true; 
+	if (!_last_oper.has_pai_oper() && _dizhu_player_id == player->GetID()) return true; 
 	
 	auto curr_player = GetPlayerByOrder(_curr_player_index);
 	if (!curr_player) return false;
