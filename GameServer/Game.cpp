@@ -80,7 +80,7 @@ bool Game::Start(std::vector<std::shared_ptr<Player>> players, int64_t room_id, 
 
 		int32_t card_count = 17; //正常开启，普通玩家牌数量//斗地主起手每人17张牌
 
-		if (banker_index % MAX_PLAYER_COUNT == i) _curr_player_index = i; //当前操作玩家//地主是庄家
+		//if (banker_index % MAX_PLAYER_COUNT == i) _curr_player_index = i; //当前操作玩家
 
 		//玩家发牌
 		auto cards = FaPai(card_count);
@@ -183,6 +183,7 @@ void Game::ClearState()
 	
 	_real_started = false;
 	_dizhu_player_id = 0;
+	_curr_player_index = 0;
 }
 
 bool Game::CanPaiOperate(std::shared_ptr<Player> player, Asset::PaiOperation* pai_operate)
@@ -200,7 +201,9 @@ bool Game::CanPaiOperate(std::shared_ptr<Player> player, Asset::PaiOperation* pa
 
 	//轮到玩家打牌
 	//
-	if (player == curr_player) return true; 
+	if (player != curr_player) return false; 
+
+	if (_last_oper.player_id() == player->GetID()) return true; //没人能要的起，都点了过
 
 	//下家管上家的牌
 	//
@@ -243,10 +246,17 @@ void Game::OnPaiOperate(std::shared_ptr<Player> player, pb::Message* message)
 	if (Asset::PAI_OPER_TYPE_DAPAI == pai_operate->oper_type() && !CanPaiOperate(player, pai_operate)) 
 	{
 		player->AlertMessage(Asset::ERROR_PAI_UNSATISFIED); //没到玩家操作，或者管不上上家出牌，防止外挂
+					
+		LOG(ERROR, "玩家:{} 可操作玩家索引:{} 在房间:{}/{}局中无法出牌，牌数据:{}", 
+				player->GetID(), _curr_player_index, GetID(), _room->GetID(), pai_operate->ShortDebugString());
 		return; //不允许操作
 	}
 
-	_last_oper.mutable_pai_oper()->CopyFrom(*pai_operate); //缓存上次牌数据
+	if (Asset::PAI_OPER_TYPE_DAPAI == pai_operate->oper_type()) 
+	{
+		_last_oper.set_player_id(player->GetID());
+		_last_oper.mutable_pai_oper()->CopyFrom(*pai_operate); //缓存上次牌数据
+	}
 	
 	switch (pai_operate->oper_type())
 	{
@@ -262,14 +272,14 @@ void Game::OnPaiOperate(std::shared_ptr<Player> player, pb::Message* message)
 					return;
 				}
 			}
-
+			
 			if (player->GetCardsCountInhand() == 0) Calculate(player); //有一家出完所有牌则进入本局结算
 		}
 		break;
 		
 		case Asset::PAI_OPER_TYPE_GIVEUP: //放弃//不要
 		{
-			_curr_player_index = (_curr_player_index + 1) % MAX_PLAYER_COUNT; //如果有玩家放弃操作，则继续下个玩家
+			//_curr_player_index = (_curr_player_index + 1) % MAX_PLAYER_COUNT; //如果有玩家放弃操作，则继续下个玩家
 		}
 		break;
 		
@@ -279,6 +289,8 @@ void Game::OnPaiOperate(std::shared_ptr<Player> player, pb::Message* message)
 		}
 		break;
 	}
+			
+	_curr_player_index = (_curr_player_index + 1) % MAX_PLAYER_COUNT; //继续下个玩家
 	
 	BroadCast(message); //广播玩家操作
 }
@@ -548,7 +560,7 @@ bool Game::RandomDiZhu()
 	if (bankers.size() == 0) return false; //尚未地主可选
 
 	std::random_shuffle(bankers.begin(), bankers.end());
-	_dizhu_player_id = bankers[0]; //随机产生一个地主
+	SetDiZhu(bankers[0]); //随机产生一个地主
 
 	return true;
 }
@@ -579,6 +591,17 @@ void Game::OnRobDiZhu(int64_t player_id, bool is_rob)
 	}
 } 
 	
+void Game::SetDiZhu(int64_t player_id)
+{
+	if (player_id <= 0) return;
+
+	_dizhu_player_id = player_id;
+
+	SetCurrPlayerIndexByPlayer(_dizhu_player_id); //指针转向地主        
+
+	DEBUG("房间:{} 牌局:{} 产生地主:{}", _room_id, _game_id, _dizhu_player_id);
+}
+	
 //是否可以开局
 //
 //斗地主的开局在发牌之后进行叫地主操作
@@ -595,7 +618,8 @@ bool Game::CanStart()
 		{
 			if (player.second) 
 			{
-				_dizhu_player_id = player.first;
+				SetDiZhu(player.first);
+
 				++rob_dizhu_count;
 			}
 		}
@@ -611,11 +635,11 @@ bool Game::CanStart()
 	//
 	for (const auto player : _rob_dizhus)
 	{
-		if (player.second >= 1) _dizhu_player_id = player.first; //地主
+		if (player.second >= 1) SetDiZhu(player.first);
 		
 		if (player.second == 2) 
 		{
-			_dizhu_player_id = player.first;
+			SetDiZhu(player.first);
 
 			return true; //直接开始
 		}

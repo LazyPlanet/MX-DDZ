@@ -32,7 +32,7 @@ private:
 
 	int32_t _curr_player_index = 0; //当前在操作的玩家索引
 	int64_t _banker_player_id = 0; //庄家//起手叫地主
-	int64_t _dizhu_player_id = 0; //地主
+	int64_t _dizhu_player_id = 0; //地主//叫地主之后产生
 	int64_t _room_id = 0;
 	int32_t _game_id = 0;
 
@@ -107,6 +107,7 @@ public:
 
 	int32_t GetDiZhuPlayerCount() { return _rob_dizhu_bl.size(); } //获取抢地主玩家数量//叫分
 	int64_t GetDiZhu() { return _dizhu_player_id; } //地主
+	void SetDiZhu(int64_t player_id);
 
 	void OnRobDiZhu(int64_t player_id, int32_t beilv) { _rob_dizhu_bl[player_id] = beilv; } //叫分抢地主
 	void OnRobDiZhu(int64_t player_id, bool is_rob); //加倍抢地主

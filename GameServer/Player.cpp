@@ -873,11 +873,8 @@ bool Player::PaiXingCheck(Asset::PaiOperation* pai_operate)
 		break;
 	}
 
-	if (max_pai.card_value() != max_value || pai_operate->paixing() != pai_xing)
-	{
-		WARN("玩家:{} 出牌:{} 不符合条件，最大牌:{} 牌型:{}", _player_id, pai_operate->ShortDebugString(), max_value, Asset::PAIXING_TYPE_Name(pai_xing));
-	}
-
+	WARN("玩家:{} 出牌:{} 不符合条件，最大牌:{} 牌型:{}", _player_id, pai_operate->ShortDebugString(), max_value, Asset::PAIXING_TYPE_Name(pai_xing));
+		
 	return false; //牌型不满足
 }
 

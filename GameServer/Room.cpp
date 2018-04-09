@@ -201,11 +201,13 @@ void Room::OnReEnter(std::shared_ptr<Player> op_player)
 			const auto& cards_inhand = player->GetCardsInhand();
 			for (const auto& card : cards_inhand)
 			{
-				auto pai_ptr = player_list->mutable_pai_inhand()->Add();
-				pai_ptr->add_cards(card.card_value());
+				auto pai_ptr = player_list->mutable_cards_inhand()->Add();
+				pai_ptr->CopyFrom(card);
 			}
 		}
 	}
+
+	message.mutable_pai_oper()->CopyFrom(_game->GetOperCache().pai_oper()); //上家打牌
 
 	op_player->SendProtocol(message);
 
