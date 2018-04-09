@@ -241,19 +241,26 @@ void Game::OnPaiOperate(std::shared_ptr<Player> player, pb::Message* message)
 	
 	if (Asset::PAI_OPER_TYPE_DAPAI == pai_operate->oper_type() && !CanPaiOperate(player, pai_operate)) 
 	{
-		player->AlertMessage(Asset::ERROR_GAME_NO_PERMISSION); //没有权限，没到玩家操作，防止外挂
+		player->AlertMessage(Asset::ERROR_PAI_UNSATISFIED); //没到玩家操作，或者管不上上家出牌，防止外挂
 		return; //不允许操作
 	}
 
 	_last_oper.mutable_pai_oper()->CopyFrom(*pai_operate); //缓存上次牌数据
 	
-	BroadCast(message); //广播玩家操作，玩家放弃操作不能广播
-	
 	switch (pai_operate->oper_type())
 	{
 		case Asset::PAI_OPER_TYPE_DAPAI: //打牌
 		{
-			for (const auto& pai : pai_operate->pais()) Add2CardsPool(pai); //加入牌池
+			for (const auto& pai : pai_operate->pais()) 
+			{
+				if (!player->RemovePai(pai)) //删除玩家牌
+				{
+					player->PrintPai(); //打印出牌数据
+
+					LOG(ERROR, "玩家:{} 在房间:{}/{}局中无法删除牌，牌数据:{}", player->GetID(), GetID(), _room->GetID(), pai_operate->ShortDebugString());
+					return;
+				}
+			}
 
 			if (player->GetCardsCountInhand() == 0) Calculate(player); //有一家出完所有牌则进入本局结算
 		}
@@ -271,6 +278,8 @@ void Game::OnPaiOperate(std::shared_ptr<Player> player, pb::Message* message)
 		}
 		break;
 	}
+	
+	BroadCast(message); //广播玩家操作
 }
 
 void Game::PaiPushDown()

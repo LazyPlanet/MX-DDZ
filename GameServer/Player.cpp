@@ -903,6 +903,7 @@ int32_t Player::CmdPaiOperate(pb::Message* message)
 				AlertMessage(Asset::ERROR_PAI_UNSATISFIED); //不满足牌型
 				return 3;
 			}
+			/*
 
 			for (const auto& pai : pai_operate->pais())
 			{
@@ -916,6 +917,7 @@ int32_t Player::CmdPaiOperate(pb::Message* message)
 			
 				Add2CardsPool(pai);
 			}
+			*/
 		}
 		break;
 
