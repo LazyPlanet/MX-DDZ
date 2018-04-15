@@ -180,7 +180,9 @@ void Room::OnReEnter(std::shared_ptr<Player> op_player)
 	}
 
 	//牌局通用信息
-	message.set_dizhu_position((Asset::POSITION_TYPE)GetPlayerOrder(_game->GetDiZhu()));
+	int32_t dizhu_position = GetPlayerOrder(_game->GetDiZhu());
+	if (Asset::POSITION_TYPE_IsValid(dizhu_position)) message.set_dizhu_position(Asset::POSITION_TYPE(dizhu_position + 1));
+
 	message.set_curr_operator_position(Asset::POSITION_TYPE(_game->GetCurrPlayerIndex() + 1));
 	message.mutable_pai_oper()->CopyFrom(_game->GetOperCache().pai_oper()); //上家打牌
 
