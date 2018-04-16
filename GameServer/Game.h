@@ -48,7 +48,7 @@ private:
 	int32_t _beilv = 1; //抢地主倍率
 	int32_t _rob_dizhu_count = 0; //是否抢地主操作次数
 	std::unordered_map<int64_t, int32_t> _rob_dizhu_bl; //倍率表//缓存玩家叫分
-	std::unordered_map<int64_t, int32_t> _rob_dizhus; //是否已经叫地主
+	std::vector<int64_t> _rob_dizhus; //叫地主的玩家
 public:
 	virtual void Init(std::shared_ptr<Room> room); //初始化
 	virtual bool Start(std::vector<std::shared_ptr<Player>> players, int64_t room_id = 0, int32_t game_id = 0); //开始游戏
@@ -111,7 +111,6 @@ public:
 
 	void OnRobDiZhu(int64_t player_id, int32_t beilv) { _rob_dizhu_bl[player_id] = beilv; } //叫分抢地主
 	void OnRobDiZhu(int64_t player_id, bool is_rob); //加倍抢地主
-	bool HasRobDiZhu(int64_t player_id) { return _rob_dizhus.find(player_id) != _rob_dizhus.end(); } //是否叫过地主
 };
 
 /////////////////////////////////////////////////////

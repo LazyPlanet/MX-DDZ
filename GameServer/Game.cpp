@@ -588,8 +588,11 @@ void Game::OnRobDiZhu(int64_t player_id, bool is_rob)
 
 	++_rob_dizhu_count;
 
-	if (_rob_dizhu_count > MAX_PLAYER_COUNT + 1) return; //不能再抢
+	if (_rob_dizhu_count > MAX_PLAYER_COUNT + 1) return; //最多4次，不能再抢
 
+	if (is_rob) _rob_dizhus.push_back(player_id);
+
+	/*
 	if (_rob_dizhus.find(player_id) != _rob_dizhus.end())
 	{
 		if (player_id != _banker_player_id) return; //非庄家不能多次叫地主
@@ -603,6 +606,7 @@ void Game::OnRobDiZhu(int64_t player_id, bool is_rob)
 	{ 
 		_rob_dizhus[player_id] = 0; 
 	}
+	*/
 } 
 	
 void Game::SetDiZhu(int64_t player_id)
@@ -623,8 +627,11 @@ void Game::SetDiZhu(int64_t player_id)
 //每次游戏可以必须进行4次是否抢地主操作
 bool Game::CanStart()
 {
-	if (_rob_dizhus.size() < MAX_PLAYER_COUNT) return false;
+	//if (_rob_dizhus.size() < MAX_PLAYER_COUNT) return false;
+	
+	if (_rob_dizhu_count < MAX_PLAYER_COUNT + 1) return false; //最多4次，不能再抢
 
+	/*
 	if (_rob_dizhus.size() == MAX_PLAYER_COUNT) //都已经叫(或不叫)了地主
 	{
 		int32_t rob_dizhu_count = 0; //抢地主玩家数量
@@ -658,8 +665,14 @@ bool Game::CanStart()
 			return true; //直接开始
 		}
 	}
+	*/
 
-	return false;
+	if (_rob_dizhus.size() == 0) return false;
+
+	auto player_ptr = _rob_dizhus.rbegin(); //最后一个叫地主的是地主
+	SetDiZhu(*player_ptr);
+
+	return true;
 }
 
 //
