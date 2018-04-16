@@ -453,6 +453,17 @@ void Room::OnGameStart()
 	}
 }
 	
+void Room::ResetGame(std::shared_ptr<Game> game)
+{
+	_game = game;
+
+	if (!game) _game = std::make_shared<Game>();
+
+	_game->Init(shared_from_this()); //洗牌
+
+	_game->Start(_players, _stuff.room_id(), _games.size()); //开始游戏
+}
+	
 void Room::AddHupai(int64_t player_id) 
 { 
 	//std::lock_guard<std::mutex> lock(_mutex);
@@ -703,6 +714,13 @@ bool Room::OnJiaoZhuang(int64_t player_id, int32_t beilv)
 		}
 		else //不叫
 		{
+			++_no_robed_count;
+
+			if (MAX_PLAYER_COUNT == _no_robed_count) //都不叫地主
+			{
+				ResetGame(); //刷新下一局
+				return false;
+			}
 			_game->OnRobDiZhu(player_id, false);
 		}
 			

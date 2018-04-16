@@ -111,6 +111,8 @@ public:
 
 	void OnRobDiZhu(int64_t player_id, int32_t beilv) { _rob_dizhu_bl[player_id] = beilv; } //叫分抢地主
 	void OnRobDiZhu(int64_t player_id, bool is_rob); //加倍抢地主
+	int32_t GetRobDiZhuCount() { return _rob_dizhus.size(); }
+	int32_t GetDiZhuOperCount() { return _rob_dizhu_count; }
 };
 
 /////////////////////////////////////////////////////

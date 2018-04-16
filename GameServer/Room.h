@@ -42,6 +42,7 @@ private:
 	int32_t _dismiss_time = 0; //解散时间
 	int32_t _created_time = 0; //创建时间
 	int32_t _dismiss_cooldown = 0; //解散冷却时间
+	int32_t _no_robed_count = 0; //不叫地主数量
 public:
 	explicit Room(Asset::Room room) {  _stuff = room; }
 
@@ -105,6 +106,7 @@ public:
 	bool HasStarted() { return _games.size() > 0; } //是否已经开局
 	bool HasBeenOver(); //牌局是否结束//总结算
 
+	void ResetGame(std::shared_ptr<Game> game = nullptr);
 	std::shared_ptr<Game> GetGame() { return _game; }
 	bool IsGaming() { return _game != nullptr; } //牌局进行中，比如上局结束下局尚未开始则不在进行中
 
