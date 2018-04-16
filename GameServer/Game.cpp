@@ -597,7 +597,12 @@ void Game::OnRobDiZhu(int64_t player_id, bool is_rob)
 
 	if (_rob_dizhu_count > MAX_PLAYER_COUNT + 1) return; //最多4次，不能再抢
 
-	if (is_rob) _rob_dizhus.push_back(player_id);
+	if (is_rob) 
+	{
+		if (_rob_dizhus.size()) IncreaseBeiLv(); //抢地主加倍//叫地主不加倍
+
+		_rob_dizhus.push_back(player_id);
+	}
 
 	/*
 	if (_rob_dizhus.find(player_id) != _rob_dizhus.end())
