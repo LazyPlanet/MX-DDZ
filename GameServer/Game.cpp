@@ -582,6 +582,7 @@ bool Game::RandomDiZhu()
 //加倍抢地主
 //
 //庄家可以抢两次
+//
 void Game::OnRobDiZhu(int64_t player_id, bool is_rob) 
 { 
 	DEBUG("玩家:{} 叫地主数量:{}，是否抢地主:{} 此时庄家:{}", player_id, _rob_dizhu_count, is_rob, _banker_player_id);
