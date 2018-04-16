@@ -223,6 +223,10 @@ bool Game::CanPaiOperate(std::shared_ptr<Player> player, Asset::PaiOperation* pa
 	{
 		return true; //炸弹可以管上任何非炸弹
 	}
+	else if (pai_operate->paixing() == Asset::PAIXING_TYPE_ZHADAN && pai_operate->pais().size() == 2)
+	{
+		return true; //王炸
+	}
 	else
 	{
 		if (pai_operate->pais().size() != _last_oper.pai_oper().pais().size()) return false; //出牌数量不一致
