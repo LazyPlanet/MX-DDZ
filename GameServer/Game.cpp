@@ -158,7 +158,7 @@ bool Game::OnGameOver(int64_t player_id)
 	
 	ClearState();
 
-	_room->OnGameOver(player_id); //胡牌
+	_room->OnGameOver(player_id); 
 
 	return true;
 }
