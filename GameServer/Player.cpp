@@ -802,7 +802,8 @@ bool Player::PaiXingCheck(Asset::PaiOperation* pai_operate)
 
 					if (!begin) begin = mem.first;
 					
-					if (begin != mem.first && n == 1){
+					if (begin != mem.first && n == 1)
+					{
 						n = 1;
 						begin = mem.first;
 					}
