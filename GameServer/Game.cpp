@@ -326,8 +326,8 @@ void Game::PaiPushDown()
 		const auto& cards_inhand = player->GetCardsInhand();
 		for (const auto& card : cards_inhand)
 		{
-			auto pai = player_info->mutable_pai_list()->Add();
-			pai->mutable_cards()->Add(card.card_value()); //牌值
+			auto pai = player_info->mutable_cards()->Add();
+			pai->CopyFrom(card);
 		}
 	}
 
