@@ -141,6 +141,12 @@ void Game::OnStarted(std::shared_ptr<Player> dizhu_ptr)
 
 	auto cards = FaPai(3);
 	dizhu_ptr->OnFaPai(cards);  
+
+	for (auto card_index : cards)
+	{
+		const auto& card = GameInstance.GetCard(card_index);
+		_dipai.push_back(card);
+	}
 }
 
 bool Game::OnGameOver(int64_t player_id)
@@ -175,6 +181,7 @@ void Game::ClearState()
 {
 	_last_oper.Clear();
 	_cards_pool.clear();
+	_dipai.clear();
 	
 	_beilv = 1; //倍率
 	_rob_dizhu_count = 0; 

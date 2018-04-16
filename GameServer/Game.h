@@ -42,6 +42,7 @@ private:
 	std::shared_ptr<Player> _players[MAX_PLAYER_COUNT]; //玩家数据：按照进房间的顺序，0->1->2->3...主要用于控制发牌和出牌顺序
 
 	std::vector<Asset::PaiElement> _cards_pool; //牌池，玩家已经打的牌缓存
+	std::vector<Asset::PaiElement> _dipai; //底牌
 
 	Asset::PlayBack _playback; //回放数据
 	
@@ -66,6 +67,7 @@ public:
 
 	virtual void Add2CardsPool(Asset::PaiElement pai);
 	virtual void Add2CardsPool(Asset::CARD_TYPE card_type, int32_t card_value);
+	const std::vector<Asset::PaiElement>& GetDiPai() { return _dipai; } //底牌
 	
 	bool CanPaiOperate(std::shared_ptr<Player> player, Asset::PaiOperation* pai_operate = nullptr); //检查玩家是否具有操作权限
 	void OnPaiOperate(std::shared_ptr<Player> player, pb::Message* message); //玩家牌操作响应

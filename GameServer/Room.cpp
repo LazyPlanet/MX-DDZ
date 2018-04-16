@@ -187,6 +187,12 @@ void Room::OnReEnter(std::shared_ptr<Player> op_player)
 	message.mutable_pai_oper()->CopyFrom(_game->GetOperCache().pai_oper()); //上家打牌
 	message.set_beishu(_game->GetBeiLv());
 
+	for (const auto dipai : _game->GetDiPai())
+	{
+		auto pai = message.mutable_dipai()->Add();
+		pai->CopyFrom(dipai);
+	}
+
 	//
 	//牌局相关数据推送
 	//
