@@ -47,6 +47,7 @@ private:
 	Asset::PlayBack _playback; //回放数据
 	
 	int32_t _beilv = 1; //抢地主倍率
+	int32_t _base_score = 1; //底分
 	int32_t _rob_dizhu_count = 0; //是否抢地主操作次数
 	std::unordered_map<int64_t, int32_t> _rob_dizhu_bl; //倍率表//缓存玩家叫分
 	std::vector<int64_t> _rob_dizhus; //叫地主的玩家
@@ -111,7 +112,7 @@ public:
 	int64_t GetDiZhu() { return _dizhu_player_id; } //地主
 	void SetDiZhu(int64_t player_id);
 
-	void OnRobDiZhu(int64_t player_id, int32_t beilv) { _rob_dizhu_bl[player_id] = beilv; } //叫分抢地主
+	void OnRobDiZhu(int64_t player_id, int32_t beilv); //加分抢地主
 	void OnRobDiZhu(int64_t player_id, bool is_rob); //加倍抢地主
 	int32_t GetRobDiZhuCount() { return _rob_dizhus.size(); }
 	int32_t GetDiZhuOperCount() { return _rob_dizhu_count; }

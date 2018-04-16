@@ -716,7 +716,6 @@ bool Room::OnJiaoZhuang(int64_t player_id, int32_t beilv)
 	{
 		if (beilv > 0) //叫地主
 		{
-			//_game->IncreaseBeiLv(); 
 			_game->OnRobDiZhu(player_id, true);
 		}
 		else //不叫
@@ -726,7 +725,6 @@ bool Room::OnJiaoZhuang(int64_t player_id, int32_t beilv)
 			if (MAX_PLAYER_COUNT == _no_robed_count) //都不叫地主
 			{
 				ResetGame(); //刷新下一局
-
 				return false;
 			}
 			_game->OnRobDiZhu(player_id, false);

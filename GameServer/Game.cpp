@@ -183,7 +183,7 @@ void Game::ClearState()
 	_cards_pool.clear();
 	_dipai.clear();
 	
-	_beilv = 1; //倍率
+	_base_score = _beilv = 1; //底分//倍率
 	_rob_dizhu_count = 0; 
 	_rob_dizhu_bl.clear(); //倍率表
 	_rob_dizhus.clear(); //倍率表
@@ -348,7 +348,7 @@ void Game::Calculate(std::shared_ptr<Player> player_ptr)
 
 	//(1)农民输或赢牌积分
 	//
-	int32_t base_score = 1, chuntian_count = 0;
+	int32_t chuntian_count = 0;
 	int32_t top_mutiple = _room->MaxFan(); //封顶番数
 
 	for (auto player : _players)
@@ -379,8 +379,8 @@ void Game::Calculate(std::shared_ptr<Player> player_ptr)
 			continue;
 		}
 
-		auto score = base_score;
-		if (player_ptr->GetID() == _dizhu_player_id) score = -base_score; //地主先走
+		auto score = _base_score;
+		if (player_ptr->GetID() == _dizhu_player_id) score = -_base_score; //地主先走
 
 		score *= GetBeiLv(); //总分数
 
@@ -562,7 +562,6 @@ std::shared_ptr<Player> Game::GetPlayer(int64_t player_id)
 	for (auto player : _players)
 	{
 		if (!player) continue;
-
 		if (player->GetID() == player_id) return player;
 	}
 	
@@ -579,6 +578,7 @@ bool Game::RandomDiZhu()
 {
 	if (!_room) return false;
 		
+	/*
 	if (GetDiZhuPlayerCount() < MAX_PLAYER_COUNT) return false; //有玩家尚未叫分
 
 	int32_t max_score = 0; //最大分数
@@ -597,9 +597,52 @@ bool Game::RandomDiZhu()
 
 	std::random_shuffle(bankers.begin(), bankers.end());
 	SetDiZhu(bankers[0]); //随机产生一个地主
+	*/
+
+	if (_rob_dizhu_bl.size() == 0) return false;
+
+	if (_rob_dizhu_bl.size() == 1)
+	{
+		auto it = _rob_dizhu_bl.begin();
+		if (it == _rob_dizhu_bl.end()) return false;
+
+		if (it->second == 3)
+		{
+			_base_score = 3;
+
+			SetDiZhu(it->first);
+
+			return true;
+		}
+	}
+	
+	int64_t dizhu = 0, max_score = 0; //最大分数
+	
+	for (auto player : _rob_dizhu_bl)
+	{
+		if (player.second > max_score) 
+		{
+			dizhu = player.first;
+			max_score = player.second;
+		}
+	}
+
+	_base_score = max_score;
+
+	SetDiZhu(dizhu); //设置地主
 
 	return true;
 }
+	
+void Game::OnRobDiZhu(int64_t player_id, int32_t beilv) 
+{ 
+	for (auto rob_info : _rob_dizhu_bl)
+	{
+		if (beilv <= rob_info.second) return; //分数必须比上一个抢地主玩家分数高，否则不能抢地主
+	}
+
+	_rob_dizhu_bl[player_id] = beilv; 
+} 
 	
 //加倍抢地主
 //
