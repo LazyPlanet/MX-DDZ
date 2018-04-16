@@ -155,7 +155,7 @@ void Room::OnReEnter(std::shared_ptr<Player> op_player)
 	for (const auto& record : _history.list())
 	{	
 		auto hist_record = message.mutable_list()->Add();
-		hist_record->CopyFrom(record);
+		hist_record->CopyFrom(record); //分数
 
 		for (int32_t i = 0; i < hist_record->list().size(); ++i)
 		{
@@ -173,13 +173,15 @@ void Room::OnReEnter(std::shared_ptr<Player> op_player)
 		}
 	}
 
-	if (!_game)
+	if (!_game) //不在进行中
 	{
 		op_player->SendProtocol(message);
 		return;
 	}
 
+	//
 	//牌局通用信息
+	//
 	int32_t dizhu_position = GetPlayerOrder(_game->GetDiZhu());
 	if (Asset::POSITION_TYPE_IsValid(dizhu_position)) message.set_dizhu_position(Asset::POSITION_TYPE(dizhu_position + 1));
 
@@ -196,7 +198,6 @@ void Room::OnReEnter(std::shared_ptr<Player> op_player)
 	//
 	//牌局相关数据推送
 	//
-
 	for (auto player : _players)
 	{
 		if (!player) continue;
@@ -204,14 +205,14 @@ void Room::OnReEnter(std::shared_ptr<Player> op_player)
 		auto player_list = message.mutable_player_list()->Add();
 		player_list->set_player_id(player->GetID());
 		player_list->set_position(player->GetPosition());
-		player_list->set_pai_count_inhand(player->GetCardsCountInhand());
+		player_list->set_pai_count_inhand(player->GetCardsCountInhand()); //手牌数量
 
 		if (op_player->GetID() == player->GetID())
 		{
 			const auto& cards_inhand = player->GetCardsInhand();
 			for (const auto& card : cards_inhand)
 			{
-				auto pai_ptr = player_list->mutable_cards_inhand()->Add();
+				auto pai_ptr = player_list->mutable_cards_inhand()->Add(); //自己手牌数据
 				pai_ptr->CopyFrom(card);
 			}
 		}
