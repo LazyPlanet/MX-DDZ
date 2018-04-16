@@ -643,6 +643,8 @@ bool Game::CanStart()
 
 			return true;
 		}
+
+		return false; //多人抢地主
 	}
 
 	if (_rob_dizhus.size() == 0) return false;
