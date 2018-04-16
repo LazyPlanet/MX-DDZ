@@ -306,11 +306,7 @@ void Game::PaiPushDown()
 	for (int i = 0; i < MAX_PLAYER_COUNT; ++i)
 	{
 		auto player = _players[i];
-		if (!player) 
-		{
-			ERROR("player_index:{} has not found, maybe it has disconneced.", i);
-			continue;
-		}
+		if (!player) continue;
 
 		auto player_info = proto.mutable_player_list()->Add();
 		player_info->set_player_id(player->GetID());
