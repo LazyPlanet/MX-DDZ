@@ -348,8 +348,19 @@ void Game::Calculate(std::shared_ptr<Player> player_ptr)
 
 	//(1)农民输或赢牌积分
 	//
-	int32_t base_score = 1;
+	int32_t base_score = 1, chuntian_count = 0;
 	int32_t top_mutiple = _room->MaxFan(); //封顶番数
+
+	for (auto player : _players)
+	{
+		if (!player) continue;
+		
+		if (player->GetID() == _dizhu_player_id) continue;
+		
+		if (player->GetChuPaiCount() == 0) ++chuntian_count; //是否春天
+	}
+
+	if (chuntian_count == MAX_PLAYER_COUNT - 1) IncreaseBeiLv();
 
 	for (auto player : _players)
 	{
@@ -367,8 +378,6 @@ void Game::Calculate(std::shared_ptr<Player> player_ptr)
 			if (player->GetChuPaiCount() == 1) IncreaseBeiLv(); //春天
 			continue;
 		}
-		
-		if (player->GetChuPaiCount() == 0) IncreaseBeiLv(); //春天
 
 		auto score = base_score;
 		if (player_ptr->GetID() == _dizhu_player_id) score = -base_score; //地主先走
@@ -409,7 +418,7 @@ void Game::Calculate(std::shared_ptr<Player> player_ptr)
 		total_score += nongmin_record.score(); //分数
 	}
 
-	record->set_score(total_score); //地主总积分
+	record->set_score(-total_score); //地主总积分
 
 	//好友房//匹配房记录消耗
 	//
