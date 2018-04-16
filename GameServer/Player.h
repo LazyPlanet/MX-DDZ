@@ -63,6 +63,7 @@ private:
 	int32_t _pings_count = 0;
 	bool _dirty = false; //脏数据
 	CallBack _method; //协议处理回调函数
+	int32_t _chupai_count = 0; //出牌次数
 public:
 	Player();
 	Player(int64_t player_id);
@@ -358,6 +359,7 @@ public:
 	void OnClanCheck(); //通用检查
 	
 	bool IsDaili() { return _stuff.agent_account().size() > 0;} //是否是代理账号
+	bool GetChuPaiCount() { return _chupai_count; } //出牌次数
 };
 
 /////////////////////////////////////////////////////

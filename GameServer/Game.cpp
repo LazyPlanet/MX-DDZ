@@ -355,7 +355,13 @@ void Game::Calculate(std::shared_ptr<Player> player_ptr)
 		record->set_nickname(player->GetNickName());
 		record->set_headimgurl(player->GetHeadImag());
 		
-		if (player_id == _dizhu_player_id) continue;
+		if (player_id == _dizhu_player_id) 
+		{
+			if (player->GetChuPaiCount() == 1) IncreaseBeiLv(); //春天
+			continue;
+		}
+		
+		if (player->GetChuPaiCount() == 0) IncreaseBeiLv(); //春天
 
 		auto score = base_score;
 		if (player_ptr->GetID() == _dizhu_player_id) score = -base_score; //地主先走

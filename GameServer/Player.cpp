@@ -913,21 +913,8 @@ int32_t Player::CmdPaiOperate(pb::Message* message)
 				AlertMessage(Asset::ERROR_PAI_UNSATISFIED); //不满足牌型
 				return 3;
 			}
-			/*
 
-			for (const auto& pai : pai_operate->pais())
-			{
-				if (!RemovePai(pai))
-				{
-					PrintPai(); //打印出牌数据
-
-					LOG(ERROR, "玩家:{} 在房间:{}/{}局中无法删除牌，牌数据:{}", _player_id, _game->GetID(), _room->GetID(), pai_operate->ShortDebugString());
-					return 4;
-				}
-			
-				Add2CardsPool(pai);
-			}
-			*/
+			++_chupai_count; //出牌次数
 		}
 		break;
 
@@ -2100,6 +2087,8 @@ void Player::SetOffline(bool offline)
 
 void Player::ClearCards() 
 {
+	_chupai_count = 0;
+
 	_cards_inhand.clear(); //清理手里牌
 	_cards_pool.clear(); //牌池
  
