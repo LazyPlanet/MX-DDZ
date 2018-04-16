@@ -185,6 +185,7 @@ void Room::OnReEnter(std::shared_ptr<Player> op_player)
 
 	message.set_curr_operator_position(Asset::POSITION_TYPE(_game->GetCurrPlayerIndex() + 1));
 	message.mutable_pai_oper()->CopyFrom(_game->GetOperCache().pai_oper()); //上家打牌
+	message.set_beishu(_game->GetBeiLv());
 
 	//
 	//牌局相关数据推送
