@@ -523,16 +523,10 @@ void Room::OnGameOver(int64_t player_id)
 	
 	//AddHupai(player_id); //记录
 
+	/*
 	if (player_id != 0 && _banker != player_id) 
 	{
-		auto city_type = GetCity();
-
-		_banker_index = (_banker_index + 1) % MAX_PLAYER_COUNT; //下庄
-
-		if (city_type == Asset::CITY_TYPE_JIANPING) //建平
-		{
-			_banker_index = GetPlayerOrder(player_id); //谁胡下一局谁坐庄
-		}
+		_banker_index = GetPlayerOrder(player_id); //先走的玩家下一局坐庄
 
 		auto player = GetPlayer(player_id);
 		if (player) player->SetStreakWins(_streak_wins[player_id]); //最高连胜
@@ -543,6 +537,9 @@ void Room::OnGameOver(int64_t player_id)
 	{
 		++_streak_wins[player_id];
 	}
+	*/
+		
+	_banker_index = GetPlayerOrder(player_id); //先走的玩家下一局坐庄
 
 	if (!HasBeenOver() && !HasDisMiss()) return; //没有对局结束，且没有解散房间
 
@@ -551,6 +548,7 @@ void Room::OnGameOver(int64_t player_id)
 	for (auto player : _players)
 	{
 		if (!player) continue;
+
 		if (_history.list().size()) player->AddRoomRecord(GetID());
 	}
 

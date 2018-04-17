@@ -307,10 +307,11 @@ void Game::OnPaiOperate(std::shared_ptr<Player> player, pb::Message* message)
 			
 	_curr_player_index = (_curr_player_index + 1) % MAX_PLAYER_COUNT; //继续下个玩家
 	
-	BroadCast(message); //广播玩家操作
+	//玩家操作
+	BroadCast(message); 
 	
-	if (pai_operate->oper_type() == Asset::PAI_OPER_TYPE_DAPAI)
-			if (player->GetCardsCountInhand() == 0) Calculate(player); //有一家出完所有牌则进入本局结算
+	//有一家出完所有牌则进入本局结算
+	if (pai_operate->oper_type() == Asset::PAI_OPER_TYPE_DAPAI && player->GetCardsCountInhand() == 0) Calculate(player); 
 }
 
 void Game::PaiPushDown()
@@ -462,7 +463,8 @@ void Game::Calculate(std::shared_ptr<Player> player_ptr)
 	}
 	
 	BroadCast(message);
-	OnGameOver(0); //结算之后才是真正结束
+
+	OnGameOver(player_ptr->GetID()); //结算之后才是真正结束
 }
 	
 void Game::BroadCast(pb::Message* message, int64_t exclude_player_id)
