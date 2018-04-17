@@ -151,8 +151,15 @@ void Room::OnReEnter(std::shared_ptr<Player> op_player)
 	Asset::RoomAll message;
 	message.set_current_rounds(_games.size());
 	message.set_zhuang_position(Asset::POSITION_TYPE(_banker_index + 1));
+
+	for (const auto rob_element : _rob_dizhu) //抢地主状态
+	{
+		auto ele_ptr = message.mutable_rob_list()->Add();
+		ele_ptr->set_player_id(rob_element.first);
+		ele_ptr->set_beilv(rob_element.second);
+	}
 	
-	for (const auto& record : _history.list())
+	for (const auto& record : _history.list()) //历史分数
 	{	
 		auto hist_record = message.mutable_list()->Add();
 		hist_record->CopyFrom(record); //分数
@@ -506,6 +513,8 @@ void Room::OnClanOver()
 
 void Room::OnGameOver(int64_t player_id)
 {
+	_rob_dizhu.clear();
+
 	if (_game) _game.reset();
 
 	if (!IsFriend()) return; //非好友房没有总结算
@@ -706,6 +715,8 @@ bool Room::OnJiaoZhuang(int64_t player_id, int32_t beilv)
 	if (!_game) return false; //尚未开局
 
 	if (player_id <= 0) return false;
+
+	_rob_dizhu.emplace(player_id, beilv); //叫地主状态
 
 	if (_stuff.options().zhuang_type() == Asset::ZHUANG_TYPE_JIAOFEN)
 	{
