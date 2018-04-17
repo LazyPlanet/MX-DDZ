@@ -513,6 +513,8 @@ void Room::OnClanOver()
 
 void Room::OnGameOver(int64_t player_id)
 {
+	_no_robed_count = 0;
+
 	_rob_dizhu.clear();
 
 	if (_game) _game.reset();
