@@ -44,7 +44,7 @@ private:
 	int32_t _created_time = 0; //创建时间
 	int32_t _dismiss_cooldown = 0; //解散冷却时间
 	int32_t _no_robed_count = 0; //不叫地主数量
-	std::unordered_map<int64_t, int32_t> _rob_dizhu; //玩家是否叫地主和叫地主的分数
+	std::vector<Asset::RobElement> _rob_dizhu; //玩家是否叫地主和叫地主的分数
 public:
 	explicit Room(Asset::Room room) {  _stuff = room; }
 

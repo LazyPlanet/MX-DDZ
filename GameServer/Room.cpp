@@ -152,11 +152,10 @@ void Room::OnReEnter(std::shared_ptr<Player> op_player)
 	message.set_current_rounds(_games.size());
 	message.set_zhuang_position(Asset::POSITION_TYPE(_banker_index + 1));
 
-	for (const auto rob_element : _rob_dizhu) //抢地主状态
+	for (const auto& rob_element : _rob_dizhu) //抢地主状态
 	{
-		auto ele_ptr = message.mutable_rob_list()->Add();
-		ele_ptr->set_player_id(rob_element.first);
-		ele_ptr->set_beilv(rob_element.second);
+		auto element_ptr = message.mutable_rob_list()->Add();
+		element_ptr->CopyFrom(rob_element);
 	}
 	
 	for (const auto& record : _history.list()) //历史分数
@@ -711,7 +710,11 @@ bool Room::OnJiaoZhuang(int64_t player_id, int32_t beilv)
 
 	if (player_id <= 0) return false;
 
-	_rob_dizhu.emplace(player_id, beilv); //叫地主状态
+	Asset::RobElement rob_element;
+	rob_element.set_player_id(player_id);
+	rob_element.set_beilv(beilv);
+
+	_rob_dizhu.push_back(rob_element); //叫地主状态
 
 	if (_stuff.options().zhuang_type() == Asset::ZHUANG_TYPE_JIAOFEN)
 	{
