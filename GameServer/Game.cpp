@@ -273,6 +273,8 @@ void Game::OnPaiOperate(std::shared_ptr<Player> player, pb::Message* message)
 		_last_oper.mutable_pai_oper()->CopyFrom(*pai_operate); //缓存上次牌数据
 	}
 	
+	if (pai_operate->paixing() == Asset::PAIXING_TYPE_ZHADAN) _room->AddZhaDan(player->GetID()); //整局统计
+	
 	switch (pai_operate->oper_type())
 	{
 		case Asset::PAI_OPER_TYPE_DAPAI: //打牌
@@ -384,17 +386,12 @@ void Game::Calculate(std::shared_ptr<Player> player_ptr)
 
 		score *= GetBeiLv(); //总分数
 
-		//牌型基础分值计算
-		/*
-		auto detail = record->mutable_details()->Add();
-		//detail->set_fan_type((Asset::FAN_TYPE)fan);
-		detail->set_score(-score); //负数代表输分
-		*/
 		//输牌玩家番数上限封底
 		//
 		if (top_mutiple > 0) score = std::min(top_mutiple, score); //封顶
 
-		record->set_score(score); //玩家总积分
+		record->set_score(score); //农民总积分
+		if (record->score() > 0) _room->AddWinner(player_id); //整局统计
 	}
 
 	//(2)地主积分
@@ -419,6 +416,7 @@ void Game::Calculate(std::shared_ptr<Player> player_ptr)
 	}
 
 	record->set_score(-total_score); //地主总积分
+	if (record->score() > 0) _room->AddWinner(_dizhu_player_id); //整局统计
 
 	//好友房//匹配房记录消耗
 	//
@@ -682,11 +680,15 @@ void Game::OnRobDiZhu(int64_t player_id, bool is_rob)
 	
 void Game::SetDiZhu(int64_t player_id)
 {
+	if (!_room) return;
+
 	if (player_id <= 0) return;
 
 	_dizhu_player_id = player_id;
 
 	SetCurrPlayerIndexByPlayer(_dizhu_player_id); //指针转向地主        
+
+	_room->AddDiZhu(player_id);
 
 	DEBUG("房间:{} 牌局:{} 产生地主:{}", _room_id, _game_id, _dizhu_player_id);
 }

@@ -31,14 +31,15 @@ private:
 	std::shared_ptr<Player> _hoster = nullptr; 
 	std::vector<std::shared_ptr<Game>> _games; //游戏列表
 	std::vector<std::shared_ptr<Player>> _players; //房间中的玩家：按照进房间的顺序，东南西北
-	Asset::RoomHistory _history;
-	std::unordered_map<int64_t, int32_t> _hupai_players;
-	std::unordered_map<int64_t, int32_t> _dianpao_players;
-	std::unordered_map<int64_t, int32_t> _bankers;
-	std::unordered_map<int64_t, int32_t> _streak_wins;
-	std::unordered_map<int64_t, int32_t> _loubao_players;
-	std::unordered_map<int64_t, int32_t> _jinbao_players;
-	bool _is_dismiss = false;
+	Asset::RoomHistory _history; //历史战绩
+
+	//总结算//统计数据
+	std::unordered_map<int64_t, int32_t> _winner_rounds; //胜利局数
+	std::unordered_map<int64_t, int32_t> _dizhu_rounds; //地主局数
+	std::unordered_map<int64_t, int32_t> _zhadan_count; //炸弹数量
+	std::unordered_map<int64_t, int32_t> _streak_wins; //最高连胜
+
+	bool _is_dismiss = false; //是否已经解散
 	int32_t _dismiss_time = 0; //解散时间
 	int32_t _created_time = 0; //创建时间
 	int32_t _dismiss_cooldown = 0; //解散冷却时间
@@ -79,11 +80,11 @@ public:
 	void SetExpiredTime(int32_t expired_time) { _expired_time = expired_time; }
 
 	void AddGameRecord(const Asset::GameRecord& record); //记录
-	void AddHupai(int64_t player_id);
-	void AddDianpao(int64_t player_id) { ++_dianpao_players[player_id]; }
-	void AddBanker(int64_t player_id) { ++_bankers[player_id]; }
-	void AddLouBao(int64_t player_id) { ++_loubao_players[player_id]; }
-	void AddJinBao(int64_t player_id) { ++_jinbao_players[player_id]; }
+	//void AddHupai(int64_t player_id);
+
+	void AddWinner(int64_t player_id) { ++_winner_rounds[player_id]; }
+	void AddDiZhu(int64_t player_id) { ++_dizhu_rounds[player_id]; }
+	void AddZhaDan(int64_t player_id) { ++_zhadan_count[player_id]; }
 public:
 	Asset::ERROR_CODE TryEnter(std::shared_ptr<Player> player);
 	bool Enter(std::shared_ptr<Player> player); //加入房间
@@ -136,7 +137,7 @@ public:
 	void OnClanOver(); //茶馆房间结束
 	
 	//庄家信息
-	void SetBanker(int64_t player_id) { _banker = player_id; AddBanker(player_id); } //设置庄家
+	void SetBanker(int64_t player_id) { _banker = player_id; } //设置庄家
 	int64_t GetBanker() { return _banker; } //获取庄家
 	int32_t GetBankerIndex() { return _banker_index; } //庄家索引
 	bool IsBanker(int64_t player_id){ return _banker == player_id; } //是否是庄家

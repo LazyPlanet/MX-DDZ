@@ -479,10 +479,9 @@ void Room::ResetGame(std::shared_ptr<Game> game)
 	_game->Start(_players, _stuff.room_id(), _games.size()); //开始游戏
 }
 	
+/*
 void Room::AddHupai(int64_t player_id) 
 { 
-	//std::lock_guard<std::mutex> lock(_mutex);
-
 	if (player_id <= 0) return;
 
 	++_hupai_players[player_id]; 
@@ -493,6 +492,7 @@ void Room::AddHupai(int64_t player_id)
 	player->AddTotalWinRounds();
 	player->SetStreakWins(1);
 }
+*/
 
 void Room::OnClanOver()
 {
@@ -521,7 +521,7 @@ void Room::OnGameOver(int64_t player_id)
 	
 	UpdateClanStatus(); //茶馆房间状态同步
 	
-	AddHupai(player_id); //记录
+	//AddHupai(player_id); //记录
 
 	if (player_id != 0 && _banker != player_id) 
 	{
@@ -553,10 +553,10 @@ void Room::OnGameOver(int64_t player_id)
 		if (!player) continue;
 		if (_history.list().size()) player->AddRoomRecord(GetID());
 	}
+
 	//
 	//总结算界面弹出
 	//
-
 	Asset::RoomCalculate message;
 	message.set_calculte_type(Asset::CALCULATE_TYPE_FULL);
 	if (HasDisMiss()) message.set_calculte_type(Asset::CALCULATE_TYPE_DISMISS);
@@ -572,12 +572,10 @@ void Room::OnGameOver(int64_t player_id)
 		record->set_nickname(player->GetNickName());
 		record->set_headimgurl(player->GetHeadImag());
 
-		record->set_pk_count(_games.size());
-		record->set_banker_count(_bankers[player_id]);
-		record->set_win_count(_hupai_players[player_id]);
-		record->set_dianpao_count(_dianpao_players[player_id]);
-		record->set_loubao_count(_loubao_players[player_id]);
-		record->set_jinbao_count(_jinbao_players[player_id]);
+		record->set_pk_count(_games.size()); //对局数
+		record->set_dizhu_count(_dizhu_rounds[player_id]); //地主局数
+		record->set_win_count(_winner_rounds[player_id]); //胜利局数
+		record->set_zhadan_count(_zhadan_count[player_id]); //炸弹数量
 
 		for(int i = 0; i < _history.list().size(); ++i)
 			for (int j = 0; j < _history.list(i).list().size(); ++j)
@@ -589,8 +587,8 @@ void Room::OnGameOver(int64_t player_id)
 		player_brief->set_nickname(player->GetNickName());
 		player_brief->set_headimgurl(player->GetHeadImag());
 		player_brief->set_score(record->score());
-		player_brief->set_hupai_count(record->win_count());
-		player_brief->set_dianpao_count(record->dianpao_count());
+		//player_brief->set_hupai_count(record->win_count());
+		//player_brief->set_dianpao_count(record->dianpao_count());
 
 		player->AddRoomScore(record->score()); //总积分
 	}
@@ -608,12 +606,9 @@ void Room::OnGameOver(int64_t player_id)
 	OnClanOver(); //茶馆房间数据同步
 	
 	_history.Clear();
-	_bankers.clear();
-	_hupai_players.clear();
-	_dianpao_players.clear();
-	_streak_wins.clear();
-	_loubao_players.clear();
-	_jinbao_players.clear();
+	_winner_rounds.clear();
+	_dizhu_rounds.clear();
+	_zhadan_count.clear();
 }
 
 void Room::AddGameRecord(const Asset::GameRecord& record)
