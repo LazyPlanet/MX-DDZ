@@ -359,7 +359,7 @@ public:
 	void OnClanCheck(); //通用检查
 	
 	bool IsDaili() { return _stuff.agent_account().size() > 0;} //是否是代理账号
-	bool GetChuPaiCount() { return _chupai_count; } //出牌次数
+	int32_t GetChuPaiCount() { return _chupai_count; } //出牌次数
 };
 
 /////////////////////////////////////////////////////
