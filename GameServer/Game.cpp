@@ -577,32 +577,14 @@ bool Game::IsBanker(int64_t player_id)
 	return _room->IsBanker(player_id); 
 }
 
+/*
 bool Game::RandomDiZhu()
 {
 	if (!_room) return false;
 		
-	/*
-	if (GetDiZhuPlayerCount() < MAX_PLAYER_COUNT) return false; //有玩家尚未叫分
-
-	int32_t max_score = 0; //最大分数
-	std::vector<int64_t> bankers;
-
-	for (auto zhuang : _rob_dizhu_bl)
-	{
-		if (zhuang.second >= max_score) 
-		{
-			max_score = zhuang.second;
-			bankers.push_back(zhuang.first); //最后从分数高的玩家中随机选择庄家
-		}
-	}
-
-	if (bankers.size() == 0) return false; //尚未地主可选
-
-	std::random_shuffle(bankers.begin(), bankers.end());
-	SetDiZhu(bankers[0]); //随机产生一个地主
-	*/
-
 	if (_rob_dizhu_bl.size() == 0) return false;
+	
+	if (_rob_dizhu_count < MAX_PLAYER_COUNT) return false; 
 
 	if (_rob_dizhu_bl.size() == 1)
 	{
@@ -636,15 +618,24 @@ bool Game::RandomDiZhu()
 
 	return true;
 }
-	
+*/
+
 void Game::OnRobDiZhu(int64_t player_id, int32_t beilv) 
 { 
+	if (!_room) return;
+
+	DEBUG("玩家:{} 叫地主数量:{}，叫分:{} 此时庄家:{}", player_id, _rob_dizhu_count, beilv, _banker_player_id);
+
+	++_rob_dizhu_count;
+
 	for (auto rob_info : _rob_dizhu_bl)
 	{
 		if (beilv <= rob_info.second) return; //分数必须比上一个抢地主玩家分数高，否则不能抢地主
 	}
 
-	_rob_dizhu_bl[player_id] = beilv; 
+	_rob_dizhu_bl[player_id] = beilv; //缓存分数
+
+	_rob_dizhus.push_back(player_id); //缓存叫地主的玩家
 } 
 	
 //加倍抢地主
@@ -653,6 +644,8 @@ void Game::OnRobDiZhu(int64_t player_id, int32_t beilv)
 //
 void Game::OnRobDiZhu(int64_t player_id, bool is_rob) 
 { 
+	if (!_room) return;
+
 	DEBUG("玩家:{} 叫地主数量:{}，是否抢地主:{} 此时庄家:{}", player_id, _rob_dizhu_count, is_rob, _banker_player_id);
 
 	++_rob_dizhu_count;
@@ -665,22 +658,6 @@ void Game::OnRobDiZhu(int64_t player_id, bool is_rob)
 
 		_rob_dizhus.push_back(player_id);
 	}
-
-	/*
-	if (_rob_dizhus.find(player_id) != _rob_dizhus.end())
-	{
-		if (player_id != _banker_player_id) return; //非庄家不能多次叫地主
-	}
-
-	if (is_rob) 
-	{ 
-		++_rob_dizhus[player_id]; 
-	}
-	else 
-	{ 
-		_rob_dizhus[player_id] = 0; 
-	}
-	*/
 } 
 	
 void Game::SetDiZhu(int64_t player_id)
@@ -706,6 +683,23 @@ void Game::SetDiZhu(int64_t player_id)
 //
 bool Game::CanStart()
 {
+	if (!_room) return false;
+
+	//
+	//叫分模式，先叫3分直接开始
+	//
+	for (const auto& dizhu : _rob_dizhu_bl)
+	{
+		if (dizhu.second == 3)
+		{
+			SetDiZhu(dizhu.first);
+			return true;
+		}
+	}
+
+	//
+	//通用检查//叫分//叫庄
+	//
 	if (_rob_dizhu_count < MAX_PLAYER_COUNT) return false; 
 
 	if (_rob_dizhu_count == MAX_PLAYER_COUNT) //都已经叫(或不叫)了地主

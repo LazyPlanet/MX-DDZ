@@ -104,7 +104,7 @@ public:
 	void AddPlayerOperation(const Asset::PaiOperation& pai_operate) { _playback.mutable_oper_list()->Add()->CopyFrom(pai_operate); } //回放记录
 	
 	//斗地主
-	bool RandomDiZhu(); //随机地主
+	//bool RandomDiZhu(); //随机地主
 	void IncreaseBeiLv(int32_t beilv = 2) { if (beilv <= 0) beilv = 2; _beilv *= beilv; } //加倍
 	int32_t GetBeiLv() { return _beilv; } //获取倍率
 

@@ -714,34 +714,33 @@ bool Room::OnJiaoZhuang(int64_t player_id, int32_t beilv)
 	rob_element.set_player_id(player_id);
 	rob_element.set_beilv(beilv);
 
-	_rob_dizhu.push_back(rob_element); //叫地主状态
+	_rob_dizhu.push_back(rob_element); //叫地主状态//缓存
+
+	if (beilv <= 0) ++_no_robed_count; //不叫地主
+			
+	if (MAX_PLAYER_COUNT == _no_robed_count) //都不叫地主
+	{
+		ResetGame(); //刷新下一局
+		return false;
+	}
 
 	if (_stuff.options().zhuang_type() == Asset::ZHUANG_TYPE_JIAOFEN)
 	{
 		_game->OnRobDiZhu(player_id, beilv);
-	
-		if (!_game->RandomDiZhu()) return false; //选庄开始打牌
 	}
 	else if (_stuff.options().zhuang_type() == Asset::ZHUANG_TYPE_QIANGDIZHU)
 	{
-		if (beilv > 0) //叫地主
-		{
-			_game->OnRobDiZhu(player_id, true);
-		}
-		else //不叫
-		{
-			++_no_robed_count;
-
-			if (MAX_PLAYER_COUNT == _no_robed_count) //都不叫地主
-			{
-				ResetGame(); //刷新下一局
-				return false;
-			}
-			_game->OnRobDiZhu(player_id, false);
-		}
+		_game->OnRobDiZhu(player_id, beilv > 0); //是否叫地主
 			
-		if (!_game->CanStart()) return false; //是否可以开局//检查是否都叫完地主
+		//if (!_game->CanStart()) return false; //是否可以开局//检查是否都叫完地主
 	}
+	else
+	{
+		ERROR("玩家:{} 叫庄错误:{}", player_id, _stuff.ShortDebugString());
+		return false;
+	}
+		
+	if (!_game->CanStart()) return false; //是否可以开局//检查是否都叫完地主
 
 	auto dizhu_ptr = GetPlayer(_game->GetDiZhu());
 	if (!dizhu_ptr) return false;
