@@ -213,6 +213,8 @@ bool Game::CanPaiOperate(std::shared_ptr<Player> player, Asset::PaiOperation* pa
 	//轮到玩家打牌
 	//
 	if (player != curr_player) return false; 
+	
+	if (Asset::PAI_OPER_TYPE_GIVEUP == pai_operate->oper_type()) return true; //放弃直接下一个
 
 	if (_last_oper.player_id() == player->GetID()) return true; //没人能要的起，都点了过
 
@@ -256,9 +258,7 @@ void Game::OnPaiOperate(std::shared_ptr<Player> player, pb::Message* message)
 	Asset::PaiOperation* pai_operate = dynamic_cast<Asset::PaiOperation*>(message);
 	if (!pai_operate) return; //牌已排序
 
-	AddPlayerOperation(*pai_operate);  //回放记录
-	
-	if (Asset::PAI_OPER_TYPE_DAPAI == pai_operate->oper_type() && !CanPaiOperate(player, pai_operate)) 
+	if (/*Asset::PAI_OPER_TYPE_DAPAI == pai_operate->oper_type() && */!CanPaiOperate(player, pai_operate)) 
 	{
 		player->AlertMessage(Asset::ERROR_PAI_CANNOT_GUANGSHANG); //没到玩家操作，或者管不上上家出牌，防止外挂
 					
@@ -266,6 +266,8 @@ void Game::OnPaiOperate(std::shared_ptr<Player> player, pb::Message* message)
 				player->GetID(), _curr_player_index, GetID(), _room->GetID(), pai_operate->ShortDebugString(), _last_oper.pai_oper().ShortDebugString());
 		return; //不允许操作
 	}
+	
+	AddPlayerOperation(*pai_operate);  //回放记录
 
 	if (Asset::PAI_OPER_TYPE_DAPAI == pai_operate->oper_type()) 
 	{
