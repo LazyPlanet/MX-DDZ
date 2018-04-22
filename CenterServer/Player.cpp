@@ -224,14 +224,19 @@ int32_t Player::OnLogin(bool is_login)
 
 void Player::SetLocalServer(int32_t server_id) 
 { 
+	if (server_id <= 0) return;
+
 	if (server_id == _stuff.server_id()) return;
 	
 	//通知当前游戏逻辑服务器下线
 	//
-	Asset::KickOutPlayer kickout_player; 
-	kickout_player.set_player_id(_player_id);
-	kickout_player.set_reason(Asset::KICK_OUT_REASON_CHANGE_SERVER);
-	SendProtocol2GameServer(kickout_player); 
+	if (server_id && _stuff.server_id())
+	{
+		Asset::KickOutPlayer kickout_player; 
+		kickout_player.set_player_id(_player_id);
+		kickout_player.set_reason(Asset::KICK_OUT_REASON_CHANGE_SERVER);
+		SendProtocol2GameServer(kickout_player); 
+	}
 	
 	//切换逻辑服务器
 	//
