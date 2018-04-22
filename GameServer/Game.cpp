@@ -366,7 +366,11 @@ void Game::Calculate(std::shared_ptr<Player> player_ptr)
 		if (player->GetChuPaiCount() == 0) ++chuntian_count; //是否春天
 	}
 
-	if (chuntian_count == MAX_PLAYER_COUNT - 1) IncreaseBeiLv();
+	if (chuntian_count == MAX_PLAYER_COUNT - 1) 
+	{
+		message.set_is_chuntian(true);
+		IncreaseBeiLv();
+	}
 
 	for (auto player : _players)
 	{
@@ -381,7 +385,12 @@ void Game::Calculate(std::shared_ptr<Player> player_ptr)
 		
 		if (player_id == _dizhu_player_id) 
 		{
-			if (player->GetChuPaiCount() == 1) IncreaseBeiLv(); //春天
+			if (player->GetChuPaiCount() == 1) 
+			{
+				message.set_is_chuntian(true);
+				IncreaseBeiLv(); //春天
+			}
+
 			continue;
 		}
 
