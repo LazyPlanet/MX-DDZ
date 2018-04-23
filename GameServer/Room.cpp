@@ -470,6 +470,7 @@ void Room::OnGameStart()
 void Room::ResetGame(std::shared_ptr<Game> game)
 {
 	_game = game;
+	_no_robed_count = 0;
 
 	if (!game) _game = std::make_shared<Game>();
 
