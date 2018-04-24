@@ -225,8 +225,10 @@ int32_t Player::OnLogin(bool is_login)
 void Player::SetLocalServer(int32_t server_id) 
 { 
 	if (server_id <= 0) return;
-
 	if (server_id == _stuff.server_id()) return;
+	
+	auto gs_session = WorldSessionInstance.GetServerSession(server_id);
+	if (!gs_session) return; //非法的游戏逻辑服务器
 	
 	//通知当前游戏逻辑服务器下线
 	//
@@ -536,11 +538,7 @@ bool Player::SendProtocol2GameServer(const pb::Message* message)
 {
 	if (!message) return false;
 
-	//auto _gs_session = WorldSessionInstance.GetServerSession(GetLocalServer());
-	//if (!_gs_session || !message) return false;
-
 	SendProtocol2GameServer(*message); 
-	
 	return true;
 }
 
