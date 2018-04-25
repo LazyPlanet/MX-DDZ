@@ -237,7 +237,14 @@ void Player::SetLocalServer(int32_t server_id)
 		Asset::KickOutPlayer kickout_player; 
 		kickout_player.set_player_id(_player_id);
 		kickout_player.set_reason(Asset::KICK_OUT_REASON_CHANGE_SERVER);
-		SendProtocol2GameServer(kickout_player); 
+		//SendProtocol2GameServer(kickout_player); 
+	
+		Asset::Meta meta;
+		meta.set_type_t(Asset::META_TYPE_S2S_KICKOUT_PLAYER);
+		meta.set_stuff(kickout_player.SerializeAsString());
+		meta.set_player_id(_player_id); 
+
+		gs_session->SendMeta(meta); 
 	}
 	
 	//切换逻辑服务器

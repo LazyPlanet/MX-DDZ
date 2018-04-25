@@ -197,7 +197,9 @@ bool Game::CanPaiOperate(std::shared_ptr<Player> player, Asset::PaiOperation* pa
 {
 	if (!player) return false;
 
-	//开局
+	//是否真的开局
+	//
+	//斗地主需要发3张牌
 	//
 	if (!_real_started) return false;
 	
@@ -214,9 +216,13 @@ bool Game::CanPaiOperate(std::shared_ptr<Player> player, Asset::PaiOperation* pa
 	//
 	if (player != curr_player) return false; 
 	
+	//正常牌序
+	//
+	if (!pai_operate) return false; //必须检查
+	
 	if (Asset::PAI_OPER_TYPE_GIVEUP == pai_operate->oper_type()) return true; //放弃直接下一个
 
-	if (_last_oper.player_id() == player->GetID()) return true; //没人能要的起，都点了过
+	//if (_last_oper.player_id() == player->GetID()) return true; //没人能要的起，都点了过
 
 	//下家管上家的牌
 	//
@@ -226,8 +232,6 @@ bool Game::CanPaiOperate(std::shared_ptr<Player> player, Asset::PaiOperation* pa
 	//
 	//2.最大数量的后出的牌值大于前者;
 	//
-	if (!pai_operate) return false;
-
 	if (pai_operate->paixing() == Asset::PAIXING_TYPE_ZHADAN && _last_oper.pai_oper().paixing() != Asset::PAIXING_TYPE_ZHADAN)
 	{
 		return true; //炸弹可以管上任何非炸弹
