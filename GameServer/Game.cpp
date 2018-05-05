@@ -441,7 +441,6 @@ void Game::Calculate(std::shared_ptr<Player> player_ptr)
 	else
 	{
 		const auto& messages = AssetInstance.GetMessagesByType(Asset::ASSET_TYPE_ROOM);
-
 		auto it = std::find_if(messages.begin(), messages.end(), [room_type](pb::Message* message){
 			auto room_limit = dynamic_cast<Asset::RoomLimit*>(message);
 			if (!room_limit) return false;
@@ -461,14 +460,18 @@ void Game::Calculate(std::shared_ptr<Player> player_ptr)
 			auto record = get_record(player->GetID()); 
 			if (record == message.mutable_record()->mutable_list()->end()) continue;
 			
-			auto total_score = record->score();
-			auto consume_count = total_score * room_limit->base_count();
-			
-			auto beans_count = player->GetHuanledou();
-			if (beans_count < consume_count) consume_count = beans_count; //如果玩家欢乐豆不足，则扣成0
+			auto changed_count = record->score() * room_limit->base_count(); //欢乐豆变化数量
+			if (changed_count < 0)
+			{
+				player->ConsumeHuanledou(Asset::HUANLEDOU_CHANGED_TYPE_GAME, -changed_count); //消耗
+			}
+			else
+			{
+				player->GainHuanledou(Asset::HUANLEDOU_CHANGED_TYPE_GAME, changed_count); //获得
+			}
 
-			auto consume_real = player->ConsumeHuanledou(Asset::HUANLEDOU_CHANGED_TYPE_GAME, consume_count); //消耗
-			if (consume_count != consume_real) continue;
+			//auto consume_real = player->ConsumeHuanledou(Asset::HUANLEDOU_CHANGED_TYPE_GAME, consume_count); //消耗
+			//if (consume_count != consume_real) continue;
 		}
 	}
 	
