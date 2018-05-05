@@ -68,8 +68,9 @@ public:
 	virtual bool IsMatch() { return Asset::ROOM_TYPE_FRIEND != _stuff.room_type(); } //是否是匹配房间
 	
 	const Asset::RoomOptions& GetOptions() { return _stuff.options(); } //额外番型
-	void SetOptions(const Asset::RoomOptions& options) {	_stuff.mutable_options()->CopyFrom(options);}
+	void SetOptions(const Asset::RoomOptions& options) { _stuff.mutable_options()->CopyFrom(options);}
 
+	const Asset::ZHUANG_TYPE GetZhuangType() { return _stuff.options().zhuang_type(); }
 
 	int32_t MaxFan() { return _stuff.options().top_mutiple(); }
 	Asset::CITY_TYPE GetCity() { return _stuff.options().city_type(); } //城市玩法

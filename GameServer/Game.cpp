@@ -734,7 +734,7 @@ bool Game::CanStart()
 			return true;
 		}
 
-		return false; //多人抢地主
+		if (Asset::ZHUANG_TYPE_QIANGDIZHU == _room->GetZhuangType()) return false; //多人抢地主//给叫庄模式的最后一次机会
 	}
 
 	if (_rob_dizhus.size() == 0) return false;
