@@ -285,8 +285,8 @@ public:
 		int32_t server_id = ConfigInstance.GetInt("ServerID", 1); //服务器ID
 		room_id = (server_id << 16) + room_id;
 		
-		int32_t game_type = ConfigInstance.GetInt("GameType", 1); //游戏类型
-		room_id = (game_type << 24) + room_id;
+		//int32_t game_type = ConfigInstance.GetInt("GameType", 1); //游戏类型
+		//room_id = (game_type << 24) + room_id;
 		
 		return room_id;
 	}
@@ -300,7 +300,8 @@ public:
 	
 	int64_t GetServer(int64_t room_id)
 	{
-		int64_t server_id = (room_id & 0x00FFFFFF) >> 16;
+		//int64_t server_id = (room_id & 0x00FFFFFF) >> 16;
+		int64_t server_id = room_id >> 16;
 
 		return server_id;
 	}
