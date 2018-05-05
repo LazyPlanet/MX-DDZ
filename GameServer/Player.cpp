@@ -758,15 +758,43 @@ bool Player::PaiXingCheck(Asset::PaiOperation* pai_operate)
 				pai_operate->set_paixing(Asset::PAIXING_TYPE_42);
 				return true; 
 			}
-			else if (chupai_count == 8) //四带两对
+			else if (chupai_count == 8) //四带两对或者四个拆开做飞机
 			{
-				for (const auto& mem : cards_value)
-				{
-					if (mem.second != 2 && mem.second != 4) return false; //不符合规则
-				}
+				int32_t begin = 0, n = 0;
 
-				pai_operate->set_paixing(Asset::PAIXING_TYPE_42);
-				return true; 
+				for (const auto& mem : cards_value) //判断连续的3张牌面的最大数量
+				{
+					if (mem.second >= 3)
+					{
+						if (!begin || begin == mem.first) ++n;
+
+						if (!begin) begin = mem.first;
+						
+						if (begin != mem.first && n == 1)
+						{
+							n = 1;
+							begin = mem.first;
+						}
+						
+						++begin;
+					}
+				}
+		  
+				if (chupai_count == 4 * n) //飞机带单张的翅膀
+				{
+					pai_operate->set_paixing(Asset::PAIXING_TYPE_FEIJI_1);
+					return true; 
+				}
+				else
+				{
+					for (const auto& mem : cards_value)
+					{
+						if (mem.second != 2 && mem.second != 4) return false; //不符合规则
+					}
+
+					pai_operate->set_paixing(Asset::PAIXING_TYPE_42);
+					return true; 
+				}
 			}
 		}
 		break;
@@ -783,7 +811,7 @@ bool Player::PaiXingCheck(Asset::PaiOperation* pai_operate)
 				pai_operate->set_paixing(Asset::PAIXING_TYPE_31);
 				return true; 
 			}
-			else if (chupai_count == 5) //三带两张
+			else if (chupai_count == 5) //三带一对
 			{
 				for (const auto& mem : cards_value)
 				{
