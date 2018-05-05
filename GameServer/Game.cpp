@@ -681,7 +681,11 @@ void Game::SetDiZhu(int64_t player_id)
 
 	if (player_id <= 0) return;
 
-	_dizhu_player_id = player_id;
+	_dizhu_player_id = player_id; //地主
+
+	_base_score = _rob_dizhu_bl[_dizhu_player_id]; //底分
+
+	if (_base_score <= 0) _base_score = 1; 
 
 	SetCurrPlayerIndexByPlayer(_dizhu_player_id); //指针转向地主        
 
