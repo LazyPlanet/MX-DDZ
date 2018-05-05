@@ -222,7 +222,7 @@ bool Game::CanPaiOperate(std::shared_ptr<Player> player, Asset::PaiOperation* pa
 	
 	if (Asset::PAI_OPER_TYPE_GIVEUP == pai_operate->oper_type()) return true; //放弃直接下一个
 
-	//if (_last_oper.player_id() == player->GetID()) return true; //没人能要的起，都点了过
+	if (_last_oper.player_id() == player->GetID()) return true; //没人能要的起，都点了过
 
 	//下家管上家的牌
 	//
@@ -372,7 +372,7 @@ void Game::Calculate(std::shared_ptr<Player> player_ptr)
 
 	if (chuntian_count == MAX_PLAYER_COUNT - 1) 
 	{
-		message.set_is_chuntian(true);
+		message.set_is_chuntian(true); //地主春天，农民一张牌没出
 		IncreaseBeiLv();
 	}
 
@@ -392,7 +392,7 @@ void Game::Calculate(std::shared_ptr<Player> player_ptr)
 			if (player->GetChuPaiCount() == 1) 
 			{
 				message.set_is_chuntian(true);
-				IncreaseBeiLv(); //春天
+				IncreaseBeiLv(); //农民反春天，地主只出了一次牌
 			}
 
 			continue;
@@ -408,6 +408,7 @@ void Game::Calculate(std::shared_ptr<Player> player_ptr)
 		if (top_mutiple > 0) score = std::min(top_mutiple, score); //封顶
 
 		record->set_score(score); //农民总积分
+
 		if (record->score() > 0) _room->AddWinner(player_id); //整局统计
 	}
 
@@ -433,6 +434,7 @@ void Game::Calculate(std::shared_ptr<Player> player_ptr)
 	}
 
 	record->set_score(-total_score); //地主总积分
+
 	if (record->score() > 0) _room->AddWinner(_dizhu_player_id); //整局统计
 
 	//好友房//匹配房记录消耗
