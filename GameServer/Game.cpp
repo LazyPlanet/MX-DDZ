@@ -365,16 +365,18 @@ void Game::Calculate(std::shared_ptr<Player> player_ptr)
 	{
 		if (!player) continue;
 		
-		if (player->GetID() == _dizhu_player_id) continue;
+		if (player->GetID() == _dizhu_player_id && player->GetChuPaiCount() == 1) 
+		{
+			message.set_is_chuntian(true); //农民反春天，地主只出了一次牌
+
+			break; //地主和农民只能有一方是春天或反春天
+		}
 		
 		if (player->GetChuPaiCount() == 0) ++chuntian_count; //是否春天
 	}
 
-	if (chuntian_count == MAX_PLAYER_COUNT - 1) 
-	{
-		message.set_is_chuntian(true); //地主春天，农民一张牌没出
-		IncreaseBeiLv();
-	}
+	if (chuntian_count == MAX_PLAYER_COUNT - 1) message.set_is_chuntian(true); //地主春天，2个农民都1张牌没出
+	if (message.is_chuntian()) IncreaseBeiLv(); //春天或反春天翻倍
 
 	for (auto player : _players)
 	{
@@ -387,16 +389,7 @@ void Game::Calculate(std::shared_ptr<Player> player_ptr)
 		record->set_nickname(player->GetNickName());
 		record->set_headimgurl(player->GetHeadImag());
 		
-		if (player_id == _dizhu_player_id) 
-		{
-			if (player->GetChuPaiCount() == 1) 
-			{
-				message.set_is_chuntian(true);
-				IncreaseBeiLv(); //农民反春天，地主只出了一次牌
-			}
-
-			continue;
-		}
+		if (player_id == _dizhu_player_id) continue;
 
 		auto score = _base_score;
 		if (player_ptr->GetID() == _dizhu_player_id) score = -_base_score; //地主先走

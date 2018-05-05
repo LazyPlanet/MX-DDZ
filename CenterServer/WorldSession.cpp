@@ -365,8 +365,7 @@ void WorldSession::OnProcessMessage(const Asset::Meta& meta)
 			auto get_data = dynamic_cast<Asset::GetRoomData*>(message);
 			if (!get_data) return;
 			
-			auto room_id = get_data->room_id();
-			auto server_id = room_id >> 16;
+			int64_t server_id = RedisInstance.GetServer(get_data->room_id());
 
 			auto game_server = WorldSessionInstance.GetServerSession(server_id);
 			if (!game_server || !_player) return;
@@ -472,8 +471,8 @@ void WorldSession::OnProcessMessage(const Asset::Meta& meta)
 
 			auto room_type = enter_room->room().room_type();
 			int64_t room_id = enter_room->room().room_id();
-			int64_t game_type = room_id >> 24;
-			int64_t server_id = (room_id & 0x00FFFFFF) >> 16;
+			int64_t game_type = RedisInstance.GetGameType(room_id);
+			int64_t server_id = RedisInstance.GetServer(room_id);
 
 			if (Asset::ROOM_TYPE_FRIEND == room_type)
 			{
@@ -483,9 +482,6 @@ void WorldSession::OnProcessMessage(const Asset::Meta& meta)
 					_player->AlertMessage(Asset::ERROR_ROOM_FRIEND_NOT_FORBID, Asset::ERROR_TYPE_NORMAL, Asset::ERROR_SHOW_TYPE_MESSAGE_BOX); //通用错误码
 					return;
 				}
-
-				//auto room_id = enter_room->room().room_id();
-				//server_id = room_id >> 16;
 
 				auto game_server = WorldSessionInstance.GetServerSession(server_id);
 				if (!game_server) 

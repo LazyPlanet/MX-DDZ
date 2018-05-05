@@ -291,6 +291,20 @@ public:
 		return room_id;
 	}
 
+	int64_t GetGameType(int64_t room_id)
+	{
+		int64_t game_type = room_id >> 24;
+
+		return game_type;
+	}
+	
+	int64_t GetServer(int64_t room_id)
+	{
+		int64_t server_id = (room_id & 0x00FFFFFF) >> 16;
+
+		return server_id;
+	}
+
 	bool GetUser(std::string username, Asset::User& user)
 	{
 		std::string key = "user:" + username;
