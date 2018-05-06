@@ -88,6 +88,7 @@ bool Game::Start(std::vector<std::shared_ptr<Player>> players, int64_t room_id, 
 
 		//回放缓存：初始牌数据
 		_playback.mutable_options()->CopyFrom(_room->GetOptions()); //房间玩法
+
 		auto player_element = _playback.mutable_player_list()->Add();
 		player_element->set_player_id(player->GetID());
 		player_element->set_position(player->GetPosition());
@@ -97,8 +98,8 @@ bool Game::Start(std::vector<std::shared_ptr<Player>> players, int64_t room_id, 
 		const auto& cards_inhand = player->GetCardsInhand();
 		for (const auto& card : cards_inhand)
 		{
-			auto pai_list = player_element->mutable_pai_list()->Add();
-			pai_list->add_cards(card.card_value());
+			auto pai = player_element->mutable_pai_list()->Add();
+			pai->CopyFrom(card);
 		}
 	}
 
@@ -131,13 +132,23 @@ void Game::OnStarted(std::shared_ptr<Player> dizhu_ptr)
 	for (auto card_index : cards)
 	{
 		const auto& card = GameInstance.GetCard(card_index);
-		_dipai.push_back(card);
+		_dipai.push_back(card); //底牌缓存
+
+		auto dipai = _playback.mutable_dipai()->Add();
+		dipai->CopyFrom(card); //回放底牌
 	}
 }
 
 bool Game::OnGameOver(int64_t player_id)
 {
 	if (!_room) return false;
+
+	const auto& list = _room->GetRobDiZhuList();
+	for (const auto& oper_element : list)
+	{
+		auto rob_element = _playback.mutable_rob_list()->Add();
+		rob_element->CopyFrom(oper_element); //叫地主回放
+	}
 
 	SavePlayBack(); //回放
 

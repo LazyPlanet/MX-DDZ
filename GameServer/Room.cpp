@@ -472,6 +472,7 @@ void Room::ResetGame(std::shared_ptr<Game> game)
 	if (_game) _game.reset();
 
 	_game = game;
+
 	_rob_dizhu.clear();
 	_no_robed_count = 0;
 

@@ -154,7 +154,7 @@ public:
 	
 	//斗地主
 	bool OnJiaoZhuang(int64_t player_id, int32_t beilv); //叫庄//倍率或分数//扑克游戏
-
+	const std::vector<Asset::RobElement>& GetRobDiZhuList() { return _rob_dizhu; } //玩家是否叫地主和叫地主的分数
 };
 
 /////////////////////////////////////////////////////
