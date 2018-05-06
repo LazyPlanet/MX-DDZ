@@ -526,23 +526,22 @@ void Room::OnGameOver(int64_t player_id)
 	
 	UpdateClanStatus(); //茶馆房间状态同步
 	
-	//AddHupai(player_id); //记录
+	auto player = GetPlayer(player_id);
 
-	/*
+	if (player) { player->AddTotalWinRounds(); } //赢牌总数
+
+	//连胜
+	//
 	if (player_id != 0 && _banker != player_id) 
 	{
-		_banker_index = GetPlayerOrder(player_id); //先走的玩家下一局坐庄
+		if (player) { player->SetStreakWins(_lian_shengs[player_id]); } //最高连胜
 
-		auto player = GetPlayer(player_id);
-		if (player) player->SetStreakWins(_streak_wins[player_id]); //最高连胜
-
-		_streak_wins[player_id] = 0;
+		_lian_shengs[player_id] = 0; //初始化 
 	}
 	else
 	{
-		++_streak_wins[player_id];
+		++_lian_shengs[player_id]; //连胜
 	}
-	*/
 		
 	_banker_index = GetPlayerOrder(player_id); //先走的玩家下一局坐庄
 

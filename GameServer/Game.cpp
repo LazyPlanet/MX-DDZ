@@ -477,7 +477,10 @@ void Game::Calculate(std::shared_ptr<Player> player_ptr)
 	
 	BroadCast(message);
 
-	OnGameOver(player_ptr->GetID()); //结算之后才是真正结束
+	//真正结束
+	//
+	//统计数据
+	OnGameOver(player_ptr->GetID()); 
 }
 	
 void Game::BroadCast(pb::Message* message, int64_t exclude_player_id)

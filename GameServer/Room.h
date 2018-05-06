@@ -37,7 +37,7 @@ private:
 	std::unordered_map<int64_t, int32_t> _winner_rounds; //胜利局数
 	std::unordered_map<int64_t, int32_t> _dizhu_rounds; //地主局数
 	std::unordered_map<int64_t, int32_t> _zhadan_count; //炸弹数量
-	std::unordered_map<int64_t, int32_t> _streak_wins; //最高连胜
+	std::unordered_map<int64_t, int32_t> _lian_shengs; //最高连胜
 
 	bool _is_dismiss = false; //是否已经解散
 	int32_t _dismiss_time = 0; //解散时间
