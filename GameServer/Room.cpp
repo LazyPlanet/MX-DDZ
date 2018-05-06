@@ -534,9 +534,12 @@ void Room::OnGameOver(int64_t player_id)
 	//
 	if (player_id != 0 && _banker != player_id) 
 	{
-		if (player) { player->SetStreakWins(_lian_shengs[player_id]); } //最高连胜
+		if (player) 
+		{ 
+			player->SetStreakWins(_lian_shengs[player_id]); //最高连胜
 
-		_lian_shengs[player_id] = 0; //初始化 
+			_lian_shengs[player_id] = 0; //初始化 
+		} 
 	}
 	else
 	{
