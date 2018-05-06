@@ -532,7 +532,7 @@ void Room::OnGameOver(int64_t player_id)
 
 	//连胜
 	//
-	if (player_id != 0 && _banker != player_id) 
+	if (_banker != player_id) 
 	{
 		if (player) 
 		{ 
@@ -541,7 +541,7 @@ void Room::OnGameOver(int64_t player_id)
 			_lian_shengs[player_id] = 0; //初始化 
 		} 
 	}
-	else
+	else if (player_id != 0) //不是解散
 	{
 		++_lian_shengs[player_id]; //连胜
 	}
