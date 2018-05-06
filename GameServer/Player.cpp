@@ -110,6 +110,8 @@ int32_t Player::Save(bool force)
 	
 	_dirty = false;
 
+	if (force) SyncCommonProperty();
+
 	return 0;
 }
 	
