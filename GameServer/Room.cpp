@@ -528,17 +528,23 @@ void Room::OnGameOver(int64_t player_id)
 	
 	auto player = GetPlayer(player_id);
 
-	if (player) { player->AddTotalWinRounds(); } //赢牌总数
+	if (player) 
+	{ 
+		player->AddTotalWinRounds(); //赢牌总数
+		player->SetStreakWins(1); //初始化
+	} 
 
 	//连胜
 	//
 	if (_banker != player_id) 
 	{
-		if (player) 
-		{ 
-			player->SetStreakWins(_lian_shengs[player_id]); //最高连胜
+		auto banker = GetPlayer(_banker);
 
-			_lian_shengs[player_id] = 0; //初始化 
+		if (banker) 
+		{ 
+			banker->SetStreakWins(_lian_shengs[_banker]); //最高连胜
+
+			_lian_shengs[_banker] = 0; //连胜中断 
 		} 
 	}
 	else if (player_id != 0) //不是解散

@@ -113,22 +113,8 @@ void Game::OnStart()
 
 	Asset::GameInformation info; //游戏数据广播
 	info.set_banker_player_id(_banker_player_id);
+
 	BroadCast(info);
-	
-	/*
-	Asset::RandomSaizi saizi; //开局股子广播
-	saizi.set_reason_type(Asset::RandomSaizi_REASON_TYPE_REASON_TYPE_START);
-
-	for (int i = 0; i < 2; ++i)
-	{
-		int32_t result = CommonUtil::Random(1, 6);
-		saizi.mutable_random_result()->Add(result);
-		
-		_saizi_random_result.push_back(result);
-	}
-
-	BroadCast(saizi);
-	*/
 }
 
 //开局后，庄家//地主补3张底牌
