@@ -139,7 +139,7 @@ void Game::OnStarted(std::shared_ptr<Player> dizhu_ptr)
 	}
 
 	auto dizhu_position = GetPlayerOrder(dizhu_ptr->GetID());
-	if (dizhu_position <= 0) return;
+	if (dizhu_position < 0) return;
 
 	if (Asset::POSITION_TYPE_IsValid(dizhu_position + 1)) _playback.set_dizhu_position(Asset::POSITION_TYPE(dizhu_position + 1));
 }
