@@ -170,7 +170,7 @@ bool Game::OnGameOver(int64_t player_id)
 
 void Game::SavePlayBack()
 {
-	if (!_room || _room->IsFriend()) return; //非好友房不存回放
+	if (!_room || !_room->IsFriend()) return; //非好友房不存回放
 
 	std::string key = "playback:" + std::to_string(_room_id) + "_" + std::to_string(_game_id);
 	RedisInstance.Save(key, _playback);
