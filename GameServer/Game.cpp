@@ -138,7 +138,10 @@ void Game::OnStarted(std::shared_ptr<Player> dizhu_ptr)
 		dipai->CopyFrom(card); //回放底牌
 	}
 
-	_playback.set_dizhu_position(GetPlayerOrder(dizhu_ptr->GetID()));
+	auto dizhu_position = GetPlayerOrder(dizhu_ptr->GetID());
+	if (dizhu_position <= 0) return;
+
+	if (Asset::POSITION_TYPE_IsValid(dizhu_position)) _playback.set_dizhu_position(Asset::POSITION_TYPE(dizhu_position));
 }
 
 bool Game::OnGameOver(int64_t player_id)
