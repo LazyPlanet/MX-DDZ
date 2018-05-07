@@ -137,6 +137,8 @@ void Game::OnStarted(std::shared_ptr<Player> dizhu_ptr)
 		auto dipai = _playback.mutable_dipai()->Add();
 		dipai->CopyFrom(card); //回放底牌
 	}
+
+	_playback.set_dizhu_position(GetPlayerOrder(dizhu_ptr->GetID()));
 }
 
 bool Game::OnGameOver(int64_t player_id)
