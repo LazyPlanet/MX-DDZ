@@ -666,7 +666,7 @@ void ClanManager::Load()
 	if (_loaded) return;
 
 	std::vector<std::string> clan_list;
-	bool has_record = RedisInstance.GetArray("clan:*", clan_list);	
+	bool has_record = RedisInstance.GetArray("ddz_clan:*", clan_list);	
 	if (!has_record)
 	{
 		WARN("加载茶馆数据失败，可能是本服尚未创建茶馆，加载成功数量:{}", clan_list.size());
