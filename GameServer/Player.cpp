@@ -880,7 +880,7 @@ bool Player::PaiXingCheck(Asset::PaiOperation* pai_operate)
 				for (auto mem : cards_value) //确定牌是连续的，并且都是成对的
 				{
 					if (!begin)	begin = mem.first;
-					if (begin++ != mem.first || mem.second != 2) return false; //牌不符合规定
+					if (begin++ != mem.first || mem.second != 2 || mem.first >= 15) return false; //牌不符合规定//2不允许排对子
 				}
 
 				pai_operate->set_paixing(Asset::PAIXING_TYPE_LIANDUI);
