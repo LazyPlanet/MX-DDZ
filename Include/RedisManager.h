@@ -308,12 +308,16 @@ public:
 
 	bool GetUser(std::string username, Asset::User& user)
 	{
+		if (username.empty()) return false;
+
 		std::string key = "user:" + username;
 		return Get(key, user);
 	}
 	
 	bool SaveUser(std::string username, const Asset::User& user)
 	{
+		if (username.empty()) return false;
+
 		std::string key = "user:" + username;
 
 		auto success = Save(key, user, true);

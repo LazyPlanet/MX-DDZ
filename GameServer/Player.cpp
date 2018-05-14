@@ -1331,7 +1331,13 @@ void Player::SendProtocol(const pb::Message& message)
 
 	_session->AsyncSendMessage(content);
 
-	//DEBUG("玩家:{} 发送协议，类型:{} 内容:{}", _player_id, type_t,  message.ShortDebugString());
+	int64_t room_id = 0, game_id = 0;
+
+	if (_room) room_id = _room->GetID();
+	if (_game) game_id = _game->GetID();
+
+	DEBUG("玩家:{} 发送协议，类型:{} 房间:{} 局数:{} 内容:{}", 
+			_player_id, Asset::META_TYPE_Name(meta.type_t()), room_id, game_id, message.ShortDebugString());
 }
 
 void Player::Send2Roomers(pb::Message& message, int64_t exclude_player_id) 
