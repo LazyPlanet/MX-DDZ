@@ -110,6 +110,8 @@ void Game::OnStart()
 {
 	if (!_room) return;
 
+	_playback.set_create_time(_room->GetCreateTime()); //回放时间
+
 	_room->SetBanker(_banker_player_id); //设置庄家//庄家开始叫地主
 
 	Asset::GameInformation info; //游戏数据广播
