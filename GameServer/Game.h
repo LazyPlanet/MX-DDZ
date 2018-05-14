@@ -30,8 +30,8 @@ private:
 	
 	std::list<int32_t> _cards; //随机牌,每次开局更新,索引为GameManager牌中索引
 
-	int32_t _curr_player_index = 0; //当前在操作的玩家索引
-	int64_t _banker_player_id = 0; //庄家//起手叫地主
+	int32_t _curr_player_index = -1; //当前在操作的玩家索引
+	int64_t _banker_player_id = -1; //庄家//起手叫地主
 	int64_t _dizhu_player_id = 0; //地主//叫地主之后产生
 	int64_t _room_id = 0;
 	int32_t _game_id = 0;

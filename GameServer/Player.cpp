@@ -140,11 +140,11 @@ int32_t Player::Logout(pb::Message* message)
 
 			_tuoguan_server = true; //服务器托管
 
+			/*
 			if (HasTuoGuan() && _game->CanPaiOperate(shared_from_this())) //轮到该玩家操作
 			{
 				Asset::PaiElement pai;
 
-				/*
 				for (auto it = _cards_inhand.begin(); it != _cards_inhand.end(); ++it)
 				{
 					if (it->second.size())
@@ -154,7 +154,6 @@ int32_t Player::Logout(pb::Message* message)
 						break;
 					}
 				}
-				*/
 
 				Asset::PaiOperation pai_operation; 
 				pai_operation.set_oper_type(Asset::PAI_OPER_TYPE_DAPAI);
@@ -163,6 +162,7 @@ int32_t Player::Logout(pb::Message* message)
 
 				CmdPaiOperate(&pai_operation);
 			}
+			*/
 
 			return 2; //不能退出游戏
 		}
@@ -433,6 +433,15 @@ int32_t Player::OnEnterGame()
 int32_t Player::CmdLeaveRoom(pb::Message* message)
 {
 	if (!message) return 1;
+
+	if (_game)
+	{
+		_tuoguan_server = true; //服务器托管
+
+		OnOperateTimeOut(); //直接退出托管
+
+		return 2; //牌局中不能退出
+	}
 
 	OnLeaveRoom(); //房间处理
 
@@ -2118,11 +2127,47 @@ void Player::SetOffline(bool offline)
 
 	if (offline == _player_prop.offline()) return; //状态尚未发生变化
 	
-	DEBUG("玩家:{}状态变化:{} 是否离线:{}", _player_id, _player_prop.game_oper_state(), offline);
+	WARN("玩家:{} 状态变化:{} 是否离线:{}", _player_id, _player_prop.game_oper_state(), offline);
 
 	_player_prop.set_offline(offline); 
 
 	_room->OnPlayerStateChanged();
+}
+
+void Player::OnOperateTimeOut()
+{
+	return;
+
+	if (!_room || !_game) return;
+
+	if (HasTuoGuan()) return; //好友房不做超时处理
+
+	if (_cards_inhand.size() == 0) return;
+
+	auto curr_player_index = _game->GetCurrPlayerIndex();
+	if (curr_player_index < 0) return;
+
+	auto curr_player = _game->GetPlayerByOrder(curr_player_index);
+	if (!curr_player) return;
+			
+	if (curr_player != shared_from_this()) return; //尚未轮到自己出牌
+
+	Asset::PaiOperation pai_operation; 
+	pai_operation.set_position(GetPosition());
+
+	const auto& last_oper = _game->GetOperCache();
+
+	if (last_oper.player_id() == _player_id) //上次自己出牌，本次依然出牌
+	{
+		pai_operation.set_oper_type(Asset::PAI_OPER_TYPE_DAPAI);
+		pai_operation.mutable_pai()->CopyFrom(_cards_inhand[0]);
+	}
+	else
+	{
+		pai_operation.set_oper_type(Asset::PAI_OPER_TYPE_GIVEUP); //直接不要
+	}
+		
+	SendMessage(_player_id, pai_operation);
 }
 
 void Player::ClearCards() 
@@ -2178,6 +2223,8 @@ void Player::OnlineCheck()
 		if (max_allowed && _pings_count >= max_allowed) 
 		{
 			SetOffline(); //玩家离线
+
+			OnOperateTimeOut(); //操作操作
 		}
 	}
 	else

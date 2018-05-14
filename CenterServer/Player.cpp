@@ -1274,6 +1274,13 @@ void Player::SetOffline(bool offline)
 	SendProtocol2GameServer(state);
 }
 	
+bool Player::IsInRoom(int64_t room_id)
+{
+	if (room_id <= 0 || _stuff.room_id() <= 0) return false;
+
+	return room_id == _stuff.room_id();
+}
+	
 void PlayerManager::Emplace(int64_t player_id, std::shared_ptr<Player> player)
 {
 	std::lock_guard<std::mutex> lock(_mutex);

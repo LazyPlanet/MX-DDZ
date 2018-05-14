@@ -191,7 +191,7 @@ void Game::ClearState()
 	
 	_real_started = false;
 	_dizhu_player_id = 0;
-	_curr_player_index = 0;
+	_curr_player_index = -1;
 }
 
 bool Game::CanPaiOperate(std::shared_ptr<Player> player, Asset::PaiOperation* pai_operate)
@@ -301,7 +301,18 @@ void Game::OnPaiOperate(std::shared_ptr<Player> player, pb::Message* message)
 		
 		case Asset::PAI_OPER_TYPE_GIVEUP: //放弃//不要
 		{
-			//_curr_player_index = (_curr_player_index + 1) % MAX_PLAYER_COUNT; //如果有玩家放弃操作，则继续下个玩家
+			/*
+			auto next_player_index = (_curr_player_index + 1) % MAX_PLAYER_COUNT; //如果有玩家托管
+
+			auto next_player = GetPlayerByOrder(next_player_index);
+			if (!next_player) return;
+			
+			if (next_player->HasTuoGuan())
+			{
+				WARN("玩家:{} 进行托管", next_player->GetID());
+				next_player->OnOperateTimeOut(); //托管
+			}
+			*/
 		}
 		break;
 		

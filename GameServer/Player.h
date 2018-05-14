@@ -184,6 +184,7 @@ public:
 	//是否离线//房间内离线状态处理
 	bool IsOffline() { return _player_prop.offline(); }
 	void SetOffline(bool offline = true);
+	void OnOperateTimeOut(); //操作超时
 	//签到
 	virtual int32_t CmdSign(pb::Message* message);
 	//获取玩家基础属性

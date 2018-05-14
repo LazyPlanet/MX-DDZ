@@ -467,12 +467,18 @@ void WorldSession::OnProcessMessage(const Asset::Meta& meta)
 			Asset::EnterRoom* enter_room = dynamic_cast<Asset::EnterRoom*>(message);
 			if (!enter_room) return; 
 
-			//WARN("玩家:{} 当前所在服务器:{} 进入房间:{}", _player->GetID(), _player->GetLocalServer(), enter_room->ShortDebugString());
-
-			auto room_type = enter_room->room().room_type();
 			int64_t room_id = enter_room->room().room_id();
+			if (_player->IsInRoom(room_id)) 
+			{
+				LOG(ERROR, "玩家:{} 已经在房间:{} 本次加入房间:{} 协议内容:{}", 
+						_player->GetID(), _player->GetRoom(), room_id, enter_room->ShortDebugString());
+				return; //已经在另一个房间内
+			}
+
 			int64_t game_type = RedisInstance.GetGameType(room_id);
 			int64_t server_id = RedisInstance.GetServer(room_id);
+
+			auto room_type = enter_room->room().room_type();
 
 			if (Asset::ROOM_TYPE_FRIEND == room_type)
 			{

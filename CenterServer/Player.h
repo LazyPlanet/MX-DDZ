@@ -79,6 +79,7 @@ public:
 	void SetRoom(int64_t room_id) { _stuff.set_room_id(room_id); _dirty = true; }
 	int64_t GetRoom() { return _stuff.room_id(); }
 	bool IsInRoom() { return _stuff.room_id() != 0; }
+	bool IsInRoom(int64_t room_id);
 
 	virtual int64_t GetID() { return _stuff.common_prop().player_id(); } //获取ID
 	virtual void SetID(int64_t player_id) { 
