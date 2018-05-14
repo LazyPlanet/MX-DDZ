@@ -839,6 +839,8 @@ bool Player::PaiXingCheck(Asset::PaiOperation* pai_operate)
 			{
 				if (mem.second == 3)
 				{
+					if (mem.first >= 15) return false; //2不能作为飞机
+
 					if (!begin || begin == mem.first) ++n;
 
 					if (!begin) begin = mem.first;
