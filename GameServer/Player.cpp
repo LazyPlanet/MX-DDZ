@@ -2055,6 +2055,8 @@ int32_t Player::OnFaPai(std::vector<int32_t>& cards)
 	//std::lock_guard<std::mutex> lock(_card_lock);
 
 	if (!_room || !_game) return 1;
+
+	if (cards.size() == 0) return 2;
 	
 	Asset::PaiNotify notify; //玩家牌数据发给Client
 	notify.set_player_id(_player_id); //目标玩家

@@ -377,6 +377,7 @@ void Game::Calculate(std::shared_ptr<Player> player_ptr)
 	}
 
 	if (chuntian_count == MAX_PLAYER_COUNT - 1) message.set_is_chuntian(true); //地主春天，2个农民都1张牌没出
+
 	if (message.is_chuntian()) IncreaseBeiLv(); //春天或反春天翻倍
 
 	for (auto player : _players)
@@ -392,14 +393,13 @@ void Game::Calculate(std::shared_ptr<Player> player_ptr)
 		
 		if (player_id == _dizhu_player_id) continue;
 
-		auto score = _base_score;
-		if (player_ptr->GetID() == _dizhu_player_id) score = -_base_score; //地主先走
-
-		score *= GetBeiLv(); //总分数
+		auto score = _base_score * GetBeiLv(); //总分数
 
 		//输牌玩家番数上限封底
 		//
 		if (top_mutiple > 0) score = std::min(top_mutiple, score); //封顶
+
+		if (player_ptr->GetID() == _dizhu_player_id) score = -score; //地主先走
 
 		record->set_score(score); //农民总积分
 
