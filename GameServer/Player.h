@@ -297,6 +297,7 @@ public:
 	virtual int32_t CmdGetRoomData(pb::Message* message); //获取房间数据
 	virtual int32_t CmdUpdateRoom(pb::Message* message); //更新房间数据
 	virtual int32_t CmdRecharge(pb::Message* message); //充值
+	virtual int32_t CmdSwitchRoom(pb::Message* message); //切换房间
 
 	void OnEnterScene(bool is_reenter); //进入房间回调
 	virtual std::shared_ptr<Room> GetRoom() { return _room; }	//获取当前房间
@@ -307,7 +308,9 @@ public:
 	virtual int32_t GetRoomID() { return _player_prop.room_id(); }
 	virtual bool HasRoom() { return _room != nullptr; }
 	virtual void SetRoom(std::shared_ptr<Room> room) { _room = room; }
-	virtual void ResetRoom();
+	virtual void ResetRoom(); 
+
+	Asset::ERROR_CODE CheckMatching(Asset::ROOM_TYPE room_type); //是否可以匹配
 
 	void SetGame(std::shared_ptr<Game> game) { _game = game; }
 	bool IsInGame() { return _game != nullptr; }

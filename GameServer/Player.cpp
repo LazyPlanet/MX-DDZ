@@ -40,6 +40,7 @@ Player::Player()
 	AddHandler(Asset::META_TYPE_SHARE_GAME_SETTING, std::bind(&Player::CmdGameSetting, this, std::placeholders::_1));
 	AddHandler(Asset::META_TYPE_SHARE_SYSTEM_CHAT, std::bind(&Player::CmdSystemChat, this, std::placeholders::_1));
 	AddHandler(Asset::META_TYPE_SHARE_RECHARGE, std::bind(&Player::CmdRecharge, this, std::placeholders::_1));
+	AddHandler(Asset::META_TYPE_SHARE_SWITCH_ROOM, std::bind(&Player::CmdSwitchRoom, this, std::placeholders::_1));
 
 	//AddHandler(Asset::META_TYPE_C2S_LOGIN, std::bind(&Player::CmdLogin, this, std::placeholders::_1));
 	//AddHandler(Asset::META_TYPE_C2S_ENTER_GAME, std::bind(&Player::CmdEnterGame, this, std::placeholders::_1));
@@ -1107,38 +1108,10 @@ int32_t Player::EnterRoom(pb::Message* message)
 
 	//
 	//房间正常进入
-	//
-
+	
 	ClearCards();
 
 	Asset::ROOM_TYPE room_type = enter_room->room().room_type();
-
-	auto check = [this, room_type]()->Asset::ERROR_CODE {
-
-		const auto& messages = AssetInstance.GetMessagesByType(Asset::ASSET_TYPE_ROOM);
-
-		auto it = std::find_if(messages.begin(), messages.end(), [room_type](pb::Message* message){
-			auto room_limit = dynamic_cast<Asset::RoomLimit*>(message);
-			if (!room_limit) return false;
-
-			return room_type == room_limit->room_type();
-		});
-
-		if (it == messages.end()) return Asset::ERROR_ROOM_TYPE_NOT_FOUND;
-		
-		auto room_limit = dynamic_cast<Asset::RoomLimit*>(*it);
-		if (!room_limit) return Asset::ERROR_ROOM_TYPE_NOT_FOUND;
-
-		int64_t beans_count = GetHuanledou();
-
-		int32_t min_limit = room_limit->min_limit();
-		if (min_limit >= 0 && beans_count < min_limit) return Asset::ERROR_ROOM_BEANS_MIN_LIMIT;
-
-		int32_t max_limit = room_limit->max_limit();
-		if (max_limit >= 0 && beans_count > max_limit) return Asset::ERROR_ROOM_BEANS_MAX_LIMIT;
-
-		return Asset::ERROR_SUCCESS;
-	};
 
 	switch (room_type)
 	{
@@ -1210,8 +1183,7 @@ int32_t Player::EnterRoom(pb::Message* message)
 				return 2; //匹配中,防止多次点击匹配
 			}
 
-			auto result = check();
-
+			const auto result = CheckMatching(room_type);
 			if (result != Asset::ERROR_SUCCESS) //不允许进入
 			{
 				AlertMessage(result);
@@ -1235,6 +1207,33 @@ int32_t Player::EnterRoom(pb::Message* message)
 	}
 
 	return 0;
+}
+	
+Asset::ERROR_CODE Player::CheckMatching(Asset::ROOM_TYPE room_type)
+{
+	const auto& messages = AssetInstance.GetMessagesByType(Asset::ASSET_TYPE_ROOM);
+
+	auto it = std::find_if(messages.begin(), messages.end(), [room_type](pb::Message* message){
+		auto room_limit = dynamic_cast<Asset::RoomLimit*>(message);
+		if (!room_limit) return false;
+
+		return room_type == room_limit->room_type();
+	});
+
+	if (it == messages.end()) return Asset::ERROR_ROOM_TYPE_NOT_FOUND;
+	
+	auto room_limit = dynamic_cast<Asset::RoomLimit*>(*it);
+	if (!room_limit) return Asset::ERROR_ROOM_TYPE_NOT_FOUND;
+
+	int64_t beans_count = GetHuanledou();
+
+	int32_t min_limit = room_limit->min_limit();
+	if (min_limit >= 0 && beans_count < min_limit) return Asset::ERROR_ROOM_BEANS_MIN_LIMIT;
+
+	int32_t max_limit = room_limit->max_limit();
+	if (max_limit >= 0 && beans_count > max_limit) return Asset::ERROR_ROOM_BEANS_MAX_LIMIT;
+
+	return Asset::ERROR_SUCCESS;
 }
 	
 int32_t Player::GetLocalRoomID() 
@@ -2411,6 +2410,29 @@ int32_t Player::CmdRecharge(pb::Message* message)
 		GainDiamond(Asset::DIAMOND_CHANGED_TYPE_MALL, recharge->gain_diamond());
 		break;
 	}
+
+	return 0;
+}
+
+int32_t Player::CmdSwitchRoom(pb::Message* message)
+{
+	auto switch_room = dynamic_cast<Asset::SwitchRoom*>(message);
+	if (!switch_room) return 1;
+
+	if (!_room || _game) return 2; //非房间内或者正在牌局中不能换房
+
+	const auto result = CheckMatching(_stuff.matching_room_type());
+	switch_room->set_ret_code(result);
+
+	if (result != Asset::ERROR_SUCCESS) //不允许进入
+	{
+		SendProtocol(switch_room);
+		return result;
+	}
+
+	DEBUG("玩家:{} 切换房间, 匹配数据:{}", _player_id, message->ShortDebugString());
+
+	MatchInstance.Join(shared_from_this(), message); //进入匹配
 
 	return 0;
 }
