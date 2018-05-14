@@ -1342,6 +1342,7 @@ void Player::SendProtocol(const pb::Message& message)
 	if (content.empty()) return;
 
 	_session->AsyncSendMessage(content);
+	if (Asset::META_TYPE_SHARE_SAY_HI == meta.type_t()) return; //心跳回复
 
 	int64_t room_id = 0, game_id = 0;
 
