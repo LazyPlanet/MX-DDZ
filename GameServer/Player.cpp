@@ -434,6 +434,7 @@ int32_t Player::CmdLeaveRoom(pb::Message* message)
 {
 	if (!message) return 1;
 
+	/*
 	if (_game)
 	{
 		_tuoguan_server = true; //服务器托管
@@ -442,6 +443,7 @@ int32_t Player::CmdLeaveRoom(pb::Message* message)
 
 		return 2; //牌局中不能退出
 	}
+	*/
 
 	OnLeaveRoom(); //房间处理
 
