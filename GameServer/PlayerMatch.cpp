@@ -26,6 +26,8 @@ void PlayerMatch::Join(std::shared_ptr<Player> player, pb::Message* message)
 	Asset::ROOM_TYPE room_type = enter_room->room().room_type();
 	if (room_type == Asset::ROOM_TYPE_FRIEND) return; //好友房不能进入匹配
 	
+	std::lock_guard<std::mutex> lock(_match_mutex);
+	
 	auto& match_list = _match_list[room_type];
 
 	if (enter_room->enter_type() == Asset::EnterRoom_ENTER_TYPE_ENTER_TYPE_ENTER)
@@ -59,7 +61,7 @@ void PlayerMatch::DoMatch()
 
 	_scheduler.Schedule(std::chrono::milliseconds(500), [this](TaskContext task) {
 
-		//DEBUG("匹配中,持续匹配...");
+		std::lock_guard<std::mutex> lock(_match_mutex);
 			
 		for (auto it = _match_list.begin(); it != _match_list.end(); ++it)
 		{

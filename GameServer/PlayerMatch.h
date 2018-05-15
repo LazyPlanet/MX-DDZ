@@ -20,6 +20,7 @@ class PlayerMatch : public std::enable_shared_from_this<PlayerMatch>
 	std::unordered_map<int32_t/*房间类型*/, const Asset::RoomOptions> _options;
 
 	TaskScheduler _scheduler;
+	std::mutex _match_mutex;
 
 public:
 	static PlayerMatch& Instance()
