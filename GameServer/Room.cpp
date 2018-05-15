@@ -479,8 +479,9 @@ void Room::ResetGame(std::shared_ptr<Game> game)
 	if (!game) _game = std::make_shared<Game>();
 
 	_game->Init(shared_from_this()); //洗牌
+	_game->Start(_players, _stuff.room_id(), _games.size() - 1); //开始游戏//防止回放数据不正确
 
-	_game->Start(_players, _stuff.room_id(), _games.size()); //开始游戏
+	DEBUG("房间:{} 刷新局数:{}", _stuff.room_id(), _game->GetID());
 }
 	
 /*

@@ -2130,7 +2130,8 @@ void Player::SetOffline(bool offline)
 
 	if (offline == _player_prop.offline()) return; //状态尚未发生变化
 	
-	if (!offline) _tuoguan_server = false; //取消托管
+	if (!offline) { _tuoguan_server = false; } //取消托管
+	else { _tuoguan_server = true; }
 
 	WARN("玩家:{} 状态变化:{} 是否离线:{} 是否托管:{}", _player_id, _player_prop.game_oper_state(), offline, _tuoguan_server);
 
@@ -2146,6 +2147,20 @@ void Player::OnOperateTimeOut()
 	if (!HasTuoGuan()) return; //好友房不做超时处理
 
 	if (_cards_inhand.size() == 0) return;
+	
+	Asset::PaiOperation pai_operation; 
+	pai_operation.set_position(GetPosition());
+
+	const auto& last_oper = _game->GetOperCache();
+
+	if (!last_oper.has_pai_oper() && _game->GetDiZhu() == _player_id)
+	{
+		pai_operation.set_oper_type(Asset::PAI_OPER_TYPE_DAPAI);
+		pai_operation.mutable_pais()->Add()->CopyFrom(_cards_inhand[0]);
+	
+		SendMessage(_player_id, pai_operation);
+		return; //尚未开局，地主离开
+	}
 
 	auto curr_player_index = _game->GetCurrPlayerIndex();
 	if (curr_player_index < 0) return;
@@ -2156,11 +2171,6 @@ void Player::OnOperateTimeOut()
 	if (!curr_player) return;
 			
 	if (curr_player != shared_from_this()) return; //尚未轮到自己出牌
-
-	Asset::PaiOperation pai_operation; 
-	pai_operation.set_position(GetPosition());
-
-	const auto& last_oper = _game->GetOperCache();
 
 	if (last_oper.player_id() == _player_id) //上次自己出牌，本次依然出牌
 	{
