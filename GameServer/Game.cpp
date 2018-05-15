@@ -39,7 +39,7 @@ bool Game::Start(std::vector<std::shared_ptr<Player>> players, int64_t room_id, 
 
 	if (!_room) return false;
 
-	_game_id = game_id + 1;
+	_game_id = game_id; // + 1;
 	_room_id = room_id;
 
 	//
@@ -124,8 +124,6 @@ void Game::OnStart()
 //
 void Game::OnStarted(std::shared_ptr<Player> dizhu_ptr)
 {
-	if (!_room) return;
-
 	if (!dizhu_ptr) return;
 	
 	_real_started = true;
@@ -143,7 +141,6 @@ void Game::OnStarted(std::shared_ptr<Player> dizhu_ptr)
 	}
 
 	_playback.set_dizhu_position(dizhu_ptr->GetPosition()); //回放：地主
-	_room->OnGameStarted(shared_from_this()); //真正开局
 }
 
 bool Game::OnGameOver(int64_t player_id)

@@ -287,9 +287,9 @@ void Room::OnPlayerOperate(std::shared_ptr<Player> player, pb::Message* message)
 
 			_game->Init(shared_from_this()); //洗牌
 
+			_games.push_back(_game); //游戏
+			
 			_game->Start(_players, _stuff.room_id(), _games.size()); //开始游戏
-
-			//_games.push_back(_game); //游戏
 
 			OnGameStart();
 		}
@@ -458,7 +458,7 @@ void Room::OnGameStart()
 
 	Asset::GameStart game_start;
 	game_start.set_total_rounds(_stuff.options().open_rands());
-	game_start.set_current_rounds(_game->GetID());
+	game_start.set_current_rounds(_games.size());
 
 	BroadCast(game_start);
 

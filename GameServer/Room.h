@@ -105,7 +105,6 @@ public:
 	int32_t GetRemainCount(); //剩余游戏次数
 	int32_t GetGamesCount() { return _games.size(); } //当前开局数量
 	int32_t GetOpenRands() { return _stuff.options().open_rands(); } //开房总数量
-	void OnGameStarted(std::shared_ptr<Game> game) { _games.push_back(game); }
 
 	bool HasStarted() { return _games.size() > 0; } //是否已经开局
 	bool HasBeenOver(); //牌局是否结束//总结算
