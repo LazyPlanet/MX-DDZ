@@ -1327,7 +1327,7 @@ void Player::SendProtocol(const pb::Message* message)
 
 void Player::SendProtocol(const pb::Message& message)
 {
-	if (IsOffline()) return; //离线不再发送协议
+	//if (IsOffline()) return; //离线不再发送协议//玩家无法登陆
 
 	if (!Connected()) return; //尚未建立网络连接
 
