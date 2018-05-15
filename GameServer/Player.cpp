@@ -1244,7 +1244,10 @@ int32_t Player::GetLocalRoomID()
 
 void Player::OnEnterSuccess(int64_t room_id)
 {
-	_stuff.set_room_id(room_id); //避免玩家进入房间后尚未加载场景，掉线
+	_stuff.set_room_id(room_id); //避免玩家进入房间后尚未加载场景//掉线
+
+	if (_room) _stuff.set_room_type(_room->GetType()); //好友房或者匹配房
+
 	_stuff.clear_matching_room_type(); //匹配
 	
 	SetDirty();
@@ -1324,6 +1327,8 @@ void Player::SendProtocol(const pb::Message* message)
 
 void Player::SendProtocol(const pb::Message& message)
 {
+	if (IsOffline()) return; //离线不再发送协议
+
 	if (!Connected()) return; //尚未建立网络连接
 
 	const pb::FieldDescriptor* field = message.GetDescriptor()->FindFieldByName("type_t");
