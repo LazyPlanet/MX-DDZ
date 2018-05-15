@@ -452,11 +452,13 @@ void Room::OnPlayerStateChanged()
 //
 void Room::OnGameStart()
 {
+	if (!_game) return;
+
 	std::lock_guard<std::mutex> lock(_mutex);
 
 	Asset::GameStart game_start;
 	game_start.set_total_rounds(_stuff.options().open_rands());
-	game_start.set_current_rounds(_games.size());
+	game_start.set_current_rounds(_game->GetID());
 
 	BroadCast(game_start);
 
