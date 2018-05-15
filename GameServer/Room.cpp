@@ -289,7 +289,7 @@ void Room::OnPlayerOperate(std::shared_ptr<Player> player, pb::Message* message)
 
 			_game->Start(_players, _stuff.room_id(), _games.size()); //开始游戏
 
-			_games.push_back(_game); //游戏
+			//_games.push_back(_game); //游戏
 
 			OnGameStart();
 		}
@@ -479,7 +479,7 @@ void Room::ResetGame(std::shared_ptr<Game> game)
 	if (!game) _game = std::make_shared<Game>();
 
 	_game->Init(shared_from_this()); //洗牌
-	_game->Start(_players, _stuff.room_id(), _games.size() - 1); //开始游戏//防止回放数据不正确
+	_game->Start(_players, _stuff.room_id(), _games.size()); //开始游戏//防止回放数据不正确
 
 	DEBUG("房间:{} 刷新局数:{}", _stuff.room_id(), _game->GetID());
 }
