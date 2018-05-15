@@ -2123,6 +2123,8 @@ void Player::SetOffline(bool offline)
 { 
 	if (!_room/* || !_game*/) return; //房间状态
 
+	if (!offline) _tuoguan_server = false; //取消托管
+
 	if (offline == _player_prop.offline()) return; //状态尚未发生变化
 	
 	WARN("玩家:{} 状态变化:{} 是否离线:{}", _player_id, _player_prop.game_oper_state(), offline);
@@ -2136,12 +2138,14 @@ void Player::OnOperateTimeOut()
 {
 	if (!_room || !_game) return;
 
-	if (HasTuoGuan()) return; //好友房不做超时处理
+	if (!HasTuoGuan()) return; //好友房不做超时处理
 
 	if (_cards_inhand.size() == 0) return;
 
 	auto curr_player_index = _game->GetCurrPlayerIndex();
 	if (curr_player_index < 0) return;
+
+	WARN("玩家:{} 当前操作玩家索引:{} 操作超时，房间:{} 牌局:{} 服务器进行托管", _player_id, curr_player_index, _room->GetID(), _game->GetID());
 
 	auto curr_player = _game->GetPlayerByOrder(curr_player_index);
 	if (!curr_player) return;
@@ -2156,7 +2160,7 @@ void Player::OnOperateTimeOut()
 	if (last_oper.player_id() == _player_id) //上次自己出牌，本次依然出牌
 	{
 		pai_operation.set_oper_type(Asset::PAI_OPER_TYPE_DAPAI);
-		pai_operation.mutable_pai()->CopyFrom(_cards_inhand[0]);
+		pai_operation.mutable_pais()->Add()->CopyFrom(_cards_inhand[0]);
 	}
 	else
 	{
