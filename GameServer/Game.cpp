@@ -301,7 +301,6 @@ void Game::OnPaiOperate(std::shared_ptr<Player> player, pb::Message* message)
 		
 		case Asset::PAI_OPER_TYPE_GIVEUP: //放弃//不要
 		{
-			/*
 			auto next_player_index = (_curr_player_index + 1) % MAX_PLAYER_COUNT; //如果有玩家托管
 
 			auto next_player = GetPlayerByOrder(next_player_index);
@@ -310,9 +309,9 @@ void Game::OnPaiOperate(std::shared_ptr<Player> player, pb::Message* message)
 			if (next_player->HasTuoGuan())
 			{
 				WARN("玩家:{} 进行托管", next_player->GetID());
+
 				next_player->OnOperateTimeOut(); //托管
 			}
-			*/
 		}
 		break;
 		

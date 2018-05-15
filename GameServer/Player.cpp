@@ -435,7 +435,6 @@ int32_t Player::CmdLeaveRoom(pb::Message* message)
 {
 	if (!message) return 1;
 
-	/*
 	if (_game)
 	{
 		_tuoguan_server = true; //服务器托管
@@ -444,7 +443,6 @@ int32_t Player::CmdLeaveRoom(pb::Message* message)
 
 		return 2; //牌局中不能退出
 	}
-	*/
 
 	OnLeaveRoom(); //房间处理
 
@@ -1131,6 +1129,7 @@ int32_t Player::EnterRoom(pb::Message* message)
 				{
 					enter_room->set_error_code(Asset::ERROR_CLAN_ROOM_ENTER_NO_CLAN); 
 					SendProtocol(enter_room);
+
 					return Asset::ERROR_CLAN_ROOM_ENTER_NO_CLAN; //非茶馆成员，不能加入
 				}
 
@@ -1550,28 +1549,23 @@ void Player::BroadCastCommonProp(Asset::MSG_TYPE type)
 
 void Player::OnLeaveRoom(Asset::GAME_OPER_TYPE reason)
 {
-	//
 	//房间数据初始化
-	//
 	ResetRoom();
 	
-	//
 	//游戏数据
-	//
 	ClearCards();  
 
-	//
 	//逻辑服务器的退出房间，则退出
-	//
 	OnLogout(Asset::KICK_OUT_REASON_LEAVE_ROOM); //架构调整：退出房间不进行逻辑服务器退出//退出房间
 
-	//
 	//房间状态同步
-	//
-	Asset::RoomState room_state;
-	room_state.set_room_id(0);
-	room_state.set_oper_type(reason);
-	SendProtocol(room_state);
+	if (Asset::GAME_OPER_TYPE_SWITCH_ROOM != reason)
+	{
+		Asset::RoomState room_state;
+		room_state.set_room_id(0);
+		room_state.set_oper_type(reason);
+		SendProtocol(room_state);
+	}
 }
 	
 void Player::BroadCast(Asset::MsgItem& item) 
@@ -2140,8 +2134,6 @@ void Player::SetOffline(bool offline)
 
 void Player::OnOperateTimeOut()
 {
-	return;
-
 	if (!_room || !_game) return;
 
 	if (HasTuoGuan()) return; //好友房不做超时处理
@@ -2422,18 +2414,25 @@ int32_t Player::CmdSwitchRoom(pb::Message* message)
 
 	if (!_room || _game) return 2; //非房间内或者正在牌局中不能换房
 
-	const auto result = CheckMatching(_stuff.matching_room_type());
+	const auto result = CheckMatching(_room->GetType());
 	switch_room->set_ret_code(result);
+	
+	DEBUG("玩家:{} 切换房间:{} 匹配数据:{} 结果:{}", _player_id, _room->GetType(), message->ShortDebugString(), result);
 
 	if (result != Asset::ERROR_SUCCESS) //不允许进入
 	{
 		SendProtocol(switch_room);
 		return result;
 	}
+	
+	Asset::EnterRoom enter_room;
+	enter_room.set_enter_type(Asset::EnterRoom_ENTER_TYPE_ENTER_TYPE_ENTER);
+	enter_room.mutable_room()->set_room_type(_room->GetType());
 
-	DEBUG("玩家:{} 切换房间, 匹配数据:{}", _player_id, message->ShortDebugString());
+	_room->Remove(_player_id, Asset::GAME_OPER_TYPE_SWITCH_ROOM); 
+	_room.reset(); //清理当前房间
 
-	MatchInstance.Join(shared_from_this(), message); //进入匹配
+	MatchInstance.Join(shared_from_this(), &enter_room); //进入匹配
 
 	return 0;
 }

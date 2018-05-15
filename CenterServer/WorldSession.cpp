@@ -510,6 +510,7 @@ void WorldSession::OnProcessMessage(const Asset::Meta& meta)
 					return;
 				}
 
+					/*
 				do 
 				{
 					if (!_player->IsCenterServer()) 
@@ -517,6 +518,7 @@ void WorldSession::OnProcessMessage(const Asset::Meta& meta)
 						WARN("玩家:{} 已经在逻辑服务器上,直接进行匹配.", _player->GetID());
 						break;
 					}
+					*/
 
 					if (server_id == 0) server_id = WorldSessionInstance.RandomServer(); //随机一个逻辑服务器
 					
@@ -529,7 +531,7 @@ void WorldSession::OnProcessMessage(const Asset::Meta& meta)
 						return;
 					}
 
-				} while(false);
+				//} while(false);
 				
 				_player->AddCoolDown(Asset::SYSTEM_COOLDOWN_TYPE_MATCHING);
 			}
