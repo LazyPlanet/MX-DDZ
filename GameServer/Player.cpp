@@ -2123,11 +2123,11 @@ void Player::SetOffline(bool offline)
 { 
 	if (!_room/* || !_game*/) return; //房间状态
 
-	if (!offline) _tuoguan_server = false; //取消托管
-
 	if (offline == _player_prop.offline()) return; //状态尚未发生变化
 	
-	WARN("玩家:{} 状态变化:{} 是否离线:{}", _player_id, _player_prop.game_oper_state(), offline);
+	if (!offline) _tuoguan_server = false; //取消托管
+
+	WARN("玩家:{} 状态变化:{} 是否离线:{} 是否托管:{}", _player_id, _player_prop.game_oper_state(), offline, _tuoguan_server);
 
 	_player_prop.set_offline(offline); 
 
