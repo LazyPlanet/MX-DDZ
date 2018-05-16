@@ -232,7 +232,7 @@ int32_t Player::OnLogout(Asset::KICK_OUT_REASON reason)
 	kickout_player.set_reason(reason);
 	SendProtocol(kickout_player);
 		
-	WARN("玩家:{} 服务器:{} 数据:{} 当前所在服务器:{} 成功退出逻辑服务器:{} 原因:{}", 
+	WARN("玩家:{} 全局服务器:{} 数据:{} 当前所在服务器:{} 成功退出逻辑服务器:{} 原因:{}", 
 			_player_id, g_server_id, _stuff.ShortDebugString(), _stuff.server_id(), g_server_id, kickout_player.ShortDebugString());
 	
 	return 0;
