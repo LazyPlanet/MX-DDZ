@@ -1718,6 +1718,8 @@ int32_t Player::CmdBuySomething(pb::Message* message)
 
 	if (ret) AlertMessage(ret, Asset::ERROR_TYPE_NORMAL, Asset::ERROR_SHOW_TYPE_MESSAGE_BOX);
 
+	LOG(INFO, "玩家:{} 购买商品:{} 结果:{}", _player_id, message->ShortDebugString(), ret);
+
 	return 0;
 }
 	
