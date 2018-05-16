@@ -393,7 +393,7 @@ void Clan::OnDisMiss()
 	message.set_clan_id(_clan_id);
 	message.set_oper_type(Asset::CLAN_OPER_TYPE_DISMISS);
 
-	BroadCast(message); //解散成功
+	BroadCast(message, _stuff.hoster_id()); //解散成功
 
 	_stuff.set_dismiss(true); //解散
 
@@ -489,19 +489,21 @@ int32_t Clan::RemoveMember(int64_t player_id, Asset::ClanOperation* message)
 	return 0;
 }
 
-void Clan::BroadCast(const pb::Message* message)
+void Clan::BroadCast(const pb::Message* message, int64_t except_player_id)
 {
 	if (!message) return;
 
-	BroadCast(*message);
+	BroadCast(*message, except_player_id);
 }
 
-void Clan::BroadCast(const pb::Message& message)
+void Clan::BroadCast(const pb::Message& message, int64_t except_player_id)
 {
 	std::lock_guard<std::mutex> lock(_member_mutex);
 
 	for (const auto& member : _stuff.member_list())
 	{
+		if (except_player_id == member.player_id()) continue;
+
 		auto member_ptr = PlayerInstance.Get(member.player_id());
 		if (!member_ptr) continue;
 
@@ -696,8 +698,6 @@ void ClanManager::Load()
 
 void ClanManager::Remove(int64_t clan_id)
 {
-	WARN("删除茶馆:{}", clan_id);
-
 	std::lock_guard<std::mutex> lock(_mutex);
 
 	if (clan_id <= 0) return;
@@ -711,6 +711,8 @@ void ClanManager::Remove(int64_t clan_id)
 		it->second->Save();
 		it->second.reset();
 	}
+
+	WARN("删除茶馆:{}", clan_id);
 
 	_clans.erase(it);
 }
@@ -878,7 +880,7 @@ void ClanManager::OnOperate(std::shared_ptr<Player> player, Asset::ClanOperation
 				return;
 			}
 
-			Remove(message->clan_id());
+			//Remove(message->clan_id());
 
 			message->set_recharge_count(clan->GetRoomCard());
 			player->SendProtocol2GameServer(message); //通知逻辑服务器解散

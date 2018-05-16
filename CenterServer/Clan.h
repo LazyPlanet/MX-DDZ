@@ -37,8 +37,8 @@ public:
 	void OnDisMiss();
 	bool HasDismiss() { return _stuff.dismiss(); }
 	int32_t RemoveMember(int64_t player_id, Asset::ClanOperation* message = nullptr);
-	void BroadCast(const pb::Message* message);
-	void BroadCast(const pb::Message& message);
+	void BroadCast(const pb::Message* message, int64_t except_player_id = 0);
+	void BroadCast(const pb::Message& message, int64_t except_player_id = 0);
 
 	bool CheckRoomCard(int32_t count);
 	void ConsumeRoomCard(int32_t count);
