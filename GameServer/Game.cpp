@@ -272,8 +272,6 @@ void Game::OnPaiOperate(std::shared_ptr<Player> player, pb::Message* message)
 		return; //不允许操作
 	}
 	
-	AddPlayerOperation(*pai_operate);  //回放记录
-
 	if (Asset::PAI_OPER_TYPE_DAPAI == pai_operate->oper_type()) 
 	{
 		_last_oper.set_player_id(player->GetID());
@@ -326,8 +324,9 @@ void Game::OnPaiOperate(std::shared_ptr<Player> player, pb::Message* message)
 			
 	_curr_player_index = (_curr_player_index + 1) % MAX_PLAYER_COUNT; //继续下个玩家
 	
-	//玩家操作
-	BroadCast(message); 
+	AddPlayerOperation(*pai_operate);  //回放记录
+	
+	BroadCast(message); //玩家操作
 	
 	//有一家出完所有牌则进入本局结算
 	if (pai_operate->oper_type() == Asset::PAI_OPER_TYPE_DAPAI && player->GetCardsCountInhand() == 0) Calculate(player); 
