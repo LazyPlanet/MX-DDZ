@@ -592,7 +592,8 @@ int32_t Player::CmdGameOperate(pb::Message* message)
 		case Asset::GAME_OPER_TYPE_NULL: 
 		case Asset::GAME_OPER_TYPE_START: //开始游戏：其实是个准备//扑克押注
 		{
-			_player_prop.set_game_oper_state(game_operate->oper_type());
+			if (_player_prop.game_oper_state() == Asset::GAME_OPER_TYPE_NULL) //防止弱网络条件下，开局后玩家由于多次点击开始导致玩家状态错误
+				_player_prop.set_game_oper_state(game_operate->oper_type());
 		}
 		break;
 

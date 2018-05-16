@@ -725,6 +725,15 @@ bool Room::OnJiaoZhuang(int64_t player_id, int32_t beilv)
 	if (!_game) return false; //尚未开局
 
 	if (player_id <= 0) return false;
+	
+	if (_rob_dizhu.size() > 0)
+	{
+		if (_rob_dizhu[_rob_dizhu.size() - 1].player_id() == player_id) 
+		{
+			ERROR("玩家:{} 可能由于弱网络条件下多次点击:{} 已经操作数量:{}", player_id, beilv, _rob_dizhu.size());
+			return false; //防止弱网络条件下玩家多次点击
+		}
+	}
 
 	Asset::RobElement rob_element;
 	rob_element.set_player_id(player_id);

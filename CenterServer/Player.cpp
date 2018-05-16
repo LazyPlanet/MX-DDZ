@@ -226,9 +226,7 @@ void Player::SetLocalServer(int32_t server_id)
 { 
 	if (server_id <= 0 || server_id == _stuff.server_id()) return;
 	
-	auto gs_session = WorldSessionInstance.GetServerSession(_stuff.server_id());
-	if (!gs_session) return; //非法的游戏逻辑服务器
-	
+	//
 	//通知当前游戏逻辑服务器下线
 	//
 	if (server_id && _stuff.server_id())
@@ -243,12 +241,14 @@ void Player::SetLocalServer(int32_t server_id)
 		meta.set_stuff(kickout_player.SerializeAsString());
 		meta.set_player_id(_player_id); 
 
+		auto gs_session = WorldSessionInstance.GetServerSession(_stuff.server_id());
+		if (gs_session) gs_session->SendMeta(meta);  //通知逻辑服务器
+		
 		WARN("玩家:{} 通知当前游戏逻辑服务器下线，即将退出服务器:{} 进入服务器:{} 协议数据:{}", 
 				_player_id, _stuff.server_id(), server_id, kickout_player.ShortDebugString());
-
-		gs_session->SendMeta(meta); 
 	}
 	
+	//
 	//切换逻辑服务器
 	//
 	_stuff.set_server_id(server_id); 
