@@ -153,7 +153,7 @@ public:
 	//幸运转盘
 	int32_t CmdLuckyPlate(pb::Message* message);
 	//历史战绩
-	virtual int32_t CmdGetBattleHistory(pb::Message* message);
+	//virtual int32_t CmdGetBattleHistory(pb::Message* message);
 	//充值
 	virtual int32_t CmdRecharge(pb::Message* message);
 	//回放
@@ -217,7 +217,7 @@ public:
 	Asset::ERROR_CODE DeliverReward(int64_t global_id);
 	void SyncCommonReward(int64_t common_reward_id, int32_t error_code);
 	//历史战绩
-	void BattleHistory(int32_t start_index = 0, int32_t end_index = 5);
+	//void BattleHistory(int32_t start_index = 0, int32_t end_index = 5);
 	//踢人
 	void OnKickOut(Asset::KICK_OUT_REASON reason);
 	//玩家离线
@@ -225,8 +225,6 @@ public:
 
 	void SetAccountType(Asset::ACCOUNT_TYPE account_type) { _account_type = account_type; }
 	Asset::ACCOUNT_TYPE GetAccountType() { return _account_type; } //账号类型
-
-	void MultiplyRoomCard();
 
 	int32_t GetHosterCount() { return _stuff.clan_hosters().size(); } //拥有茶馆数量
 	int32_t GetMemberCount() { return _stuff.clan_joiners().size(); } //加入茶馆数量

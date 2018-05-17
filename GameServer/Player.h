@@ -298,6 +298,7 @@ public:
 	virtual int32_t CmdUpdateRoom(pb::Message* message); //更新房间数据
 	virtual int32_t CmdRecharge(pb::Message* message); //充值
 	virtual int32_t CmdSwitchRoom(pb::Message* message); //切换房间
+	virtual int32_t CmdGetBattleHistory(pb::Message* message); //获取历史战绩
 
 	void OnEnterScene(bool is_reenter); //进入房间回调
 	virtual std::shared_ptr<Room> GetRoom() { return _room; }	//获取当前房间
@@ -311,6 +312,8 @@ public:
 	virtual void ResetRoom(); 
 
 	Asset::ERROR_CODE CheckMatching(Asset::ROOM_TYPE room_type); //是否可以匹配
+	//历史战绩
+	void BattleHistory(int32_t start_index = 0, int32_t end_index = 5);
 
 	void SetGame(std::shared_ptr<Game> game) { _game = game; }
 	bool IsInGame() { return _game != nullptr; }

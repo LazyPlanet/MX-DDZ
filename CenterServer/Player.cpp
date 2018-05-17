@@ -49,7 +49,7 @@ Player::Player()
 	//AddHandler(Asset::META_TYPE_SHARE_COMMON_PROPERTY, std::bind(&Player::CmdGetCommonProperty, this, std::placeholders::_1));
 	AddHandler(Asset::META_TYPE_SHARE_SAY_HI, std::bind(&Player::CmdSayHi, this, std::placeholders::_1));
 	//AddHandler(Asset::META_TYPE_SHARE_GAME_SETTING, std::bind(&Player::CmdGameSetting, this, std::placeholders::_1));
-	AddHandler(Asset::META_TYPE_SHARE_ROOM_HISTORY, std::bind(&Player::CmdGetBattleHistory, this, std::placeholders::_1));
+	//AddHandler(Asset::META_TYPE_SHARE_ROOM_HISTORY, std::bind(&Player::CmdGetBattleHistory, this, std::placeholders::_1));
 	//AddHandler(Asset::META_TYPE_SHARE_RECHARGE, std::bind(&Player::CmdRecharge, this, std::placeholders::_1));//逻辑服务器处理
 	AddHandler(Asset::META_TYPE_SHARE_PLAY_BACK, std::bind(&Player::CmdPlayBack, this, std::placeholders::_1));
 	AddHandler(Asset::META_TYPE_SHARE_MATCHING_STATS, std::bind(&Player::CmdGetMatchStatistics, this, std::placeholders::_1));
@@ -216,7 +216,7 @@ int32_t Player::OnLogin(bool is_login)
 {
 	ActivityInstance.OnPlayerLogin(shared_from_this()); //活动数据
 
-	if (is_login) BattleHistory(); //历史对战表
+	//if (is_login) BattleHistory(); //历史对战表
 	//if (is_login) MultiplyRoomCard(); //房卡翻倍//营口不再翻倍
 
 	return 0;
@@ -992,38 +992,6 @@ int32_t Player::CmdGameSetting(pb::Message* message)
 	return 0;
 }
 	
-int32_t Player::CmdGetBattleHistory(pb::Message* message)
-{
-	auto battle_history = dynamic_cast<Asset::BattleHistory*>(message);
-	if (!battle_history) return 1;
-		
-	Asset::RoomHistory history;
-	auto room_id = battle_history->room_id();
-
-	if (room_id > 0)
-	{
-		if (!RedisInstance.GetRoomHistory(room_id, history))
-		{
-			AlertMessage(Asset::ERROR_ROOM_NO_RECORD);
-			return 2; //没有记录
-		}
-
-		for (int32_t i = 0; i < history.list().size(); ++i)
-			history.mutable_list(i)->mutable_list()->Clear(); //详细的番数列表不用
-		
-		auto record = battle_history->mutable_history_list()->Add();
-		record->CopyFrom(history);
-
-		SendProtocol(message);
-	}
-	else
-	{
-		BattleHistory(battle_history->start_index(), battle_history->end_index()); //战绩列表
-	}
-
-	return 0;
-}
-	
 int32_t Player::CmdRecharge(pb::Message* message)
 {
 	auto user_recharge = dynamic_cast<const Asset::UserRecharge*>(message);
@@ -1109,110 +1077,6 @@ int32_t Player::CmdClanOperate(pb::Message* message)
 	
 	ClanInstance.OnOperate(shared_from_this(), clan_oper);
 	return 0;
-}
-	
-void Player::MultiplyRoomCard()
-{
-	//if (_stuff.card_count_changed()) return;
-
-	//_stuff.set_card_count_changed(true); //倍率
-
-	/*
-	auto curr_count = GetRoomCard();
-	GainRoomCard(Asset::ROOM_CARD_CHANGED_TYPE_FANBEI, curr_count * (g_const->room_card_beishu() - 1));
-
-	WARN("玩家:{} 房卡翻倍，当前房卡数:{}", _player_id, curr_count);
-	*/
-}
-
-void Player::BattleHistory(int32_t start_index, int32_t end_index)
-{
-	Asset::BattleHistory message;
-	message.set_start_index(start_index);
-	message.set_end_index(end_index);
-
-	if (start_index > end_index || start_index < 0 || end_index < 0) return;
-
-	int32_t historty_count = std::min(_stuff.room_history().size(), 5); //最多显示5条记录
-	if (historty_count <= 0) return;
-	
-	if (end_index - start_index > historty_count) return;
-
-	if (end_index == 0) end_index = historty_count; //_stuff.room_history().size();
-	if (start_index == 0) start_index = 1; //end_index - historty_count;
-	
-	std::set<int64_t> room_list; //历史记录
-
-	if (_stuff.room_history().size() > 10) //历史战绩最多保留10条
-	{
-		std::vector<int32_t> room_history;
-
-		for (int32_t i = 0; i < _stuff.room_history().size(); ++i) 
-		{
-			auto room_id = _stuff.room_history(_stuff.room_history().size() - 1 - i);
-
-			//auto it = std::find(room_history.begin(), room_history.end(), room_id);
-			//if (it != room_history.end()) continue;
-
-			room_history.push_back(room_id);
-			if (room_history.size() >= 10) break; 
-		}
-
-		_stuff.mutable_room_history()->Clear();
-		for (auto it = room_history.rbegin(); it != room_history.rend(); ++it) _stuff.mutable_room_history()->Add(*it); 
-
-		SetDirty();
-	}
-
-	room_list.clear(); 
-
-	auto curr_time = TimerInstance.GetTime();
-
-	for (int32_t i = start_index - 1; i < end_index; ++i)
-	{
-		if (i < 0 || i >= _stuff.room_history().size()) continue; //安全检查
-
-		Asset::RoomHistory history;
-		auto room_id = _stuff.room_history(i);
-
-		if (!RedisInstance.GetRoomHistory(room_id, history)) 
-		{
-			auto record = message.mutable_history_list()->Add();
-			record->set_room_id(room_id); //尚未存盘成功的战绩，只发房间ID
-			continue;
-		}
-
-		if (curr_time > history.create_time() + g_const->room_history_last_time() * 24 * 3600) continue; //超过存储天数
-
-		if (room_list.find(room_id) != room_list.end()) continue; //防止历史战绩冗余
-		room_list.insert(room_id);
-
-		for (int32_t j = 0; j < history.list().size(); ++j)
-		{	
-			for (int32_t k = 0; k < history.list(j).list().size(); ++k)
-			{
-				if (history.player_brief_list().size() < MAX_PLAYER_COUNT)
-				{
-					auto player_brief = history.mutable_player_brief_list()->Add();
-					player_brief->set_player_id(history.list(j).list(k).player_id());
-					player_brief->set_nickname(history.list(j).list(k).nickname());
-					player_brief->set_headimgurl(history.list(j).list(k).headimgurl());
-				}
-
-				history.mutable_list(j)->mutable_list(k)->clear_nickname();
-				history.mutable_list(j)->mutable_list(k)->clear_headimgurl();
-				history.mutable_list(j)->mutable_list(k)->mutable_details()->Clear();
-			}
-		}
-
-		auto record = message.mutable_history_list()->Add();
-		record->CopyFrom(history);
-	}
-
-	//DEBUG("获取玩家:{}历史战绩，索引区间:{}~{} 数据:{}", _player_id, start_index, end_index, message.ShortDebugString());
-
-	if (message.history_list().size() == 0) return;
-	if (message.history_list().size()) SendProtocol(message);
 }
 	
 void Player::OnKickOut(Asset::KICK_OUT_REASON reason)
