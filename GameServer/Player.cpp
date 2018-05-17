@@ -2017,7 +2017,7 @@ void Player::BattleHistory(int32_t start_index, int32_t end_index)
 
 	room_list.clear(); 
 
-	auto curr_time = TimerInstance.GetTime();
+	//auto curr_time = TimerInstance.GetTime();
 
 	for (int32_t i = start_index - 1; i < end_index; ++i)
 	{
@@ -2033,7 +2033,7 @@ void Player::BattleHistory(int32_t start_index, int32_t end_index)
 			continue;
 		}
 
-		if (curr_time > history.create_time() + g_const->room_history_last_time() * 24 * 3600) continue; //超过存储天数
+		//if (curr_time > history.create_time() + g_const->room_history_last_time() * 24 * 3600) continue; //超过存储天数
 
 		if (room_list.find(room_id) != room_list.end()) continue; //防止历史战绩冗余
 		room_list.insert(room_id);
