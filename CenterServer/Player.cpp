@@ -714,8 +714,10 @@ int32_t Player::CheckCreateRoom(pb::Message* message)
 bool Player::HandleProtocol(int32_t type_t, pb::Message* message)
 {
 	if (!message) return false;
+	
+	if (!Asset::META_TYPE_IsValid(type_t)) return false; //如果不合法，不检查会宕线
 
-	DEBUG("当前玩家:{} 所在服务器:{} 接收协议数据:{}", _player_id, _stuff.server_id(), message->ShortDebugString());
+	DEBUG("当前玩家:{} 所在服务器:{} 协议类型:{} 接收协议数据:{}", _player_id, _stuff.server_id(), Asset::META_TYPE_Name((Asset::META_TYPE)type_t), message->ShortDebugString());
 	//
 	//如果中心服务器没有协议处理回调，则发往游戏服务器进行处理
 	//
@@ -1452,7 +1454,7 @@ bool PlayerManager::SendProtocol2GameServer(int64_t player_id, const pb::Message
 	meta.set_stuff(message.SerializeAsString());
 	meta.set_player_id(player_id); 
 
-	DEBUG("玩家:{} 发送到游戏逻辑服务器:{}，协议类型:{} 内容:{}", player_id, stuff.server_id(), type_t, message.ShortDebugString());
+	DEBUG("玩家:{} 发送到游戏逻辑服务器:{}，协议类型:{} 内容:{}", player_id, stuff.server_id(), Asset::META_TYPE_Name(meta.type_t()), message.ShortDebugString());
 
 	_gs_session->SendMeta(meta); 
 
