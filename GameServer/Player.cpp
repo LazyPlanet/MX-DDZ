@@ -183,7 +183,7 @@ int32_t Player::Logout(pb::Message* message)
 			}
 			else
 			{
-				_room->Remove(_player_id); //退出房间，回调会调用OnLogout接口，从而退出整个游戏逻辑服务器
+				_room->Remove(_player_id, Asset::GAME_OPER_TYPE_LOGOUT); //退出房间，回调会调用OnLogout接口，从而退出整个游戏逻辑服务器
 
 				return 4;
 			}
@@ -1563,7 +1563,14 @@ void Player::OnLeaveRoom(Asset::GAME_OPER_TYPE reason)
 	ClearCards();  
 
 	//逻辑服务器的退出房间，则退出
-	OnLogout(Asset::KICK_OUT_REASON_LEAVE_ROOM); //架构调整：退出房间不进行逻辑服务器退出//退出房间
+	if (reason == Asset::GAME_OPER_TYPE_LOGOUT)
+	{
+		OnLogout(Asset::KICK_OUT_REASON_LOGOUT); 
+	}
+	else
+	{
+		OnLogout(Asset::KICK_OUT_REASON_LEAVE_ROOM); //架构调整：退出房间不进行逻辑服务器退出//退出房间
+	}
 
 	//房间状态同步
 	if (Asset::GAME_OPER_TYPE_SWITCH_ROOM != reason)
