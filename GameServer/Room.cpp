@@ -735,27 +735,70 @@ void Room::OnJiaBei(std::shared_ptr<Player> player, int32_t beilv)
 	if (!IsJiaoFenMode()) return; //非叫分模式不能加倍
 	
 	auto player_id = player->GetID();
-	if (player_id == _game->GetDiZhu()) return; //地主不能加倍
+	auto dizhu_id = _game->GetDiZhu();
 
-	if (beilv > 0) player->OnJiaBei(); //加倍
-
-	for (const auto& element : _rob_dizhu)
-	{
-		if (element.player_id() == player_id) return;
-		//if (element.oper_type() == Asset::GAME_OPER_TYPE_JIABEI && element.player_id() == player_id) return; //已经加倍，不能再加倍
-		//if (element.oper_type() == Asset::GAME_OPER_TYPE_JIAOZHUANG && element.player_id() == player_id) return; //已经叫地主，不能再加倍
-	}
-	
 	Asset::RobElement rob_element;
 	rob_element.set_player_id(player_id);
 	rob_element.set_beilv(beilv);
 	rob_element.set_oper_type(Asset::GAME_OPER_TYPE_JIABEI);
+	
+	DEBUG("玩家:{} 房间:{} 局数:{} 地主:{} 加倍:{}", player_id, _stuff.room_id(), _game->GetID(), dizhu_id, rob_element.ShortDebugString());
+	
+	if (beilv <= 0)
+	{
+		_rob_dizhu.push_back(rob_element); //加倍状态缓存
+	
+		if (player_id == dizhu_id) _game->OnRealStarted(); //地主不加倍则直接开始
 
-	DEBUG("玩家:{} 房间:{} 加倍:{}", player_id, _stuff.room_id(), rob_element.ShortDebugString());
+		return;
+	}
+	
+	//1.地主加倍限制
+	//
+	//地主必须农民加倍后才可以加倍，地主加倍后方是正式开局
+	//
+	if (player_id == dizhu_id) 
+	{
+		int32_t count = std::count_if(_rob_dizhu.begin(), _rob_dizhu.end(), [](const Asset::RobElement& rob_element){
+					return rob_element.oper_type() == Asset::GAME_OPER_TYPE_JIABEI;
+				});
+		if (count == 0) return; //地主只有在农民加倍的时候可以反加倍，农民不加倍则直接退出
 
+		for (auto member : _players)
+		{
+			if (!member) return;
+
+			int64_t member_id = member->GetID();
+
+			if (member_id == dizhu_id) continue;
+
+			auto it = std::find_if(_rob_dizhu.begin(), _rob_dizhu.end(), [member_id](const Asset::RobElement& rob_element){
+						return rob_element.oper_type() == Asset::GAME_OPER_TYPE_JIABEI && member_id == rob_element.player_id() && rob_element.beilv() > 0;
+					});
+			if (it == _rob_dizhu.end()) continue; //农民是否加倍，没加过倍则过
+
+			member->OnJiaBei(); //加倍
+		}
+	
+		_game->OnRealStarted(); //正式开局
+	}
+	//2.农民叫分限制
+	//
+	//农民必须是还没有机会叫地主才可以加倍，比如，A直接叫3分，B、C牌型较好则可以加倍
+	//
+	else
+	{
+		for (const auto& element : _rob_dizhu)
+		{
+			if (player_id == dizhu_id) continue; 
+
+			if (element.player_id() == player_id && element.beilv() > 0) return; //已经加倍或者叫地主了，不能加倍
+		}
+	
+		player->OnJiaBei(); //加倍
+	}
+	
 	_rob_dizhu.push_back(rob_element); //加倍状态缓存
-
-	if (MAX_PLAYER_COUNT == _rob_dizhu.size()) _game->OnRealStarted(); //必须所有人操作(叫地主或不叫地主或加倍或不加倍)方可开局
 }
 
 bool Room::OnJiaoZhuang(int64_t player_id, int32_t beilv)
