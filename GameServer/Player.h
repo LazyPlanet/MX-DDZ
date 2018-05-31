@@ -64,6 +64,7 @@ private:
 	bool _dirty = false; //脏数据
 	CallBack _method; //协议处理回调函数
 	int32_t _chupai_count = 0; //出牌次数
+	int32_t _jiabei = 1; //加倍
 public:
 	Player();
 	Player(int64_t player_id);
@@ -312,8 +313,10 @@ public:
 	virtual void ResetRoom(); 
 
 	Asset::ERROR_CODE CheckMatching(Asset::ROOM_TYPE room_type); //是否可以匹配
-	//历史战绩
-	void BattleHistory(int32_t start_index = 0, int32_t end_index = 5);
+	void BattleHistory(int32_t start_index = 0, int32_t end_index = 5);//历史战绩
+
+	void OnJiaBei() { _jiabei *= 2; }
+	int32_t GetBeiLv() { return _jiabei; } //加倍
 
 	void SetGame(std::shared_ptr<Game> game) { _game = game; }
 	bool IsInGame() { return _game != nullptr; }

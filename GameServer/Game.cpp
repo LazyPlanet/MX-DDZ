@@ -124,9 +124,11 @@ void Game::OnStart()
 //
 void Game::OnStarted(std::shared_ptr<Player> dizhu_ptr)
 {
-	if (!dizhu_ptr) return;
+	if (!dizhu_ptr || !_room) return;
 	
-	_real_started = true;
+	if (!_room->IsJiaoFenMode()) _real_started = true; //叫分模式可以加倍，因此不能立即开始
+	
+	//_real_started = true;
 
 	auto cards = FaPai(3);
 	dizhu_ptr->OnFaPai(cards);  
@@ -198,6 +200,7 @@ bool Game::CanPaiOperate(std::shared_ptr<Player> player, Asset::PaiOperation* pa
 {
 	if (!player) return false;
 
+	//
 	//是否真的开局
 	//
 	//斗地主需要发3张牌
@@ -214,11 +217,9 @@ bool Game::CanPaiOperate(std::shared_ptr<Player> player, Asset::PaiOperation* pa
 	if (!curr_player) return false;
 
 	//轮到玩家打牌
-	//
 	if (player != curr_player) return false; 
 	
 	//正常牌序
-	//
 	if (!pai_operate) return false; //必须检查
 	
 	if (Asset::PAI_OPER_TYPE_GIVEUP == pai_operate->oper_type()) return true; //放弃直接下一个
@@ -405,6 +406,7 @@ void Game::Calculate(std::shared_ptr<Player> player_ptr)
 		if (player_id == _dizhu_player_id) continue;
 
 		auto score = _base_score * GetBeiLv(); //总分数
+		score *= player->GetBeiLv(); //农民单独倍率，是否加倍
 
 		//输牌玩家番数上限封底
 		//

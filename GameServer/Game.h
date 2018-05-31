@@ -58,6 +58,7 @@ public:
 	virtual void OnStarted(std::shared_ptr<Player> dizhu_ptr); //开始游戏,玩家已经进入游戏且抢完地主
 	
 	bool CanStart(); //是否可以开局
+	void OnRealStarted() { _real_started = true; }
 
 	virtual bool OnGameOver(int64_t player_id); //游戏结束
 	void ClearState(); //清理状态

@@ -2320,7 +2320,8 @@ void Player::OnOperateTimeOut()
 
 void Player::ClearCards() 
 {
-	_chupai_count = 0;
+	_chupai_count = 0; //出牌次数
+	_jiabei = 1; //加倍
 
 	_cards_inhand.clear(); //清理手里牌
 	_cards_pool.clear(); //牌池
