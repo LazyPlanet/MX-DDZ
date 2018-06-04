@@ -656,7 +656,7 @@ void Game::OnRobDiZhu(int64_t player_id, int32_t beilv)
 { 
 	if (!_room) return;
 
-	DEBUG("玩家:{} 叫地主数量:{}，叫分:{} 此时庄家:{}", player_id, _rob_dizhu_count, beilv, _banker_player_id);
+	DEBUG("玩家:{} 在房间:{} 局数:{} 叫地主数量:{} 叫分:{} 此时庄家:{}", player_id, _room->GetID(), _game_id, _rob_dizhu_count, beilv, _banker_player_id);
 
 	++_rob_dizhu_count;
 
@@ -664,6 +664,8 @@ void Game::OnRobDiZhu(int64_t player_id, int32_t beilv)
 	{
 		if (beilv <= rob_info.second) return; //分数必须比上一个抢地主玩家分数高，否则不能抢地主
 	}
+
+	if (beilv <= 0) return;
 
 	_rob_dizhu_bl[player_id] = beilv; //缓存分数
 
@@ -678,7 +680,7 @@ void Game::OnRobDiZhu(int64_t player_id, bool is_rob)
 { 
 	if (!_room) return;
 
-	DEBUG("玩家:{} 叫地主数量:{}，是否抢地主:{} 此时庄家:{}", player_id, _rob_dizhu_count, is_rob, _banker_player_id);
+	DEBUG("玩家:{} 在房间:{} 局数:{} 叫地主数量:{}，是否抢地主:{} 此时庄家:{}", player_id, _room->GetID(), _game_id, _rob_dizhu_count, is_rob, _banker_player_id);
 
 	++_rob_dizhu_count;
 
@@ -746,6 +748,8 @@ bool Game::CanStart()
 		}
 		else if (_rob_dizhus.size() == 1) //只有一个抢地主
 		{
+			_real_started = true; //不可以加倍，直接开始
+
 			SetDiZhu(_rob_dizhus[0]);
 
 			return true;
