@@ -749,6 +749,9 @@ bool Game::CanStart()
 		if (dizhu.second == 3)
 		{
 			SetDiZhu(dizhu.first);
+			
+			if (_rob_dizhus.size() == 1) _real_started = true; //不可以加倍，直接开始
+
 			return true;
 		}
 	}
