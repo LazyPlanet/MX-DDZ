@@ -499,6 +499,13 @@ void Game::Calculate(std::shared_ptr<Player> player_ptr)
 	//
 	//统计数据
 	OnGameOver(player_ptr->GetID()); 
+	
+	auto room_id = _room->GetID();
+	auto curr_count = _room->GetGamesCount();
+	auto open_rands = _room->GetOpenRands();
+	auto message_string = message.ShortDebugString();
+
+	LOG(INFO, "房间:{} 第:{}/{}局结束，先出玩家:{} 本局结算:{}", room_id, curr_count, open_rands, player_ptr->GetID(), message_string);
 }
 	
 void Game::BroadCast(pb::Message* message, int64_t exclude_player_id)
@@ -507,6 +514,17 @@ void Game::BroadCast(pb::Message* message, int64_t exclude_player_id)
 
 	_room->BroadCast(message, exclude_player_id);
 }
+	
+void Game::IncreaseBeiLv(int32_t beilv) 
+{ 
+	if (!_room) return;
+
+	if (beilv <= 0) beilv = 2; 
+	
+	_beilv *= beilv; 
+
+	DEBUG("房间:{} 局数:{} 倍率:{} 当前局数倍率:{}", _room->GetID(), _game_id, beilv, _beilv);
+} 
 
 void Game::Add2CardsPool(Asset::PaiElement pai) 
 { 

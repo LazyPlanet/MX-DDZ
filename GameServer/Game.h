@@ -106,7 +106,7 @@ public:
 	
 	//斗地主
 	//bool RandomDiZhu(); //随机地主
-	void IncreaseBeiLv(int32_t beilv = 2) { if (beilv <= 0) beilv = 2; _beilv *= beilv; } //加倍
+	void IncreaseBeiLv(int32_t beilv = 2); //加倍
 	int32_t GetBeiLv() { return _beilv; } //获取倍率
 
 	int32_t GetDiZhuPlayerCount() { return _rob_dizhu_bl.size(); } //获取抢地主玩家数量//叫分

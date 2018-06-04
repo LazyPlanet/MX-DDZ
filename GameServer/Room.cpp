@@ -809,7 +809,7 @@ bool Room::OnJiaoZhuang(int64_t player_id, int32_t beilv)
 	
 	if (_rob_dizhu.size() > 0 && _rob_dizhu[_rob_dizhu.size() - 1].player_id() == player_id) 
 	{
-		ERROR("玩家:{} 可能由于弱网络条件下多次点击:{} 已经操作数量:{}", player_id, beilv, _rob_dizhu.size());
+		ERROR("玩家:{} 可能由于弱网络条件下多次点击, 此时倍率:{} 已经操作玩家数量:{}", player_id, beilv, _rob_dizhu.size());
 
 		return false; //防止弱网络条件下玩家多次点击
 	}
@@ -819,9 +819,22 @@ bool Room::OnJiaoZhuang(int64_t player_id, int32_t beilv)
 	rob_element.set_beilv(beilv);
 	rob_element.set_oper_type(Asset::GAME_OPER_TYPE_JIAOZHUANG);
 
-	_rob_dizhu.push_back(rob_element); //叫地主状态缓存
+	if (beilv <= 0) 
+	{
+		auto it = std::find_if(_rob_dizhu.begin(), _rob_dizhu.end(), [player_id](const Asset::RobElement& element){
+					return element.player_id() == player_id && element.oper_type() == Asset::GAME_OPER_TYPE_JIAOZHUANG && element.beilv() <= 0;
+				});
+		if (it != _rob_dizhu.end()) 
+		{
+			ERROR("玩家:{} 可能由于弱网络条件下多次点击，操作数据:{}", player_id, rob_element.ShortDebugString());
 
-	if (beilv <= 0) ++_no_robed_count; //不叫地主
+			return false; //防止玩家多次连击
+		}
+
+		++_no_robed_count; //不叫地主
+	}
+	
+	_rob_dizhu.push_back(rob_element); //叫地主状态缓存
 			
 	if (MAX_PLAYER_COUNT == _no_robed_count) //都不叫地主
 	{

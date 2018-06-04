@@ -697,7 +697,7 @@ bool Player::PaiXingCheck(Asset::PaiOperation* pai_operate)
 	//
 	if (chupai_count == 2 && pai_operate->pais(0).card_type() == Asset::CARD_TYPE_KINGS && pai_operate->pais(1).card_type() == Asset::CARD_TYPE_KINGS)
 	{
-		_game->IncreaseBeiLv(); //翻倍
+		//_game->IncreaseBeiLv(); //翻倍
 
 		pai_operate->mutable_pai()->set_card_type(Asset::CARD_TYPE_KINGS); //最大牌值
 		pai_operate->mutable_pai()->set_card_value(2); 
