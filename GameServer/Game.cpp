@@ -273,14 +273,6 @@ void Game::OnPaiOperate(std::shared_ptr<Player> player, pb::Message* message)
 		return; //不允许操作
 	}
 	
-	if (Asset::PAI_OPER_TYPE_DAPAI == pai_operate->oper_type()) 
-	{
-		_last_oper.set_player_id(player->GetID());
-		_last_oper.mutable_pai_oper()->CopyFrom(*pai_operate); //缓存上次牌数据
-	}
-	
-	if (pai_operate->paixing() == Asset::PAIXING_TYPE_ZHADAN) _room->AddZhaDan(player->GetID()); //整局统计
-	
 	switch (pai_operate->oper_type())
 	{
 		case Asset::PAI_OPER_TYPE_DAPAI: //打牌
@@ -321,6 +313,18 @@ void Game::OnPaiOperate(std::shared_ptr<Player> player, pb::Message* message)
 			return; //直接退出
 		}
 		break;
+	}
+	
+	if (Asset::PAI_OPER_TYPE_DAPAI == pai_operate->oper_type()) 
+	{
+		_last_oper.set_player_id(player->GetID());
+		_last_oper.mutable_pai_oper()->CopyFrom(*pai_operate); //缓存上次牌数据
+	}
+	
+	if (pai_operate->paixing() == Asset::PAIXING_TYPE_ZHADAN) 
+	{
+		IncreaseBeiLv();
+		_room->AddZhaDan(player->GetID()); //整局统计
 	}
 			
 	_curr_player_index = (_curr_player_index + 1) % MAX_PLAYER_COUNT; //继续下个玩家

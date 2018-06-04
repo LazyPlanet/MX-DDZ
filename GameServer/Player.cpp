@@ -762,7 +762,7 @@ bool Player::PaiXingCheck(Asset::PaiOperation* pai_operate)
 		{
 			if (chupai_count == 4) //炸弹
 			{
-				_game->IncreaseBeiLv(); //翻倍
+				//_game->IncreaseBeiLv(); //翻倍
 
 				pai_operate->set_paixing(Asset::PAIXING_TYPE_ZHADAN);
 				return true; 
