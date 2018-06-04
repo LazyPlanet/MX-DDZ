@@ -748,7 +748,7 @@ void Room::OnJiaBei(std::shared_ptr<Player> player, int32_t beilv)
 	{
 		_rob_dizhu.push_back(rob_element); //加倍状态缓存
 	
-		if (player_id == dizhu_id) _game->OnRealStarted(); //地主不加倍则直接开始
+		//if (player_id == dizhu_id) _game->OnRealStarted(); //地主不加倍则直接开始
 
 		return;
 	}
@@ -780,7 +780,7 @@ void Room::OnJiaBei(std::shared_ptr<Player> player, int32_t beilv)
 			member->OnJiaBei(); //加倍
 		}
 	
-		_game->OnRealStarted(); //正式开局
+		//_game->OnRealStarted(); //正式开局
 	}
 	//2.农民叫分限制
 	//

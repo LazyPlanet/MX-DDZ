@@ -126,9 +126,9 @@ void Game::OnStarted(std::shared_ptr<Player> dizhu_ptr)
 {
 	if (!dizhu_ptr || !_room) return;
 	
-	if (!_room->IsJiaoFenMode()) _real_started = true; //叫分模式可以加倍，因此不能立即开始
+	//if (!_room->IsJiaoFenMode()) _real_started = true; //叫分模式可以加倍，因此不能立即开始
 	
-	//_real_started = true;
+	_real_started = true;
 
 	auto cards = FaPai(3);
 	dizhu_ptr->OnFaPai(cards);  
@@ -750,7 +750,7 @@ bool Game::CanStart()
 		{
 			SetDiZhu(dizhu.first);
 			
-			if (_rob_dizhus.size() == 1) _real_started = true; //不可以加倍，直接开始
+			//if (_rob_dizhus.size() == 1) _real_started = true; //不可以加倍，直接开始
 
 			return true;
 		}
@@ -769,7 +769,7 @@ bool Game::CanStart()
 		}
 		else if (_rob_dizhus.size() == 1) //只有一个抢地主
 		{
-			_real_started = true; //不可以加倍，直接开始
+			//_real_started = true; //不可以加倍，直接开始
 
 			SetDiZhu(_rob_dizhus[0]);
 
