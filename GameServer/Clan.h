@@ -48,8 +48,9 @@ public:
 	int32_t OnDisAgree(std::shared_ptr<Player> player, Asset::ClanOperation* message);
 	int32_t OnRecharge(std::shared_ptr<Player> player, int32_t count);
 	*/
-	void OnQueryMemberStatus(std::shared_ptr<Player> player, Asset::ClanOperation* message);
+	//void OnQueryMemberStatus(std::shared_ptr<Player> player, Asset::ClanOperation* message);
 	//void OnQueryRoomList(std::shared_ptr<Player> player, Asset::ClanOperation* message);
+	void OnJoinMatch(std::shared_ptr<Player> player, Asset::JoinMatch* message);
 };
 
 class ClanManager : public std::enable_shared_from_this<ClanManager>

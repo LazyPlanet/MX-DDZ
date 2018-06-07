@@ -430,6 +430,11 @@ std::shared_ptr<Clan> ClanManager::Get(int64_t clan_id)
 	return GetClan(clan_id);
 }
 */
+	
+void Clan::OnJoinMatch(std::shared_ptr<Player> player, Asset::JoinMatch* message)
+{
+
+}
 
 void ClanManager::OnOperate(std::shared_ptr<Player> player, Asset::ClanOperation* message)
 {

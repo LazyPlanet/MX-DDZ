@@ -49,7 +49,9 @@ Player::Player()
 	AddHandler(Asset::META_TYPE_C2S_LOAD_SCENE, std::bind(&Player::CmdLoadScene, this, std::placeholders::_1));
 	AddHandler(Asset::META_TYPE_C2S_GET_ROOM_DATA, std::bind(&Player::CmdGetRoomData, this, std::placeholders::_1));
 	AddHandler(Asset::META_TYPE_C2S_UPDATE_ROOM, std::bind(&Player::CmdUpdateRoom, this, std::placeholders::_1));
+
 	AddHandler(Asset::META_TYPE_SHARE_CLAN_OPERATION, std::bind(&Player::CmdClanOperate, this, std::placeholders::_1));
+	AddHandler(Asset::META_TYPE_SHARE_JOIN_MATCH, std::bind(&Player::CmdJoinMatch, this, std::placeholders::_1));
 	
 	//中心服务器协议处理
 	AddHandler(Asset::META_TYPE_S2S_KICKOUT_PLAYER, std::bind(&Player::OnKickOut, this, std::placeholders::_1));
@@ -549,7 +551,7 @@ int32_t Player::CreateRoom(pb::Message* message)
 	if (!room_id) return 9;
 
 	create_room->mutable_room()->set_room_id(room_id);
-	create_room->mutable_room()->set_room_type(Asset::ROOM_TYPE_FRIEND); //创建房间，其实是好友房
+	//create_room->mutable_room()->set_room_type(Asset::ROOM_TYPE_FRIEND); //创建房间，其实是好友房
 	
 	SendProtocol(create_room); 
 	
@@ -673,6 +675,54 @@ int32_t Player::CmdClanOperate(pb::Message* message)
 	if (!clan_oper) return 1;
 	
 	ClanInstance.OnOperate(shared_from_this(), clan_oper);
+	return 0;
+}
+	
+int32_t Player::CmdJoinMatch(pb::Message* message)
+{
+	auto match = dynamic_cast<Asset::JoinMatch*>(message);
+	if (!match) return 1;
+
+	switch (match->join_type())
+	{
+		case Asset::JOIN_TYPE_ENROLL: //报名
+		{
+			Asset::Clan clan;
+			if (!ClanInstance.GetCache(match->clan_id(), clan)) return 1; //尚未存在该俱乐部
+
+			const auto& open_match = clan.open_match();
+			int32_t ticket_count = open_match.ticket_count();
+
+			if (!CheckRoomCard(ticket_count)) 
+			{
+				AlertMessage(Asset::ERROR_ROOM_CARD_NOT_ENOUGH); //房卡不足
+				return 2;
+			}
+			
+			if (open_match.pay_type() == Asset::PAY_TYPE_JOINED)
+			{
+			}
+			else if (open_match.pay_type() == Asset::PAY_TYPE_ONCE)
+			{
+			}
+
+			ConsumeRoomCard(Asset::ROOM_CARD_CHANGED_TYPE_JOIN_CLAN_MATCH, ticket_count); 
+		}
+		break;
+		
+		default:
+		{
+			return 3;
+		}
+		break;
+	}
+
+	Asset::ClanMatchSync proto;
+	proto.set_player_id(_player_id);
+	proto.mutable_join_match()->CopyFrom(*message);
+
+	WorldInstance.BroadCast2CenterServer(proto); //回复给中心服务器 
+
 	return 0;
 }
 

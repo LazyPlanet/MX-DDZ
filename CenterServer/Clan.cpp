@@ -20,6 +20,8 @@ void Clan::Update()
 	if (!ClanInstance.IsLocal(_clan_id)) Load(); //从茶馆加载数据
 
 	OnQueryMemberStatus(); //定期更新茶馆成员状态
+
+	if (IsMatchOpen()) OnMatchUpdate(); //是否正在比赛
 }
 	
 bool Clan::Load()
@@ -405,6 +407,137 @@ void Clan::OnSetUpdateTime()
 	_stuff.set_sys_messsage_update_time(TimerInstance.GetTime());
 
 	_dirty = true;
+}
+	
+void Clan::OnMatchOpen(int64_t player_id, Asset::OpenMatch* message)
+{
+	if (player_id <= 0 || !message) return;
+
+	if (!IsHoster(player_id)) return; //没有权限
+
+	BroadCast(message); //通知成员报名
+
+	_stuff.mutable_open_match()->CopyFrom(*message);
+	_dirty = true;
+
+	_match_opened = true; //开始比赛报名
+
+	DEBUG("玩家:{} 开启茶馆:{} 比赛:{} 成功", player_id, _clan_id, message->ShortDebugString());     
+}
+
+bool Clan::IsMatchOpen()
+{
+	if (!_match_opened) return false; //尚未开启比赛
+
+	auto curr_time = TimerInstance.GetTime();
+	auto start_time = _stuff.open_match().start_time(); //开启时间
+
+	return curr_time > start_time;
+
+	//auto end_time = _stuff.open_match().time_last() + start_time; //结束时间
+
+	//if (curr_time > end_time || curr_time < start_time) return false;
+
+	//return true;
+}
+
+void Clan::OnMatchUpdate()
+{
+	if (_match_server_id == 0) _match_server_id = WorldSessionInstance.RandomServer(); //随机一个逻辑服务器
+
+	std::lock_guard<std::mutex> lock(_joiners_mutex);
+
+	if (_joiners.size() < 3) return; //不足3人，无法进行比赛
+
+	Asset::RoomOptions options;
+	options.set_open_rands(_stuff.open_match().rounds_count());
+	options.set_zhuang_type(Asset::ZHUANG_TYPE_JIAOFEN);
+
+	Asset::Room room;
+	room.set_room_type(Asset::ROOM_TYPE_CLAN_MATCH);
+	room.set_clan_id(_clan_id);
+	room.mutable_options()->CopyFrom(options);
+
+	Asset::CreateRoom create_room;
+	create_room.mutable_room()->CopyFrom(room);
+
+	for (auto it = _joiners.begin(); it != _joiners.end(); )
+	{
+		auto player = PlayerInstance.Get(*it);
+
+		if (!player) 
+		{
+			++it; //玩家没有在线，可能是点击参加比赛之后掉线或杀掉进程
+			continue;
+		}
+
+		player->SendProtocol2GameServer(create_room);
+		it = _joiners.erase(it);
+	}
+}
+	
+void Clan::OnJoinMatch(std::shared_ptr<Player> player, Asset::JoinMatch* message)
+{
+	if (!player || !message) return;
+
+	auto player_id = player->GetID();
+
+	if (!HasMember(player_id)) return; //不是成员不能参加
+
+	switch (message->join_type())
+	{
+		case Asset::JOIN_TYPE_ENROLL: //报名
+		{
+			if (HasApplicant(player_id)) return; //已经报过名
+
+			player->SendProtocol2GameServer(message); //到逻辑服务器进行检查
+		}
+		break;
+		
+		case Asset::JOIN_TYPE_JOIN: //开始比赛
+		{
+			if (!HasApplicant(player_id)) return; //没有报名不能参加比赛，即没有付费过门票
+
+			if (!IsMatchOpen()) return; //尚未开始比赛
+
+			AddJoiner(player_id); //参加比赛
+		}
+		break;
+
+		default:
+		{
+			return;
+		}
+		break;
+	}
+}
+	
+void Clan::AddApplicant(int64_t player_id)
+{
+	std::lock_guard<std::mutex> lock(_applicants_mutex);
+	_applicants.insert(player_id);
+
+	_stuff.mutable_applicants()->Clear();
+	for (const auto player_id : _applicants) _stuff.add_applicants(player_id);
+
+	_dirty = true;
+
+	DEBUG("茶馆:{} 玩家:{} 报名参加比赛", _clan_id, player_id);
+}
+	
+bool Clan::HasApplicant(int64_t player_id)
+{
+	std::lock_guard<std::mutex> lock(_applicants_mutex);
+	if (_applicants.find(player_id) != _applicants.end()) return true; //已经报名
+	return false;
+}
+
+void Clan::AddJoiner(int64_t player_id)
+{
+	std::lock_guard<std::mutex> lock(_joiners_mutex);
+	_joiners.insert(player_id);
+	
+	DEBUG("茶馆:{} 玩家:{} 参加比赛", _clan_id, player_id);
 }
 
 int32_t Clan::RemoveMember(int64_t player_id, Asset::ClanOperation* message)
@@ -1204,6 +1337,19 @@ bool ClanManager::IsLocal(int64_t clan_id)
 bool ClanManager::GetClan(int64_t clan_id, Asset::Clan& clan)
 {
 	return RedisInstance.Get("ddz_clan:" + std::to_string(clan_id), clan);
+}
+	
+void ClanManager::OnGameServerBack(const Asset::ClanMatchSync& message)
+{
+	auto clan_id = message.join_match().clan_id();
+
+	auto clan_ptr = ClanInstance.Get(clan_id);
+	if (!clan_ptr) return;
+	
+	auto player_id = message.player_id();
+	if (clan_ptr->HasApplicant(player_id)) return; //已经报过名
+
+	clan_ptr->AddApplicant(player_id);
 }
 
 }

@@ -54,6 +54,8 @@ Player::Player()
 	AddHandler(Asset::META_TYPE_SHARE_PLAY_BACK, std::bind(&Player::CmdPlayBack, this, std::placeholders::_1));
 	AddHandler(Asset::META_TYPE_SHARE_MATCHING_STATS, std::bind(&Player::CmdGetMatchStatistics, this, std::placeholders::_1));
 	AddHandler(Asset::META_TYPE_SHARE_CLAN_OPERATION, std::bind(&Player::CmdClanOperate, this, std::placeholders::_1));
+	AddHandler(Asset::META_TYPE_SHARE_OPEN_MATCH, std::bind(&Player::CmdOpenMatch, this, std::placeholders::_1));
+	AddHandler(Asset::META_TYPE_SHARE_JOIN_MATCH, std::bind(&Player::CmdJoinMatch, this, std::placeholders::_1));
 
 	//AddHandler(Asset::META_TYPE_C2S_GET_REWARD, std::bind(&Player::CmdGetReward, this, std::placeholders::_1)); //逻辑服务器处理
 }
@@ -1076,6 +1078,32 @@ int32_t Player::CmdClanOperate(pb::Message* message)
 	if (!clan_oper) return 1;
 	
 	ClanInstance.OnOperate(shared_from_this(), clan_oper);
+	return 0;
+}
+
+int32_t Player::CmdOpenMatch(pb::Message* message)
+{
+	auto open_match = dynamic_cast<Asset::OpenMatch*>(message);
+	if (!open_match) return 1;
+
+	auto clan_ptr = ClanInstance.Get(open_match->clan_id());
+	if (!clan_ptr) return 2;
+	
+	clan_ptr->OnMatchOpen(_player_id, open_match);
+
+	return 0;
+}
+
+int32_t Player::CmdJoinMatch(pb::Message* message)
+{
+	auto match = dynamic_cast<Asset::JoinMatch*>(message);
+	if (!match) return 1;
+
+	auto clan_ptr = ClanInstance.Get(match->clan_id());
+	if (!clan_ptr) return 2;
+	
+	clan_ptr->OnJoinMatch(shared_from_this(), match);
+
 	return 0;
 }
 	

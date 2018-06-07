@@ -133,6 +133,15 @@ bool WorldSession::OnInnerProcess(const Asset::Meta& meta)
 		}
 		break;
 		*/
+		
+		case Asset::META_TYPE_S2S_CLAN_MATCH:
+		{
+			const auto match_sync = dynamic_cast<const Asset::ClanMatchSync*>(message);
+			if (!match_sync) return false;
+
+			ClanInstance.OnGameServerBack(*match_sync);
+		}
+		break;
 
 		default:
 		{

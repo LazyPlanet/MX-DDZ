@@ -201,6 +201,7 @@ public:
 	virtual int32_t CmdSystemChat(pb::Message* message);
 	//茶馆
 	virtual int32_t CmdClanOperate(pb::Message* message);
+	virtual int32_t CmdJoinMatch(pb::Message* message); //参加比赛
 
 	//踢下线
 	virtual int32_t OnKickOut(pb::Message* message);

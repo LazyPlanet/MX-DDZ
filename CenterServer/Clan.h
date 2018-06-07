@@ -3,6 +3,7 @@
 #include <mutex>
 #include <memory>
 #include <unordered_map>
+#include <unordered_set>
 #include <functional>
 
 #include "P_Header.h"
@@ -15,22 +16,31 @@ namespace pb = google::protobuf;
 class Clan : public std::enable_shared_from_this<Clan>
 {
 private:
-	std::mutex _mutex;
-	std::mutex _member_mutex;
+	std::mutex _mutex, _member_mutex;
+	std::mutex _joiners_mutex, _applicants_mutex;
 	Asset::Clan _stuff;
 	bool _dirty = false;
 	int64_t _clan_id = 0;
 
 	std::unordered_map<int64_t, Asset::RoomQueryResult> _rooms; 
 	std::vector<int64_t> _gaming_room_list;
+
+	std::unordered_set<int64_t> _applicants; //比赛报名玩家
+	std::unordered_set<int64_t> _joiners; //比赛开始之后，参加比赛的玩家
+
+	bool _match_opened = false; //比赛是否可以报名
+	int32_t _match_server_id = 0; //比赛模式茶馆开房逻辑服务器
 public:
 	Clan(const Asset::Clan& clan) { _clan_id = clan.clan_id(); _stuff = clan; }
 
+	const int64_t GetID() { return _stuff.clan_id(); }
 	const Asset::Clan& Get() { return _stuff; }
-	bool Load();
-	void OnLoaded();
-	int64_t GetID() { return _stuff.clan_id(); }
+
+	bool Load(); //加载数据
+	void OnLoaded(); //加载成功
+
 	int64_t GetHoster() { return _stuff.hoster_id(); }
+	bool IsHoster(int64_t player_id) { return player_id == _stuff.hoster_id(); }
 
 	void Update();
 	void Save(bool force = true);
@@ -65,6 +75,16 @@ public:
 	void OnQueryGamingList(Asset::ClanOperation* message);
 	void OnSetUpdateTime();
 
+	//比赛相关
+	void OnMatchOpen(int64_t player_id, Asset::OpenMatch* message);
+	const Asset::OpenMatch& GetMatchSetting() { return _stuff.open_match(); }
+	bool IsMatchOpen(); //比赛是否开启
+	void OnMatchUpdate(); //比赛定时维护
+	void OnJoinMatch(std::shared_ptr<Player> player, Asset::JoinMatch* message); //参加比赛
+	void AddApplicant(int64_t player_id); //报名
+	bool HasApplicant(int64_t player_id); //是否报名过
+	void AddJoiner(int64_t player_id); //参加比赛
+
 	void AddMember(int64_t player_id); //增加成员列表
 	bool HasMember(int64_t player_id); //是否含有成员
 };
@@ -98,6 +118,7 @@ public:
 	void OnOperate(std::shared_ptr<Player> player, Asset::ClanOperation* message);
 	void OnCreated(int64_t clan_id, std::shared_ptr<Clan> clan); //创建成功
 	void OnGameServerBack(const Asset::ClanOperationSync& message);
+	void OnGameServerBack(const Asset::ClanMatchSync& message);
 	bool IsLocal(int64_t clan_id);
 	bool GetClan(int64_t clan_id, Asset::Clan& clan);
 };
