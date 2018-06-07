@@ -685,10 +685,10 @@ void Game::OnRobDiZhu(int64_t player_id, int32_t beilv)
 		if (beilv <= rob_info.second) return; //分数必须比上一个抢地主玩家分数高，否则不能抢地主
 	}
 
-	if (beilv <= 0) return;
+	if (_rob_dizhu_bl.find(player_id) != _rob_dizhu_bl.end()) return; //防止多次抢地主操作
 
 	_rob_dizhu_bl[player_id] = beilv; //缓存分数
-
+	
 	_rob_dizhus.push_back(player_id); //缓存叫地主的玩家
 } 
 	
