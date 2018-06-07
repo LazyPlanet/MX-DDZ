@@ -500,12 +500,14 @@ void Game::Calculate(std::shared_ptr<Player> player_ptr)
 	//统计数据
 	OnGameOver(player_ptr->GetID()); 
 	
+	/*
 	auto room_id = _room->GetID();
 	auto curr_count = _room->GetGamesCount();
 	auto open_rands = _room->GetOpenRands();
 	auto message_string = message.ShortDebugString();
 
 	LOG(INFO, "房间:{} 第:{}/{}局结束，先出玩家:{} 本局结算:{}", room_id, curr_count, open_rands, player_ptr->GetID(), message_string);
+	*/
 }
 	
 void Game::BroadCast(pb::Message* message, int64_t exclude_player_id)
@@ -683,10 +685,10 @@ void Game::OnRobDiZhu(int64_t player_id, int32_t beilv)
 		if (beilv <= rob_info.second) return; //分数必须比上一个抢地主玩家分数高，否则不能抢地主
 	}
 
-	if (beilv <= 0) return;
+	if (_rob_dizhu_bl.find(player_id) != _rob_dizhu_bl.end()) return; //防止多次抢地主操作
 
 	_rob_dizhu_bl[player_id] = beilv; //缓存分数
-
+	
 	_rob_dizhus.push_back(player_id); //缓存叫地主的玩家
 } 
 	

@@ -803,7 +803,7 @@ void Room::OnJiaBei(std::shared_ptr<Player> player, int32_t beilv)
 
 bool Room::OnJiaoZhuang(int64_t player_id, int32_t beilv)
 {
-	if (!_game) return false; //尚未开局
+	if (!_game || _game->IsStarted()) return false; //尚未开局或已经开局不能继续叫地主
 
 	if (player_id <= 0) return false;
 	
