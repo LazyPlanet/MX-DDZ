@@ -722,7 +722,7 @@ void ClanManager::OnQueryClanList(std::shared_ptr<Player> player, Asset::ClanOpe
 	DEBUG("玩家:{} 查询茶馆列表:{}", player->GetID(), message->ShortDebugString());
 }
 	
-void ClanManager::OnCreateRoom(const Asset::ClanCreateRoom* create_room)
+void ClanManager::OnCreateRoom(Asset::ClanCreateRoom* create_room)
 {
 	if (!create_room) return;
 

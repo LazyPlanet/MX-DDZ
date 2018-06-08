@@ -83,7 +83,7 @@ public:
 	bool GetClan(int64_t clan_id, Asset::Clan& clan);
 	bool GetCache(int64_t clan_id, Asset::Clan& clan);
 	int32_t GetRegisterServerID(int64_t clan_id) { int64_t server_id = clan_id >> 20; return server_id; }
-	void OnCreateRoom(const Asset::ClanCreateRoom* create_room);
+	void OnCreateRoom(Asset::ClanCreateRoom* create_room);
 };
 
 #define ClanInstance ClanManager::Instance()

@@ -70,7 +70,7 @@ bool CenterSession::OnInnerProcess(const Asset::Meta& meta)
 		
 		case Asset::META_TYPE_S2S_CLAN_CREATE_ROOM: //俱乐部比赛开房
 		{
-			const auto create_room = dynamic_cast<const Asset::ClanCreateRoom*>(message);
+			auto create_room = dynamic_cast<Asset::ClanCreateRoom*>(message);
 			if (!create_room) return false;
 
 			ClanInstance.OnCreateRoom(create_room);
