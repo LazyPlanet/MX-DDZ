@@ -507,6 +507,12 @@ void Clan::OnMatchUpdate()
 	gs_session->SendProtocol(proto); //去逻辑服务器开房
 }
 
+//比赛开始，玩家匹配进房
+//
+//此处只是选择房间+选择玩家
+//
+//玩家能否进行匹配，能否加入比赛不在此处限制
+//
 void Clan::OnPlayerMatch()
 {
 	if (!_room_created) return; //房间尚未创建完毕
