@@ -23,13 +23,13 @@ void Clan::Update()
 
 	OnQueryMemberStatus(); //定期更新茶馆成员状态
 
+
 	if (IsMatchOpen()) 
 	{
 		OnMatchUpdate(); 
 
-		OnPlayerMatch();
+		OnPlayerMatch(); //通过控制参加比赛队列，控制匹配玩家
 	}
-
 }
 	
 bool Clan::Load()
@@ -433,6 +433,15 @@ void Clan::OnMatchOpen(int64_t player_id, Asset::OpenMatch* message)
 	DEBUG("玩家:{} 开启茶馆:{} 比赛:{} 成功", player_id, _clan_id, message->ShortDebugString());     
 }
 
+
+//
+//比赛是否开始
+//
+//比赛流程：报名->参加比赛->比赛开始
+//
+//此时处于群主点击开启比赛之后，设定比赛时间，报名阶段
+//
+//
 bool Clan::IsMatchOpen()
 {
 	if (!_match_opened) return false; //尚未开启比赛
@@ -441,17 +450,26 @@ bool Clan::IsMatchOpen()
 	auto start_time = _stuff.open_match().start_time(); //开启时间
 
 	return curr_time > start_time;
+}
 
-	//auto end_time = _stuff.open_match().time_last() + start_time; //结束时间
+bool Clan::CanJoinMatch()
+{
+	if (!_match_opened || !_room_created) return false; //尚未开启比赛
 
-	//if (curr_time > end_time || curr_time < start_time) return false;
+	auto curr_time = TimerInstance.GetTime();
+	auto start_time = _stuff.open_match().start_time(); //开启时间
 
-	//return true;
+	if (curr_time < start_time) return false;
+	
+	auto clan_limit = dynamic_cast<Asset::ClanLimit*>(AssetInstance.Get(g_const->clan_id()));
+	if (!clan_limit) return false;
+
+	return start_time + clan_limit->join_match_time_last() < curr_time;
 }
 
 void Clan::OnMatchUpdate()
 {
-	if (_room_createdd) return; //已经开始比赛
+	if (_room_created) return; //已经创建完房间，开始比赛
 
 	if (_match_server_id == 0) _match_server_id = WorldSessionInstance.RandomServer(); //随机一个逻辑服务器
 
@@ -491,7 +509,7 @@ void Clan::OnMatchUpdate()
 
 void Clan::OnPlayerMatch()
 {
-	if (!_room_createdd) return; //房间尚未创建完毕
+	if (!_room_created) return; //房间尚未创建完毕
 	
 	Asset::EnterRoom enter_room;
 	enter_room.mutable_room()->CopyFrom(_room);
@@ -587,7 +605,7 @@ void Clan::OnJoinMatch(std::shared_ptr<Player> player, Asset::JoinMatch* message
 		{
 			if (!HasApplicant(player_id)) return; //没有报名不能参加比赛，即没有付费过门票
 
-			if (!IsMatchOpen()) return; //尚未开始比赛
+			if (CanJoinMatch()) return; //是否可以参加比赛，比赛参与时间从开始比赛预留5分钟
 
 			AddJoiner(player_id); //参加比赛
 		}
@@ -634,7 +652,7 @@ void Clan::OnCreateRoom(const Asset::ClanCreateRoom* message)
 {
 	if (!message) return;
 
-	_room_createdd = true; //创建比赛房间列表成功
+	_room_created = true; //创建比赛房间列表成功
 
 	/*
 	Asset::EnterRoom enter_room;

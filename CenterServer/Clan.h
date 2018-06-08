@@ -33,7 +33,7 @@ private:
 	int32_t _match_server_id = 0; //比赛模式茶馆开房逻辑服务器
 
 	std::atomic<bool> _matching_start; //比赛已经开始，玩家可以比赛
-	bool _room_createdd = false; //房间是否创建完毕
+	bool _room_created = false; //房间是否创建完毕
 	std::unordered_set<int64_t/*房间ID*/> _room_list; //房间列表
 	std::unordered_map<int64_t/*房间ID*/, std::vector<int64_t>/*比赛玩家列表*/> _room_players;
 	std::unordered_map<int64_t/*玩家ID*/, int64_t/*玩家ID*/> _player_room;
@@ -103,6 +103,7 @@ public:
 	void OnPlayerMatch(); //进行匹配
 	bool GetPlayers(std::vector<int64_t>& players);
 	const Asset::Room& GetRoom() { return _room; } //俱乐部部长比赛房间设置
+	bool CanJoinMatch(); //是否可以参加比赛
 
 	void AddMember(int64_t player_id); //增加成员列表
 	bool HasMember(int64_t player_id); //是否含有成员
