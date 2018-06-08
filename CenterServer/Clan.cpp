@@ -523,7 +523,7 @@ void Clan::OnPlayerMatch()
 
 	if (_room_list.size() <= 0) return;
 	
-	std::lock_guard<std::mutex> lock(_joiners_mutex);
+	//std::lock_guard<std::mutex> lock(_joiners_mutex);
 
 	for (auto it = _room_list.begin(); it != _room_list.end();)
 	{
@@ -559,9 +559,15 @@ void Clan::OnPlayerMatch()
 		}
 	}
 }
-	
+
+//由于最终点击参加比赛的玩家不可能都进行比赛(比如，很可能不是3的倍数)
+//
+//因此最终实际的玩家数量是: _joiners.size() + _player_room.size() 或者 _joiners.size() + _room_players.size()
+//
 bool Clan::GetPlayers(std::vector<int64_t>& players)
 {
+	std::lock_guard<std::mutex> lock(_joiners_mutex); //此处加锁，效率可能会比较低但是比较合理
+	
 	if (_joiners.size() < 3) return false;
 
 	for (auto it = _joiners.begin(); it != _joiners.end(); )
@@ -660,33 +666,70 @@ void Clan::OnCreateRoom(const Asset::ClanCreateRoom* message)
 
 	_room_created = true; //创建比赛房间列表成功
 
-	/*
-	Asset::EnterRoom enter_room;
-	enter_room.mutable_room()->CopyFrom(message->create_room().room());
-	enter_room.set_enter_type(Asset::EnterRoom_ENTER_TYPE_ENTER_TYPE_ENTER); //进入房间协议构造
-	*/
-
 	for (const auto room_id : message->room_list()) _room_list.insert(room_id); //房间列表缓存
 
-	/*
+	DEBUG("茶馆:{} 比赛, 当前轮次:{} 创建房间:{} 成功", _clan_id, _curr_rounds, message->ShortDebugString());
+}
 	
-	std::lock_guard<std::mutex> lock(_joiners_mutex);
+void Clan::OnMatchRoomOver(const Asset::ClanRoomStatusChanged* message)
+{
+	if (!message) return;
 
-	for (auto it = _joiners.begin(); it != _joiners.end(); )
+	auto room_id = message->room().room_id();
+
+	_room_players.erase(room_id); //删除比赛房间
+
+	for (auto it = _player_room.begin(); it != _player_room.end();)
 	{
-		auto player = PlayerInstance.Get(*it);
-
-		if (!player) 
+		if (it->second == room_id)
 		{
-			++it; //玩家没有在线，可能是点击参加比赛之后掉线或杀掉进程
+			it = _player_room.erase(it); //清理玩家房间信息
 			continue;
 		}
-
-		player->SendProtocol(enter_room);
-
-		it = _joiners.erase(it); //删除玩家
+	
+		++it;
 	}
-	*/
+		
+	for (const auto& player_brief : message->player_list()) 
+	{
+		_player_details[_curr_rounds].push_back(player_brief); //每轮玩家分数缓存
+
+		auto& catch_score = _player_score[player_brief.player_id()];
+		catch_score.set_score(catch_score.score() + player_brief.score()); //玩家分数累积，各个轮次之和//通过_player_details也可以求出
+	}
+
+	if (_room_players.size() == 0) OnRoundsCalculate(); //所有房间结束比赛，本轮次结束
+
+	DEBUG("茶馆:{} 比赛 当前轮次:{} 房间:{} 结束", _clan_id, _curr_rounds, room_id, message->ShortDebugString());
+}
+	
+void Clan::OnRoundsCalculate()
+{
+	if (IsMatchOver()) //比赛结束
+	{
+		OnMatchOver();
+		return;
+	}
+
+	//当前轮次排行存盘
+	
+	DEBUG("茶馆:{} 比赛 当前轮次:{} 结束 即将开启下一轮", _clan_id, _curr_rounds);
+
+	++_curr_rounds; //下一轮次
+}
+
+void Clan::OnMatchOver()
+{
+	std::vector<Asset::PlayerBrief> top_list;
+	for (const auto& element : _player_score) top_list.push_back(element.second);
+
+	std::sort(top_list.begin(), top_list.end(), [](const Asset::PlayerBrief& x, const Asset::PlayerBrief& y){
+				return x.score() > y.score();	//根据分数，由大到小排序
+			});
+	
+	//总排行存盘
+
+	DEBUG("茶馆:{} 轮次:{} 比赛结束，总排行榜产生", _clan_id, _curr_rounds);
 }
 
 int32_t Clan::RemoveMember(int64_t player_id, Asset::ClanOperation* message)
@@ -855,6 +898,12 @@ void Clan::OnRoomOver(const Asset::ClanRoomStatusChanged* message)
 	if (!message) return;
 
 	const auto& room = message->room();
+
+	if (room.room_type() == Asset::ROOM_TYPE_CLAN_MATCH)
+	{
+		OnMatchRoomOver(message); //茶馆比赛房间结束
+	}
+
 	auto room_id = room.room_id();
 
 	std::lock_guard<std::mutex> lock(_mutex);

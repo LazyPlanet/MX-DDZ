@@ -31,12 +31,19 @@ private:
 
 	bool _match_opened = false; //比赛是否可以报名
 	int32_t _match_server_id = 0; //比赛模式茶馆开房逻辑服务器
+	int32_t _curr_rounds = 0; //当前比赛轮次
 
 	std::atomic<bool> _matching_start; //比赛已经开始，玩家可以比赛
 	bool _room_created = false; //房间是否创建完毕
-	std::unordered_set<int64_t/*房间ID*/> _room_list; //房间列表
-	std::unordered_map<int64_t/*房间ID*/, std::vector<int64_t>/*比赛玩家列表*/> _room_players;
-	std::unordered_map<int64_t/*玩家ID*/, int64_t/*玩家ID*/> _player_room;
+
+	std::unordered_set<int64_t/*房间ID*/> _room_list; //房间列表：根据报名玩家数量创建的最大房间数量，所有房间缓存
+
+	std::unordered_map<int64_t/*房间ID*/, std::vector<int64_t>/*比赛玩家列表*/> _room_players; //开局后，每个房间内的所有玩家
+	std::unordered_map<int64_t/*玩家ID*/, int64_t/*房间ID*/> _player_room; //方便查找玩家所在房间
+	
+	std::unordered_map<int32_t/*轮次*/, std::vector<Asset::PlayerBrief>> _player_details; //轮次各个玩家分数
+	std::unordered_map<int64_t/*玩家ID*/, Asset::PlayerBrief> _player_score; //玩家分数累积
+
 	Asset::Room _room; //俱乐部老板比赛房间设置
 public:
 	Clan(const Asset::Clan& clan) 
@@ -104,6 +111,10 @@ public:
 	bool GetPlayers(std::vector<int64_t>& players);
 	const Asset::Room& GetRoom() { return _room; } //俱乐部部长比赛房间设置
 	bool CanJoinMatch(); //是否可以参加比赛
+	void OnMatchRoomOver(const Asset::ClanRoomStatusChanged* message);
+	void OnRoundsCalculate();
+	bool IsMatchOver() { return _curr_rounds >= _stuff.open_match().lunci_count(); } //比赛是否结束
+	void OnMatchOver();
 
 	void AddMember(int64_t player_id); //增加成员列表
 	bool HasMember(int64_t player_id); //是否含有成员
