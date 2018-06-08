@@ -5,6 +5,7 @@
 #include "Player.h"
 #include "RedisManager.h"
 #include "NameLimit.h"
+#include "Room.h"
 
 namespace Adoter
 {
@@ -719,6 +720,29 @@ void ClanManager::OnQueryClanList(std::shared_ptr<Player> player, Asset::ClanOpe
 	}
 
 	DEBUG("玩家:{} 查询茶馆列表:{}", player->GetID(), message->ShortDebugString());
+}
+	
+void ClanManager::OnCreateRoom(const Asset::ClanCreateRoom* create_room)
+{
+	if (!create_room) return;
+
+	int32_t room_count = create_room->room_count();
+	const auto& room = create_room->create_room().room();
+
+	for (int32_t i = 0; i < room_count; ++i)
+	{
+		auto room_id = RoomInstance.AllocRoom();
+
+		create_room->add_room_list(room_id); //房间列表
+	
+		auto room_ptr = std::make_shared<Room>(room);
+		room_ptr->SetID(room_id);
+		room_ptr->OnCreated();
+
+		RoomInstance.OnCreateRoom(room_ptr);
+	}
+
+	WorldInstance.BroadCast2CenterServer(create_room);
 }
 
 }

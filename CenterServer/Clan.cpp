@@ -15,13 +15,20 @@ extern const Asset::CommonConst* g_const;
 //3秒一次
 void Clan::Update()
 {
+	++_heart_count; //心跳
+
 	if (_dirty) Save();
 
 	if (!ClanInstance.IsLocal(_clan_id)) Load(); //从茶馆加载数据
 
 	OnQueryMemberStatus(); //定期更新茶馆成员状态
 
-	if (IsMatchOpen()) OnMatchUpdate(); //是否正在比赛
+	if (IsMatchOpen()) 
+	{
+		OnMatchUpdate(); 
+		OnPlayerMatch();
+	}
+
 }
 	
 bool Clan::Load()
@@ -443,37 +450,116 @@ bool Clan::IsMatchOpen()
 
 void Clan::OnMatchUpdate()
 {
+	if (_room_createdd) return; //已经开始比赛
+
 	if (_match_server_id == 0) _match_server_id = WorldSessionInstance.RandomServer(); //随机一个逻辑服务器
 
-	std::lock_guard<std::mutex> lock(_joiners_mutex);
+	std::lock_guard<std::mutex> lock(_applicants_mutex);
 
-	if (_joiners.size() < 3) return; //不足3人，无法进行比赛
+	int32_t room_size = _applicants.size(); //按照报名玩家数量，预创建房间
+	if (room_size < 3) return; //不足3人，无法进行比赛
 
 	Asset::RoomOptions options;
 	options.set_open_rands(_stuff.open_match().rounds_count());
 	options.set_zhuang_type(Asset::ZHUANG_TYPE_JIAOFEN);
 
-	Asset::Room room;
-	room.set_room_type(Asset::ROOM_TYPE_CLAN_MATCH);
-	room.set_clan_id(_clan_id);
-	room.mutable_options()->CopyFrom(options);
+	_room.set_room_type(Asset::ROOM_TYPE_CLAN_MATCH);
+	_room.set_clan_id(_clan_id);
+	_room.mutable_options()->CopyFrom(options);
 
 	Asset::CreateRoom create_room;
-	create_room.mutable_room()->CopyFrom(room);
+	create_room.mutable_room()->CopyFrom(_room);
+
+	room_size = ceil(room_size / 3.0); //房间数量
+
+	Asset::ClanCreateRoom proto;
+
+	proto.set_clan_id(_clan_id);
+	proto.mutable_create_room()->CopyFrom(create_room);
+	proto.set_room_count(room_size);
+		
+	auto gs_session = WorldSessionInstance.GetServerSession(_match_server_id);
+	if (!gs_session) 
+	{
+		ERROR("茶馆:{} 选择逻辑服务器:{} 开房:{} 失败", _clan_id, _match_server_id, proto.ShortDebugString());
+		return;
+	}
+
+	gs_session->SendProtocol(proto); //去逻辑服务器开房
+}
+
+void Clan::OnPlayerMatch()
+{
+	if (!_room_createdd) return; //房间尚未创建完毕
+	
+	Asset::EnterRoom enter_room;
+	enter_room.mutable_room()->CopyFrom(_room);
+	enter_room.set_enter_type(Asset::EnterRoom_ENTER_TYPE_ENTER_TYPE_ENTER); //进入房间协议构造
+
+	if (_room_list.size() <= 0) return;
+	
+	std::lock_guard<std::mutex> lock(_joiners_mutex);
+
+	for (auto it = _room_list.begin(); it != _room_list.end();)
+	{
+		std::vector<int64_t> players;
+
+		bool succ = GetPlayers(players);	
+		if (!succ) return; //玩家数量不足
+
+		auto room_id = *it; //选择一个房间
+
+		for (auto player_id : players)
+		{
+			auto player = PlayerInstance.Get(player_id);
+
+			if (!player) 
+			{
+				LOG(ERROR, "茶馆:{} 比赛选人:{} 没有在线，可能已经掉线", _clan_id, player_id);
+				continue;
+			}
+
+			enter_room.mutable_room()->set_room_id(room_id);
+
+			player->SendProtocol(enter_room); //通知玩家加入比赛房间
+		}
+
+		it = _room_list.erase(it); //删除房间
+
+		for (auto player_id : players) 
+		{
+			_room_players[room_id].push_back(player_id); //缓存房间<->玩家列表数据
+
+			_player_room[player_id] = room_id; //缓存玩家<->房间数据
+		}
+	}
+}
+	
+bool Clan::GetPlayers(std::vector<int64_t>& players)
+{
+	if (_joiners.size() < 3) return false;
 
 	for (auto it = _joiners.begin(); it != _joiners.end(); )
 	{
-		auto player = PlayerInstance.Get(*it);
+		auto player_id = *it;
+		auto player = PlayerInstance.Get(player_id);
 
 		if (!player) 
 		{
-			++it; //玩家没有在线，可能是点击参加比赛之后掉线或杀掉进程
+			++it;
 			continue;
 		}
+		
+		it = _joiners.erase(it); 
 
-		player->SendProtocol2GameServer(create_room);
-		it = _joiners.erase(it);
+		players.push_back(player_id);
+
+		if (players.size() == 3) break; //选择3个玩家即可
 	}
+
+	if (players.size() < 3) return false;
+
+	return true;
 }
 	
 void Clan::OnJoinMatch(std::shared_ptr<Player> player, Asset::JoinMatch* message)
@@ -489,6 +575,8 @@ void Clan::OnJoinMatch(std::shared_ptr<Player> player, Asset::JoinMatch* message
 		case Asset::JOIN_TYPE_ENROLL: //报名
 		{
 			if (HasApplicant(player_id)) return; //已经报过名
+	
+			if (_matching_start) return; //比赛已经开始，不能报名
 
 			player->SendProtocol2GameServer(message); //到逻辑服务器进行检查
 		}
@@ -535,9 +623,45 @@ bool Clan::HasApplicant(int64_t player_id)
 void Clan::AddJoiner(int64_t player_id)
 {
 	std::lock_guard<std::mutex> lock(_joiners_mutex);
-	_joiners.insert(player_id);
+
+	_joiners.push_back(player_id);
 	
 	DEBUG("茶馆:{} 玩家:{} 参加比赛", _clan_id, player_id);
+}
+	
+void Clan::OnCreateRoom(const Asset::ClanCreateRoom* message)
+{
+	if (!message) return;
+
+	_room_createdd = true; //创建比赛房间列表成功
+
+	/*
+	Asset::EnterRoom enter_room;
+	enter_room.mutable_room()->CopyFrom(message->create_room().room());
+	enter_room.set_enter_type(Asset::EnterRoom_ENTER_TYPE_ENTER_TYPE_ENTER); //进入房间协议构造
+	*/
+
+	for (const auto room_id : message->room_list()) _room_list.insert(room_id); //房间列表缓存
+
+	/*
+	
+	std::lock_guard<std::mutex> lock(_joiners_mutex);
+
+	for (auto it = _joiners.begin(); it != _joiners.end(); )
+	{
+		auto player = PlayerInstance.Get(*it);
+
+		if (!player) 
+		{
+			++it; //玩家没有在线，可能是点击参加比赛之后掉线或杀掉进程
+			continue;
+		}
+
+		player->SendProtocol(enter_room);
+
+		it = _joiners.erase(it); //删除玩家
+	}
+	*/
 }
 
 int32_t Clan::RemoveMember(int64_t player_id, Asset::ClanOperation* message)
@@ -1350,6 +1474,18 @@ void ClanManager::OnGameServerBack(const Asset::ClanMatchSync& message)
 	if (clan_ptr->HasApplicant(player_id)) return; //已经报过名
 
 	clan_ptr->AddApplicant(player_id);
+}
+	
+void ClanManager::OnCreateRoom(const Asset::ClanCreateRoom* message)
+{
+	if (!message) return;
+	
+	auto clan_id = message->clan_id();
+	
+	auto clan_ptr = ClanInstance.Get(clan_id);
+	if (!clan_ptr) return;
+
+	clan_ptr->OnCreateRoom(message);
 }
 
 }

@@ -1089,7 +1089,7 @@ int32_t Player::CmdOpenMatch(pb::Message* message)
 	auto clan_ptr = ClanInstance.Get(open_match->clan_id());
 	if (!clan_ptr) return 2;
 	
-	clan_ptr->OnMatchOpen(_player_id, open_match);
+	clan_ptr->OnMatchOpen(_player_id, open_match); //俱乐部部长开启比赛//此时并未真正开始比赛
 
 	return 0;
 }

@@ -142,6 +142,15 @@ bool WorldSession::OnInnerProcess(const Asset::Meta& meta)
 			ClanInstance.OnGameServerBack(*match_sync);
 		}
 		break;
+		
+		case Asset::META_TYPE_S2S_CLAN_CREATE_ROOM:
+		{
+			const auto create_room = dynamic_cast<const Asset::ClanCreateRoom*>(message);
+			if (!create_room) return false;
+
+			ClanInstance.OnCreateRoom(create_room);
+		}
+		break;
 
 		default:
 		{

@@ -5,6 +5,7 @@
 #include "Player.h"
 #include "GmtSession.h"
 #include "Protocol.h"
+#include "Clan.h"
 
 namespace Adoter
 {
@@ -62,8 +63,17 @@ bool CenterSession::OnInnerProcess(const Asset::Meta& meta)
 			
 			WARN("玩家:{} 被踢出服务器:{} 原因:{}", meta.player_id(), g_server_id, message->ShortDebugString());
 
-			if (kick_player->reason() == Asset::KICK_OUT_REASON_CHANGE_SERVER) player->OnLogout(kick_player->reason()); //强制踢出
-			else player->Logout(message);
+			if (kick_player->reason() == Asset::KICK_OUT_REASON_CHANGE_SERVER) { player->OnLogout(kick_player->reason()); } //强制踢出
+			else { player->Logout(message); }
+		}
+		break;
+		
+		case Asset::META_TYPE_S2S_CLAN_CREATE_ROOM: //俱乐部比赛开房
+		{
+			const auto create_room = dynamic_cast<const Asset::ClanCreateRoom*>(message);
+			if (!create_room) return false;
+
+			ClanInstance.OnCreateRoom(create_room);
 		}
 		break;
 

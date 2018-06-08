@@ -21,17 +21,32 @@ private:
 	Asset::Clan _stuff;
 	bool _dirty = false;
 	int64_t _clan_id = 0;
+	int64_t _heart_count = 0;
 
 	std::unordered_map<int64_t, Asset::RoomQueryResult> _rooms; 
 	std::vector<int64_t> _gaming_room_list;
 
 	std::unordered_set<int64_t> _applicants; //比赛报名玩家
-	std::unordered_set<int64_t> _joiners; //比赛开始之后，参加比赛的玩家
+	std::vector<int64_t> _joiners; //比赛开始之后，参加比赛的玩家
 
 	bool _match_opened = false; //比赛是否可以报名
 	int32_t _match_server_id = 0; //比赛模式茶馆开房逻辑服务器
+
+	std::atomic<bool> _matching_start; //比赛已经开始，玩家可以比赛
+	bool _room_createdd = false; //房间是否创建完毕
+	std::unordered_set<int64_t/*房间ID*/> _room_list; //房间列表
+	std::unordered_map<int64_t/*房间ID*/, std::vector<int64_t>/*比赛玩家列表*/> _room_players;
+	std::unordered_map<int64_t/*玩家ID*/, int64_t/*玩家ID*/> _player_room;
+	Asset::Room _room;
 public:
-	Clan(const Asset::Clan& clan) { _clan_id = clan.clan_id(); _stuff = clan; }
+	Clan(const Asset::Clan& clan) 
+	{ 
+		_clan_id = clan.clan_id(); 
+
+		_stuff = clan; 
+
+		_matching_start = false;
+	}
 
 	const int64_t GetID() { return _stuff.clan_id(); }
 	const Asset::Clan& Get() { return _stuff; }
@@ -84,6 +99,9 @@ public:
 	void AddApplicant(int64_t player_id); //报名
 	bool HasApplicant(int64_t player_id); //是否报名过
 	void AddJoiner(int64_t player_id); //参加比赛
+	void OnCreateRoom(const Asset::ClanCreateRoom* message);
+	void OnPlayerMatch(); //进行匹配
+	bool GetPlayers(std::vector<int64_t>& players);
 
 	void AddMember(int64_t player_id); //增加成员列表
 	bool HasMember(int64_t player_id); //是否含有成员
@@ -121,6 +139,7 @@ public:
 	void OnGameServerBack(const Asset::ClanMatchSync& message);
 	bool IsLocal(int64_t clan_id);
 	bool GetClan(int64_t clan_id, Asset::Clan& clan);
+	void OnCreateRoom(const Asset::ClanCreateRoom* message);
 };
 
 #define ClanInstance ClanManager::Instance()
