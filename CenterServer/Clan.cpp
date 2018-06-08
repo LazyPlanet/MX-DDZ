@@ -26,6 +26,7 @@ void Clan::Update()
 	if (IsMatchOpen()) 
 	{
 		OnMatchUpdate(); 
+
 		OnPlayerMatch();
 	}
 

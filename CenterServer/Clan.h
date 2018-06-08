@@ -37,7 +37,7 @@ private:
 	std::unordered_set<int64_t/*房间ID*/> _room_list; //房间列表
 	std::unordered_map<int64_t/*房间ID*/, std::vector<int64_t>/*比赛玩家列表*/> _room_players;
 	std::unordered_map<int64_t/*玩家ID*/, int64_t/*玩家ID*/> _player_room;
-	Asset::Room _room;
+	Asset::Room _room; //俱乐部老板比赛房间设置
 public:
 	Clan(const Asset::Clan& clan) 
 	{ 
@@ -102,6 +102,7 @@ public:
 	void OnCreateRoom(const Asset::ClanCreateRoom* message);
 	void OnPlayerMatch(); //进行匹配
 	bool GetPlayers(std::vector<int64_t>& players);
+	const Asset::Room& GetRoom() { return _room; } //俱乐部部长比赛房间设置
 
 	void AddMember(int64_t player_id); //增加成员列表
 	bool HasMember(int64_t player_id); //是否含有成员
