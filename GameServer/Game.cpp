@@ -122,11 +122,14 @@ void Game::OnStart()
 
 //开局后，庄家//地主补3张底牌
 //
-void Game::OnStarted(std::shared_ptr<Player> dizhu_ptr)
+void Game::OnStarted()
 {
-	if (!dizhu_ptr || !_room) return;
+	if (!_room) return;
 	
 	//if (!_room->IsJiaoFenMode()) _real_started = true; //叫分模式可以加倍，因此不能立即开始
+	
+	auto dizhu_ptr = GetPlayer(_dizhu_player_id);
+	if (!dizhu_ptr) return;
 	
 	_real_started = true;
 
@@ -143,6 +146,8 @@ void Game::OnStarted(std::shared_ptr<Player> dizhu_ptr)
 	}
 
 	_playback.set_dizhu_position(dizhu_ptr->GetPosition()); //回放：地主
+
+	DEBUG("房间:{} 开局:{} 地主:{}", _room->GetID(), _game_id, _dizhu_player_id);
 }
 
 bool Game::OnGameOver(int64_t player_id)

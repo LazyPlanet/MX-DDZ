@@ -55,7 +55,8 @@ public:
 	virtual void Init(std::shared_ptr<Room> room); //初始化
 	virtual bool Start(std::vector<std::shared_ptr<Player>> players, int64_t room_id = 0, int32_t game_id = 0); //开始游戏
 	virtual void OnStart(); //开始游戏回调
-	virtual void OnStarted(std::shared_ptr<Player> dizhu_ptr); //开始游戏,玩家已经进入游戏且抢完地主
+	//virtual void OnStarted(std::shared_ptr<Player> dizhu_ptr); //开始游戏,玩家已经进入游戏且抢完地主
+	virtual void OnStarted();
 	
 	bool CanStart(); //是否可以开局
 	void OnRealStarted() { _real_started = true; }

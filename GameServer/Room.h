@@ -156,7 +156,7 @@ public:
 	void UpdateClanStatus(); //同步茶馆开房房间数据
 	
 	bool OnJiaoZhuang(int64_t player_id, int32_t beilv); //叫庄//倍率或分数//扑克游戏
-	void OnJiaBei(std::shared_ptr<Player> player, int32_t beilv); //是否加倍
+	bool OnJiaBei(std::shared_ptr<Player> player, int32_t beilv); //是否加倍
 
 	const std::vector<Asset::RobElement>& GetRobDiZhuList() { return _rob_dizhu; } //玩家是否叫地主和叫地主的分数
 	bool IsJiaoFenMode() { return _stuff.options().zhuang_type() == Asset::ZHUANG_TYPE_JIAOFEN; } //叫分模式

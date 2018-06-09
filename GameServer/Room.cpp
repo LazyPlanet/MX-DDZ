@@ -274,9 +274,9 @@ void Room::OnPlayerOperate(std::shared_ptr<Player> player, pb::Message* message)
 
 	auto game_operate = dynamic_cast<Asset::GameOperation*>(message);
 	if (!game_operate) return;
-
-	BroadCast(game_operate); //广播玩家操作
 	
+	if (game_operate->oper_type() != Asset::GAME_OPER_TYPE_JIAOZHUANG && game_operate->oper_type() != Asset::GAME_OPER_TYPE_JIABEI) BroadCast(game_operate); //广播玩家操作
+
 	switch(game_operate->oper_type())
 	{
 		case Asset::GAME_OPER_TYPE_START: //开始游戏：准备//扑克押注
@@ -373,7 +373,29 @@ void Room::OnPlayerOperate(std::shared_ptr<Player> player, pb::Message* message)
 		{
 			if (!_game) break; //尚未开局
 
-			OnJiaoZhuang(player->GetID(), game_operate->beilv());
+			if (!OnJiaoZhuang(player->GetID(), game_operate->beilv())) 
+			{
+				LOG(ERROR, "玩家:{} 叫庄失败，错误数据:{}", player->GetID(), game_operate->ShortDebugString());
+				return;
+			}
+	
+			if (MAX_PLAYER_COUNT == _no_robed_count) //都不叫地主
+			{
+				BroadCast(game_operate);
+
+				ResetGame(); //刷新下一局
+
+				break;
+			}
+			
+			BroadCast(game_operate);
+
+			if (!_game->CanStart()) break; //是否可以开局//检查是否都叫完地主
+
+			//auto dizhu_ptr = GetPlayer(_game->GetDiZhu());
+			//if (!dizhu_ptr) break;
+
+			_game->OnStarted(); //直接开始
 		}
 		break;
 
@@ -381,12 +403,19 @@ void Room::OnPlayerOperate(std::shared_ptr<Player> player, pb::Message* message)
 		{
 			if (!_game) break; //尚未开局
 
-			OnJiaBei(player, game_operate->beilv());
+			if (!OnJiaBei(player, game_operate->beilv())) 
+			{
+				LOG(ERROR, "玩家:{} 加倍失败，错误数据:{}", player->GetID(), game_operate->ShortDebugString());
+				return;
+			}
+			
+			BroadCast(game_operate);
 		}
 		break;
 		
 		default:
 		{
+			return;
 		}
 		break;
 	}
@@ -728,11 +757,11 @@ void Room::DoDisMiss()
 	else { OnGameOver(); }
 }
 
-void Room::OnJiaBei(std::shared_ptr<Player> player, int32_t beilv) 
+bool Room::OnJiaBei(std::shared_ptr<Player> player, int32_t beilv) 
 {
-	if (!player || !_game) return;
+	if (!player || !_game) return false;
 	
-	if (!IsJiaoFenMode()) return; //非叫分模式不能加倍
+	if (!IsJiaoFenMode()) return false; //非叫分模式不能加倍
 	
 	auto player_id = player->GetID();
 	auto dizhu_id = _game->GetDiZhu();
@@ -748,9 +777,8 @@ void Room::OnJiaBei(std::shared_ptr<Player> player, int32_t beilv)
 	{
 		_rob_dizhu.push_back(rob_element); //加倍状态缓存
 	
-		//if (player_id == dizhu_id) _game->OnRealStarted(); //地主不加倍则直接开始
-
-		return;
+		//if (player_id == dizhu_id) return true; //地主不加倍则直接开始
+		return true;
 	}
 	
 	//1.地主加倍限制
@@ -762,11 +790,11 @@ void Room::OnJiaBei(std::shared_ptr<Player> player, int32_t beilv)
 		int32_t count = std::count_if(_rob_dizhu.begin(), _rob_dizhu.end(), [](const Asset::RobElement& rob_element){
 					return rob_element.oper_type() == Asset::GAME_OPER_TYPE_JIABEI;
 				});
-		if (count == 0) return; //地主只有在农民加倍的时候可以反加倍，农民不加倍则直接退出
+		if (count == 0) return false; //地主只有在农民加倍的时候可以反加倍，农民不加倍则直接退出
 
 		for (auto member : _players)
 		{
-			if (!member) return;
+			if (!member) return false;
 
 			int64_t member_id = member->GetID();
 
@@ -792,13 +820,15 @@ void Room::OnJiaBei(std::shared_ptr<Player> player, int32_t beilv)
 		{
 			if (player_id == dizhu_id) continue; 
 
-			if (element.player_id() == player_id && element.beilv() > 0) return; //已经加倍或者叫地主了，不能加倍
+			if (element.player_id() == player_id && element.beilv() > 0) return false; //已经加倍或者叫地主了，不能加倍
 		}
 	
 		player->OnJiaBei(); //加倍
 	}
 	
 	_rob_dizhu.push_back(rob_element); //加倍状态缓存
+
+	return true;
 }
 
 bool Room::OnJiaoZhuang(int64_t player_id, int32_t beilv)
@@ -835,12 +865,16 @@ bool Room::OnJiaoZhuang(int64_t player_id, int32_t beilv)
 	}
 	
 	_rob_dizhu.push_back(rob_element); //叫地主状态缓存
+	
+	if (MAX_PLAYER_COUNT == _no_robed_count) return true; //都不叫地主
 			
+	/*
 	if (MAX_PLAYER_COUNT == _no_robed_count) //都不叫地主
 	{
 		ResetGame(); //刷新下一局
-		return false;
+		return true;
 	}
+	*/
 
 	if (_stuff.options().zhuang_type() == Asset::ZHUANG_TYPE_JIAOFEN)
 	{
@@ -858,14 +892,16 @@ bool Room::OnJiaoZhuang(int64_t player_id, int32_t beilv)
 		return false;
 	}
 		
-	if (!_game->CanStart()) return false; //是否可以开局//检查是否都叫完地主
+	/*
+	if (!_game->CanStart()) return true; //是否可以开局//检查是否都叫完地主
 
 	auto dizhu_ptr = GetPlayer(_game->GetDiZhu());
 	if (!dizhu_ptr) return false;
 
 	_game->OnStarted(dizhu_ptr); //直接开始
+	*/
 
-	DEBUG("房间:{} 开局:{} 地主:{}", _stuff.room_id(), _game->GetID(), _game->GetDiZhu());
+	//DEBUG("房间:{} 开局:{} 地主:{}", _stuff.room_id(), _game->GetID(), _game->GetDiZhu());
 
 	return true;
 }
