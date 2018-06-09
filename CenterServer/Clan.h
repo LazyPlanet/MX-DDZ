@@ -116,6 +116,7 @@ public:
 	bool IsMatchOver() { return _curr_rounds >= _stuff.open_match().lunci_count(); } //比赛是否结束
 	void OnMatchOver();
 	void SaveMatchHistory(int32_t rounds = 0);
+	int32_t GetBattleTime() { return _stuff.open_match().start_time(); }
 
 	void AddMember(int64_t player_id); //增加成员列表
 	bool HasMember(int64_t player_id); //是否含有成员

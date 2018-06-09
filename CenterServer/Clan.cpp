@@ -738,6 +738,7 @@ void Clan::SaveMatchHistory(int32_t rounds)
 			});
 
 	Asset::MatchHistory history;
+	history.set_clan_id(_clan_id);
 	history.set_curr_rounds(rounds);
 	history.set_battle_time(TimerInstance.GetTime());
 	for (const auto& element : top_list)
@@ -760,7 +761,8 @@ void Clan::OnMatchOver()
 			});
 	
 	Asset::MatchHistory history;
-	history.set_battle_time(TimerInstance.GetTime());
+	history.set_clan_id(_clan_id);
+	history.set_battle_time(GetBattleTime()); //开启比赛时间
 	for (const auto& element : top_list)
 	{
 		auto hist = history.mutable_top_list()->Add();
