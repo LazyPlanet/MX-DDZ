@@ -749,6 +749,12 @@ void Clan::SaveMatchHistory(int32_t rounds)
 
 	std::string key = "clan_match:" + std::to_string(_clan_id) + "_" + std::to_string(rounds);
 	RedisInstance.Save(key, history); //存盘
+
+	//排行榜广播
+	Asset::ClanMatchHistory proto;
+	proto.set_clan_id(_clan_id);
+	proto.mutable_history()->CopyFrom(history);
+	BroadCast(proto);
 }
 
 void Clan::OnMatchOver()
@@ -772,6 +778,12 @@ void Clan::OnMatchOver()
 	//总排行存盘
 	std::string key = "clan_match:" + std::to_string(_clan_id);
 	RedisInstance.Save(key, history); //存盘
+	
+	//排行榜广播
+	Asset::ClanMatchHistory proto;
+	proto.set_clan_id(_clan_id);
+	proto.mutable_history()->CopyFrom(history);
+	BroadCast(proto);
 
 	//数据清理
 	_match_opened = false; //关闭比赛
