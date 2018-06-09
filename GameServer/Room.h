@@ -45,6 +45,8 @@ private:
 	int32_t _dismiss_cooldown = 0; //解散冷却时间
 	int32_t _no_robed_count = 0; //不叫地主数量
 	std::vector<Asset::RobElement> _rob_dizhu; //玩家是否叫地主和叫地主的分数
+
+	int32_t _ticket_count = 0; //比赛门票数量
 public:
 	explicit Room(Asset::Room room) {  _stuff = room; }
 
@@ -53,6 +55,7 @@ public:
 
 	bool IsClan() { return _stuff.clan_id() != 0; }
 	int64_t GetClan() { return _stuff.clan_id(); }
+	int32_t GetTicketCount() { return _ticket_count; }
 
 	void OnClanCreated();
 

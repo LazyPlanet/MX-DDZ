@@ -1168,7 +1168,6 @@ int32_t Player::EnterRoom(pb::Message* message)
 		case Asset::ROOM_TYPE_FRIEND: //好友房
 		{
 			auto room_id = enter_room->room().room_id(); 
-
 			auto locate_room = RoomInstance.Get(room_id);
 
 			if (!locate_room) 
@@ -1247,6 +1246,55 @@ int32_t Player::EnterRoom(pb::Message* message)
 
 			//进入匹配
 			MatchInstance.Join(shared_from_this(), message);
+		}
+		break;
+
+		case Asset::ROOM_TYPE_CLAN_MATCH: //比赛房间
+		{
+			auto room_id = enter_room->room().room_id(); 
+			auto locate_room = RoomInstance.Get(room_id);
+
+			if (!locate_room) 
+			{
+				enter_room->set_error_code(Asset::ERROR_ROOM_NOT_FOUNT); //是否可以进入场景//房间
+			}
+			else
+			{
+				int64_t clan_id = locate_room->GetClan();
+
+				if (!HasClan(clan_id)) 
+				{
+					enter_room->set_error_code(Asset::ERROR_CLAN_ROOM_ENTER_NO_CLAN); 
+					SendProtocol(enter_room);
+
+					return Asset::ERROR_CLAN_ROOM_ENTER_NO_CLAN; //非茶馆成员，不能加入
+				}
+
+				int32_t consume_count = locate_room->GetTicketCount(); //门票数量
+				if (consume_count <= 0 || !CheckRoomCard(consume_count))
+				{
+					enter_room->set_error_code(Asset::ERROR_ROOM_CARD_NOT_ENOUGH); //房卡不足
+					SendProtocol(enter_room);
+					return Asset::ERROR_ROOM_CARD_NOT_ENOUGH;
+				}
+
+				auto enter_status = locate_room->TryEnter(shared_from_this()); //玩家进入房间
+				enter_room->mutable_room()->CopyFrom(locate_room->Get());
+				enter_room->set_error_code(enter_status); //是否可以进入场景//房间
+
+				if (enter_status == Asset::ERROR_SUCCESS || enter_status == Asset::ERROR_ROOM_HAS_BEEN_IN) 
+				{
+					enter_room->set_error_code(Asset::ERROR_SUCCESS);
+					bool success = locate_room->Enter(shared_from_this()); //玩家进入房间
+
+					if (success) OnEnterSuccess(room_id);
+				}
+			}
+			
+			if (enter_room->error_code() != Asset::ERROR_SUCCESS) 
+				AlertMessage(enter_room->error_code(), Asset::ERROR_TYPE_NORMAL, Asset::ERROR_SHOW_TYPE_MESSAGE_BOX); //不能加入，错误提示
+
+			SendProtocol(enter_room);
 		}
 		break;
 

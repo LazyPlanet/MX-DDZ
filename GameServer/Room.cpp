@@ -935,6 +935,14 @@ void Room::OnCreated(std::shared_ptr<Player> hoster)
 	_history.set_create_time(CommonTimerInstance.GetTime()); //创建时间
 	_history.mutable_options()->CopyFrom(GetOptions());
 	
+	if (Asset::ROOM_TYPE_CLAN_MATCH == _stuff.room_type()) //比赛房间
+	{
+		Asset::Clan clan;
+		if (!ClanInstance.GetCache(_stuff.clan_id(), clan)) return;
+				
+		_ticket_count = clan.open_match().ticket_count(); //门票数量
+	}
+	
 	UpdateClanStatus(); //茶馆房间状态同步
 
 	LOG(INFO, "玩家:{} 创建房间:{} 玩法:{}成功", _hoster_id, _stuff.room_id(), _stuff.ShortDebugString());
@@ -942,21 +950,24 @@ void Room::OnCreated(std::shared_ptr<Player> hoster)
 	
 bool Room::CanStarGame()
 {
-	if (IsFriend() && !_hoster && !_gmt_opened) return false;
+	if (IsFriend() && !_hoster && !_gmt_opened) return false; //好友房检查
 
-	if (_players.size() != MAX_PLAYER_COUNT) return false;
+	if (_players.size() != MAX_PLAYER_COUNT) return false; //玩家数量检查
 
 	for (auto player : _players)
 	{
 		if (!player) return false;
-
 		if (!player->IsReady()) return false; //玩家都是准备状态
 	}
 	
 	auto room_type = _stuff.room_type();
 	
-	//开始游戏，消耗房卡//欢乐豆
-	if (Asset::ROOM_TYPE_FRIEND == room_type)
+	//
+	//开始游戏
+	//
+	//消耗房卡//欢乐豆
+	//
+	if (Asset::ROOM_TYPE_FRIEND == room_type) //好友房
 	{
 		if (GetRemainCount() <= 0) 
 		{
@@ -1043,6 +1054,32 @@ bool Room::CanStarGame()
 		{
 			LOG(ERROR, "房间:{}尚未消耗房卡进行开房, 房主:{}", _stuff.room_id(), _hoster->GetID()); //记录
 			return false;
+		}
+	}
+	else if (Asset::ROOM_TYPE_CLAN_MATCH == room_type) //比赛房间
+	{
+		if (GetRemainCount() <= 0) return false; //本房结束
+			
+		if (_games.size()) return true; //已经开局，不再进行房卡检查
+
+		int32_t consume_count = _ticket_count;
+		if (consume_count <= 0) return false; //没有设置消耗数量
+
+		for (auto player : _players) //房卡检查
+		{
+			if (!player) return false;
+
+			if (!player->CheckRoomCard(consume_count)) 
+			{
+				player->AlertMessage(Asset::ERROR_ROOM_CARD_NOT_ENOUGH); //理论上一定会过，玩家进入比赛之前已经检查
+				return false;
+			}
+		}
+		
+		for (auto player : _players) //房卡消耗
+		{
+			if (!player) return false;
+			player->ConsumeRoomCard(Asset::ROOM_CARD_CHANGED_TYPE_START_CLAN_MATCH, consume_count); 
 		}
 	}
 	else
