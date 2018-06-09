@@ -738,6 +738,8 @@ void Clan::SaveMatchHistory(int32_t rounds)
 			});
 
 	Asset::MatchHistory history;
+	history.set_curr_rounds(rounds);
+	history.set_battle_time(TimerInstance.GetTime());
 	for (const auto& element : top_list)
 	{
 		auto hist = history.mutable_top_list()->Add();
@@ -758,16 +760,28 @@ void Clan::OnMatchOver()
 			});
 	
 	Asset::MatchHistory history;
+	history.set_battle_time(TimerInstance.GetTime());
 	for (const auto& element : top_list)
 	{
 		auto hist = history.mutable_top_list()->Add();
 		hist->CopyFrom(element);
 	}
+
 	//总排行存盘
 	std::string key = "clan_match:" + std::to_string(_clan_id);
 	RedisInstance.Save(key, history); //存盘
 
-	DEBUG("茶馆:{} 轮次:{} 比赛结束，总排行榜产生", _clan_id, _curr_rounds);
+	//数据清理
+	_match_opened = false; //关闭比赛
+	_curr_rounds = 0;
+	_room_list.clear();
+	_room_players.clear();
+	_player_room.clear();
+	_player_details.clear();
+	_player_score.clear();
+	_room.Clear();
+
+	DEBUG("茶馆:{} 总比赛轮次:{} 比赛结束总排行榜产生，清理数据完毕", _clan_id, _curr_rounds);
 }
 
 int32_t Clan::RemoveMember(int64_t player_id, Asset::ClanOperation* message)
