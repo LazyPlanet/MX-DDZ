@@ -114,6 +114,7 @@ public:
 	void OnMatchRoomOver(const Asset::ClanRoomStatusChanged* message);
 	void OnRoundsCalculate();
 	bool IsMatchOver() { return _curr_rounds >= _stuff.open_match().lunci_count(); } //比赛是否结束
+	int32_t GetRemainRounds(){ return _stuff.open_match().lunci_count() - _curr_rounds; } //剩余轮次
 	void OnMatchOver();
 	void SaveMatchHistory(int32_t rounds = 0);
 	int32_t GetBattleTime() { return _stuff.open_match().start_time(); }

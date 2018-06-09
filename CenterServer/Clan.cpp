@@ -461,6 +461,8 @@ bool Clan::CanJoinMatch()
 
 	if (curr_time < start_time) return false;
 	
+	if (_curr_rounds > 0) return false; //轮次开始
+
 	auto clan_limit = dynamic_cast<Asset::ClanLimit*>(AssetInstance.Get(g_const->clan_id()));
 	if (!clan_limit) return false;
 
@@ -473,9 +475,11 @@ void Clan::OnMatchUpdate()
 
 	if (_match_server_id == 0) _match_server_id = WorldSessionInstance.RandomServer(); //随机一个逻辑服务器
 
-	std::lock_guard<std::mutex> lock(_applicants_mutex);
-
-	int32_t room_size = _applicants.size(); //按照报名玩家数量，预创建房间
+	//std::lock_guard<std::mutex> lock(_applicants_mutex);
+	//int32_t room_size = _applicants.size(); //按照报名玩家数量，预创建房间
+	//
+	std::lock_guard<std::mutex> lock(_joiners_mutex); //按照参加比赛人数
+	int32_t room_size = _joiners.size(); 
 	if (room_size < 3) return; //不足3人，无法进行比赛
 
 	Asset::RoomOptions options;
@@ -500,13 +504,14 @@ void Clan::OnMatchUpdate()
 	auto gs_session = WorldSessionInstance.GetServerSession(_match_server_id);
 	if (!gs_session) 
 	{
-		ERROR("茶馆:{} 选择逻辑服务器:{} 开房:{} 失败", _clan_id, _match_server_id, proto.ShortDebugString());
+		ERROR("茶馆:{} 选择逻辑服务器:{} 失败，开房数据:{}", _clan_id, _match_server_id, proto.ShortDebugString());
 		return;
 	}
 
+	DEBUG("茶馆:{} 轮次:{} 选择逻辑服务器:{} 参与人数:{} 开房数量:{} 协议数据:{}", 
+			_clan_id, _curr_rounds, _match_server_id, _joiners.size(), room_size, proto.ShortDebugString());
+	
 	gs_session->SendProtocol(proto); //去逻辑服务器开房
-		
-	DEBUG("茶馆:{} 轮次:{} 选择逻辑服务器:{} 开房:{} 协议发送", _clan_id, _curr_rounds, _match_server_id, proto.ShortDebugString());
 }
 
 //比赛开始，玩家匹配进房
@@ -653,6 +658,11 @@ bool Clan::HasApplicant(int64_t player_id)
 	return false;
 }
 
+//
+//_joiners只有第一轮次玩家才可以进入，开始轮次之后不能加入
+//
+//比赛之后根据积分系统对_joiners进行增加
+//
 void Clan::AddJoiner(int64_t player_id)
 {
 	std::lock_guard<std::mutex> lock(_joiners_mutex);
@@ -667,6 +677,8 @@ void Clan::OnCreateRoom(const Asset::ClanCreateRoom* message)
 	if (!message) return;
 
 	_room_created = true; //创建比赛房间列表成功
+
+	++_curr_rounds; //轮次开始
 
 	for (const auto room_id : message->room_list()) _room_list.insert(room_id); //房间列表缓存
 
@@ -722,17 +734,45 @@ void Clan::OnRoundsCalculate()
 
 	//当前轮次排行存盘
 	SaveMatchHistory(_curr_rounds);
+
+	//
+	//根据分数选择进入下一轮玩家
+	//
+	//未能参加比赛的玩家，直接晋级_joiners
+	//
+	int32_t remain_rounds = GetRemainRounds();
+	if (remain_rounds <= 0) return; //轮次已完
+
+	size_t player_needed_count = remain_rounds * 3; //本轮比赛需要玩家数量
+
+	std::lock_guard<std::mutex> lock(_joiners_mutex);
+	size_t remain_player_count = _joiners.size(); //剩余玩家晋级数量
+
+	const auto& top_list = _player_details[_curr_rounds]; //已经排行的积分榜
+	if (top_list.size() + remain_player_count < player_needed_count)
+	{
+		LOG(ERROR, "严重错误，茶馆:{} 比赛 当前轮次:{} 玩家数量不足，需要玩家:{} 上轮剩余:{} 上轮比赛玩家:{}", 
+				_clan_id, _curr_rounds, player_needed_count, remain_player_count, top_list.size());
+		return;
+	}
+
+	for (size_t i = 0; i < top_list.size(); ++i)	
+	{
+		if (player_needed_count == _joiners.size())	break;
+
+		_joiners.push_back(top_list[i].player_id());
+	}
 	
 	DEBUG("茶馆:{} 比赛 当前轮次:{} 结束 即将开启下一轮", _clan_id, _curr_rounds);
 
 	_room_created = false; //生成对战房间
 
-	++_curr_rounds; //下一轮次
+	//++_curr_rounds; //下一轮次//创建房间成功后，轮次开始
 }
 
 void Clan::SaveMatchHistory(int32_t rounds)
 {
-	auto top_list = _player_details[_curr_rounds];
+	auto& top_list = _player_details[_curr_rounds];
 	std::sort(top_list.begin(), top_list.end(), [](const Asset::PlayerBrief& x, const Asset::PlayerBrief& y){
 				return x.score() > y.score();	//根据分数，由大到小排序
 			});
