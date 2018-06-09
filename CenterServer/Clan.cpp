@@ -505,6 +505,8 @@ void Clan::OnMatchUpdate()
 	}
 
 	gs_session->SendProtocol(proto); //去逻辑服务器开房
+		
+	DEBUG("茶馆:{} 轮次:{} 选择逻辑服务器:{} 开房:{} 协议发送", _clan_id, _curr_rounds, _match_server_id, proto.ShortDebugString());
 }
 
 //比赛开始，玩家匹配进房
@@ -677,7 +679,14 @@ void Clan::OnMatchRoomOver(const Asset::ClanRoomStatusChanged* message)
 
 	auto room_id = message->room().room_id();
 
-	_room_players.erase(room_id); //删除比赛房间
+	auto it = _room_players.find(room_id);
+	if (it == _room_players.end())
+	{
+		LOG(ERROR, "茶馆:{} 结束房间:{} 比赛，未能找到，可能是系统问题，房间数据:{}", _clan_id, room_id, message->ShortDebugString());
+		return;
+	}
+
+	_room_players.erase(it); //删除比赛房间
 
 	for (auto it = _player_room.begin(); it != _player_room.end();)
 	{
@@ -712,10 +721,31 @@ void Clan::OnRoundsCalculate()
 	}
 
 	//当前轮次排行存盘
+	SaveMatchHistory(_curr_rounds);
 	
 	DEBUG("茶馆:{} 比赛 当前轮次:{} 结束 即将开启下一轮", _clan_id, _curr_rounds);
 
+	_room_created = false; //生成对战房间
+
 	++_curr_rounds; //下一轮次
+}
+
+void Clan::SaveMatchHistory(int32_t rounds)
+{
+	auto top_list = _player_details[_curr_rounds];
+	std::sort(top_list.begin(), top_list.end(), [](const Asset::PlayerBrief& x, const Asset::PlayerBrief& y){
+				return x.score() > y.score();	//根据分数，由大到小排序
+			});
+
+	Asset::MatchHistory history;
+	for (const auto& element : top_list)
+	{
+		auto hist = history.mutable_top_list()->Add();
+		hist->CopyFrom(element);
+	}
+
+	std::string key = "clan_match:" + std::to_string(_clan_id) + "_" + std::to_string(rounds);
+	RedisInstance.Save(key, history); //存盘
 }
 
 void Clan::OnMatchOver()
@@ -727,7 +757,15 @@ void Clan::OnMatchOver()
 				return x.score() > y.score();	//根据分数，由大到小排序
 			});
 	
+	Asset::MatchHistory history;
+	for (const auto& element : top_list)
+	{
+		auto hist = history.mutable_top_list()->Add();
+		hist->CopyFrom(element);
+	}
 	//总排行存盘
+	std::string key = "clan_match:" + std::to_string(_clan_id);
+	RedisInstance.Save(key, history); //存盘
 
 	DEBUG("茶馆:{} 轮次:{} 比赛结束，总排行榜产生", _clan_id, _curr_rounds);
 }
