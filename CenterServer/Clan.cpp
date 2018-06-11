@@ -679,6 +679,16 @@ void Clan::OnCreateRoom(const Asset::ClanCreateRoom* message)
 	_room_created = true; //创建比赛房间列表成功
 
 	++_curr_rounds; //轮次开始
+	
+	if (_curr_rounds == 1) //首轮
+	{
+		_stuff.mutable_last_match_history()->Clear();
+
+		for (const auto& history : _stuff.match_history()) _stuff.mutable_last_match_history()->Add()->CopyFrom(history);
+
+		_stuff.mutable_match_history()->Clear();
+		_dirty = true;
+	}
 
 	for (const auto room_id : message->room_list()) _room_list.insert(room_id); //房间列表缓存
 
@@ -787,6 +797,9 @@ void Clan::SaveMatchHistory(int32_t rounds)
 		hist->CopyFrom(element);
 	}
 
+	_stuff.mutable_match_history()->Add()->CopyFrom(history);
+	_dirty = true;
+
 	std::string key = "clan_match:" + std::to_string(_clan_id) + "_" + std::to_string(rounds);
 	RedisInstance.Save(key, history); //存盘
 
@@ -814,6 +827,9 @@ void Clan::OnMatchOver()
 		auto hist = history.mutable_top_list()->Add();
 		hist->CopyFrom(element);
 	}
+	
+	_stuff.mutable_match_history()->Add()->CopyFrom(history);
+	_dirty = true;
 
 	//总排行存盘
 	std::string key = "clan_match:" + std::to_string(_clan_id);
