@@ -421,6 +421,8 @@ void Clan::OnMatchOpen(int64_t player_id, Asset::OpenMatch* message)
 {
 	if (player_id <= 0 || !message) return;
 
+	if (_match_opened || _stuff.has_open_match()) return;//已经开启比赛
+
 	if (!IsHoster(player_id)) return; //没有权限
 
 	BroadCast(message); //通知成员报名
@@ -828,6 +830,8 @@ void Clan::OnMatchOver()
 		hist->CopyFrom(element);
 	}
 	
+	_stuff.mutable_open_match()->Clear();
+	_stuff.mutable_applicants()->Clear();
 	_stuff.mutable_match_history()->Add()->CopyFrom(history);
 	_dirty = true;
 
