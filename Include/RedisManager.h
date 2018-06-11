@@ -461,7 +461,7 @@ public:
 	
 	int64_t CreateClan()
 	{
-		if (!Connect()) return false;
+		if (!Connect()) return 0;
 
 		auto incrby = _client.incrby("ddz_clan_counter", 1);
 		_client.commit();
@@ -479,6 +479,23 @@ public:
 		*/
 
 		return clan_id;
+	}
+	
+	//创建比赛，比赛唯一识别
+	//
+	int64_t CreateMatch()
+	{
+		if (!Connect()) return 0;
+
+		auto incrby = _client.incrby("clan_match_counter", 1);
+		_client.commit();
+
+		int64_t match_id = 0;
+
+		auto reply = incrby.get();
+		if (reply.is_integer()) match_id = reply.as_integer();
+
+		return match_id;
 	}
 };
 
