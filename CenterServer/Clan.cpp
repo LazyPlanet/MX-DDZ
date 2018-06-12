@@ -738,26 +738,36 @@ void Clan::OnMatchRoomOver(const Asset::ClanRoomStatusChanged* message)
 	for (const auto& player_brief : message->player_list()) 
 	{
 		_player_details[_curr_rounds].push_back(player_brief); //每轮玩家分数缓存
-
-		auto& catch_score = _player_score[player_brief.player_id()];
-		catch_score.set_score(catch_score.score() + player_brief.score()); //玩家分数累积，各个轮次之和//通过_player_details也可以求出
+	
+		auto player_id = player_brief.player_id();
+		auto it = _player_score.find(player_id);
+		if (it != _player_score.end()) //是否已经存在记录
+		{
+			auto& catch_score = _player_score[player_id];
+			catch_score.set_score(catch_score.score() + player_brief.score()); //玩家分数累积，各个轮次之和//通过_player_details也可以求出
+		}
+		else
+		{
+			_player_score[player_id] = player_brief;
+		}
 	}
 
-	if (_room_players.size() == 0) OnRoundsCalculate(); //所有房间结束比赛，本轮次结束
-
 	DEBUG("茶馆:{} 比赛 当前轮次:{} 房间:{} 结束", _clan_id, _curr_rounds, room_id, message->ShortDebugString());
+
+	if (_room_players.size() == 0) OnRoundsCalculate(); //所有房间结束比赛，本轮次结束
 }
 	
 void Clan::OnRoundsCalculate()
 {
-	if (IsMatchOver()) //比赛结束
+	//当前轮次排行存盘
+	SaveMatchHistory(_curr_rounds);
+	
+	//整场比赛是否结束
+	if (IsMatchOver()) 
 	{
 		OnMatchOver();
 		return;
 	}
-
-	//当前轮次排行存盘
-	SaveMatchHistory(_curr_rounds);
 
 	//
 	//根据分数选择进入下一轮玩家
