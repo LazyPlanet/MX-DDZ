@@ -26,9 +26,9 @@ void Clan::Update()
 
 	if (IsMatchOpen()) 
 	{
-		OnMatchUpdate(); 
+		OnMatchUpdate(); //发起匹配，批量创建房间
 
-		OnPlayerMatch(); //通过控制参加比赛队列，控制匹配玩家
+		OnPlayerMatch(); //通过控制参加比赛队列，控制匹配玩家//选择房间、选择玩家，提示玩家加入房间
 	}
 }
 	
@@ -554,7 +554,6 @@ void Clan::OnPlayerMatch()
 			}
 
 			enter_room.mutable_room()->set_room_id(room_id);
-
 			player->SendProtocol(enter_room); //通知玩家加入比赛房间
 		}
 
@@ -563,7 +562,6 @@ void Clan::OnPlayerMatch()
 		for (auto player_id : players) 
 		{
 			_room_players[room_id].push_back(player_id); //缓存房间<->玩家列表数据
-
 			_player_room[player_id] = room_id; //缓存玩家<->房间数据
 		}
 	}
@@ -607,7 +605,6 @@ void Clan::OnJoinMatch(std::shared_ptr<Player> player, Asset::JoinMatch* message
 	if (!player || !message) return;
 
 	auto player_id = player->GetID();
-
 	if (!HasMember(player_id)) return; //不是成员不能参加
 
 	switch (message->join_type())
@@ -615,7 +612,7 @@ void Clan::OnJoinMatch(std::shared_ptr<Player> player, Asset::JoinMatch* message
 		case Asset::JOIN_TYPE_ENROLL: //报名
 		{
 			if (HasApplicant(player_id)) return; //已经报过名
-			if (_matching_start) return; //比赛已经开始，不能报名
+			//if (_matching_start) return; //比赛已经开始，不能报名
 
 			player->SendProtocol2GameServer(message); //到逻辑服务器进行检查
 		}

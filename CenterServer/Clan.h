@@ -33,7 +33,7 @@ private:
 	int32_t _match_server_id = 0; //比赛模式茶馆开房逻辑服务器
 	int32_t _curr_rounds = 0; //当前比赛轮次
 
-	std::atomic<bool> _matching_start; //比赛已经开始，玩家可以比赛
+	//std::atomic<bool> _matching_start; //比赛已经开始，玩家可以比赛
 	bool _room_created = false; //房间是否创建完毕
 
 	std::unordered_set<int64_t/*房间ID*/> _room_list; //房间列表：根据报名玩家数量创建的最大房间数量，所有房间缓存
@@ -52,7 +52,7 @@ public:
 
 		_stuff = clan; 
 
-		_matching_start = false;
+		//_matching_start = false;
 	}
 
 	const int64_t GetID() { return _stuff.clan_id(); }
