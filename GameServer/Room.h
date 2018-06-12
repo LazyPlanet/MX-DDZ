@@ -68,7 +68,9 @@ public:
 	virtual const Asset::Room& Get() { return _stuff; } //数据
 	virtual Asset::ROOM_TYPE GetType() { return _stuff.room_type(); } //数据
 	virtual bool IsFriend() { return Asset::ROOM_TYPE_FRIEND == _stuff.room_type(); } //是否是好友房间
-	virtual bool IsMatch() { return Asset::ROOM_TYPE_FRIEND != _stuff.room_type(); } //是否是匹配房间
+	virtual bool IsMatch() { return Asset::ROOM_TYPE_XINSHOU == _stuff.room_type() || 
+		Asset::ROOM_TYPE_GAOSHOU == _stuff.room_type() || Asset::ROOM_TYPE_DASHI == _stuff.room_type(); } //是否是匹配房间
+	virtual bool IsClanMatch() { return Asset::ROOM_TYPE_CLAN_MATCH == _stuff.room_type(); } //是否是比赛房间
 	
 	const Asset::RoomOptions& GetOptions() { return _stuff.options(); } //额外番型
 	void SetOptions(const Asset::RoomOptions& options) { _stuff.mutable_options()->CopyFrom(options);}

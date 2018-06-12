@@ -297,9 +297,9 @@ void Room::OnPlayerOperate(std::shared_ptr<Player> player, pb::Message* message)
 
 		case Asset::GAME_OPER_TYPE_LEAVE: //离开游戏
 		{
-			if (IsFriend() && !HasDisMiss() && HasStarted() && !HasBeenOver()) return; //好友房没有开局，且没有对战完，则不允许退出
+			if ((IsFriend() || IsClanMatch()) && !HasDisMiss() && HasStarted() && !HasBeenOver()) return; //好友房没有解散，且没有对战完，则不允许退出
 			
-			if (IsMatch() && IsGaming()) return; //非好友房结束可以直接退出
+			if (IsMatch() && !IsGaming()) return; //非好友房结束可以直接退出
 
 			if (IsHoster(player->GetID()) && !IsClan()) //非茶馆房间
 			{
@@ -428,7 +428,8 @@ int32_t Room::GetRemainCount()
 	
 bool Room::HasBeenOver() 
 { 
-	if (!IsFriend()) return false;
+	//if (!IsFriend() && !IsClanMatch()) return false;
+	if (IsMatch()) return false;
 
 	return !_game && GetRemainCount() <= 0; 
 }
@@ -563,7 +564,8 @@ void Room::OnGameOver(int64_t player_id)
 
 	if (_game) _game.reset();
 
-	if (!IsFriend()) return; //非好友房没有总结算
+	//if (!IsFriend() && !IsClanMatch()) return; //匹配房没有总结算
+	if (IsMatch()) return;
 	
 	UpdateClanStatus(); //茶馆房间状态同步
 	
@@ -1226,7 +1228,7 @@ void Room::Update()
 
 void Room::UpdateClanStatus()
 {
-	if (!IsFriend()) return; //非好友房没有总结算
+	if (!IsFriend()) return; //非好友房没有状态同步
 
 	if (!IsClan()) return; //非茶馆房间不同步
 	

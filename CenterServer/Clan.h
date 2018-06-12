@@ -27,7 +27,7 @@ private:
 	std::vector<int64_t> _gaming_room_list;
 
 	std::unordered_set<int64_t> _applicants; //比赛报名玩家
-	std::vector<int64_t> _joiners; //比赛开始之后，参加比赛的玩家
+	std::unordered_set<int64_t> _joiners; //比赛开始之后，参加比赛的玩家
 
 	bool _match_opened = false; //比赛是否可以报名
 	int32_t _match_server_id = 0; //比赛模式茶馆开房逻辑服务器
@@ -105,7 +105,7 @@ public:
 	void OnJoinMatch(std::shared_ptr<Player> player, Asset::JoinMatch* message); //参加比赛
 	void AddApplicant(int64_t player_id); //报名
 	bool HasApplicant(int64_t player_id); //是否报名过
-	void AddJoiner(int64_t player_id); //参加比赛
+	void AddJoiner(std::shared_ptr<Player> player); //参加比赛
 	void OnCreateRoom(const Asset::ClanCreateRoom* message);
 	void OnPlayerMatch(); //进行匹配
 	bool GetPlayers(std::vector<int64_t>& players);

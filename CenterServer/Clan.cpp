@@ -526,9 +526,9 @@ void Clan::OnPlayerMatch()
 {
 	if (!_room_created) return; //房间尚未创建完毕
 	
-	Asset::EnterRoom enter_room;
+	Asset::CreateRoom enter_room;
 	enter_room.mutable_room()->CopyFrom(_room);
-	enter_room.set_enter_type(Asset::EnterRoom_ENTER_TYPE_ENTER_TYPE_ENTER); //进入房间协议构造
+	//enter_room.set_enter_type(Asset::EnterRoom_ENTER_TYPE_ENTER_TYPE_ENTER); //进入房间协议构造
 
 	if (_room_list.size() <= 0) return;
 	
@@ -623,7 +623,7 @@ void Clan::OnJoinMatch(std::shared_ptr<Player> player, Asset::JoinMatch* message
 			if (!HasApplicant(player_id)) return; //没有报名不能参加比赛，即没有付费过门票
 			if (CanJoinMatch()) return; //是否可以参加比赛，比赛参与时间从开始比赛预留5分钟
 
-			AddJoiner(player_id); //参加比赛
+			AddJoiner(player); //参加比赛
 			player->SendProtocol(message); //通知玩家加入成功
 		}
 		break;
@@ -661,11 +661,27 @@ bool Clan::HasApplicant(int64_t player_id)
 //
 //比赛之后根据积分系统对_joiners进行增加
 //
-void Clan::AddJoiner(int64_t player_id)
+void Clan::AddJoiner(std::shared_ptr<Player> player)
 {
+	if (!player) return;
+
+	auto player_id = player->GetID();
+
 	std::lock_guard<std::mutex> lock(_joiners_mutex);
 
-	_joiners.push_back(player_id);
+	auto it = _player_room.find(player_id);
+	if (it == _player_room.end())
+	{
+		_joiners.insert(player_id); 
+	}
+	else //已经在房间内比赛
+	{
+		Asset::CreateRoom enter_room;
+		enter_room.mutable_room()->CopyFrom(_room);
+		enter_room.mutable_room()->set_room_id(it->second);
+
+		player->SendProtocol(enter_room); //通知玩家加入比赛房间
+	}
 	
 	DEBUG("茶馆:{} 玩家:{} 参加比赛", _clan_id, player_id);
 }
@@ -768,7 +784,7 @@ void Clan::OnRoundsCalculate()
 	{
 		if (player_needed_count == _joiners.size())	break;
 
-		_joiners.push_back(top_list[i].player_id());
+		_joiners.insert(top_list[i].player_id());
 	}
 	
 	DEBUG("茶馆:{} 比赛 当前轮次:{} 结束 即将开启下一轮", _clan_id, _curr_rounds);

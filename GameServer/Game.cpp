@@ -457,7 +457,7 @@ void Game::Calculate(std::shared_ptr<Player> player_ptr)
 	//
 	auto room_type = _room->GetType();
 
-	if (Asset::ROOM_TYPE_FRIEND == room_type)   
+	if (Asset::ROOM_TYPE_FRIEND == room_type || Asset::ROOM_TYPE_CLAN_MATCH == room_type)   
 	{
 		_room->AddGameRecord(message.record()); //本局记录
 	}
