@@ -446,7 +446,7 @@ void Clan::OnMatchOpen(int64_t player_id, Asset::OpenMatch* message)
 //
 bool Clan::IsMatchOpen()
 {
-	if (!_match_opened) return false; //尚未开启比赛
+	if (!_match_opened || !_stuff.has_open_match()) return false; //尚未开启比赛
 
 	auto curr_time = TimerInstance.GetTime();
 	auto start_time = _stuff.open_match().start_time(); //开启时间
@@ -615,7 +615,6 @@ void Clan::OnJoinMatch(std::shared_ptr<Player> player, Asset::JoinMatch* message
 		case Asset::JOIN_TYPE_ENROLL: //报名
 		{
 			if (HasApplicant(player_id)) return; //已经报过名
-	
 			if (_matching_start) return; //比赛已经开始，不能报名
 
 			player->SendProtocol2GameServer(message); //到逻辑服务器进行检查
@@ -625,10 +624,10 @@ void Clan::OnJoinMatch(std::shared_ptr<Player> player, Asset::JoinMatch* message
 		case Asset::JOIN_TYPE_JOIN: //开始比赛
 		{
 			if (!HasApplicant(player_id)) return; //没有报名不能参加比赛，即没有付费过门票
-
 			if (CanJoinMatch()) return; //是否可以参加比赛，比赛参与时间从开始比赛预留5分钟
 
 			AddJoiner(player_id); //参加比赛
+			player->SendProtocol(message); //通知玩家加入成功
 		}
 		break;
 
@@ -1666,14 +1665,17 @@ bool ClanManager::GetClan(int64_t clan_id, Asset::Clan& clan)
 void ClanManager::OnGameServerBack(const Asset::ClanMatchSync& message)
 {
 	auto clan_id = message.join_match().clan_id();
-
 	auto clan_ptr = ClanInstance.Get(clan_id);
 	if (!clan_ptr) return;
 	
 	auto player_id = message.player_id();
 	if (clan_ptr->HasApplicant(player_id)) return; //已经报过名
-
 	clan_ptr->AddApplicant(player_id);
+	
+	auto player = PlayerInstance.Get(player_id);
+	if (!player) return;
+
+	player->SendProtocol(message.join_match());
 }
 	
 void ClanManager::OnCreateRoom(const Asset::ClanCreateRoom* message)
