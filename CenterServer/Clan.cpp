@@ -429,13 +429,16 @@ void Clan::OnMatchOpen(int64_t player_id, Asset::OpenMatch* message)
 {
 	if (player_id <= 0 || !message) return;
 
-	if (_match_opened || _stuff.has_match_history()) return;//已经开启比赛
+	if (_match_opened || _stuff.match_history().has_open_match()) 
+	{
+		ERROR("玩家:{} 不能开启比赛，是否已经开启:{} 数据缓存:{}", player_id, _match_opened, _stuff.match_history().ShortDebugString());
+		return;//已经开启比赛
+	}
 
 	if (!IsHoster(player_id)) return; //没有权限
 
 	BroadCast(message); //通知成员报名
 
-	_stuff.mutable_last_match_history()->CopyFrom(_stuff.match_history());
 	_stuff.mutable_match_history()->mutable_open_match()->CopyFrom(*message);
 	_dirty = true;
 
@@ -455,7 +458,7 @@ void Clan::OnMatchOpen(int64_t player_id, Asset::OpenMatch* message)
 //
 bool Clan::IsMatchOpen()
 {
-	if (!_match_opened || !_stuff.has_match_history()) return false; //尚未开启比赛
+	if (!_match_opened || !_stuff.match_history().has_open_match()) return false; //尚未开启比赛
 
 	auto curr_time = TimerInstance.GetTime();
 	auto start_time = GetBattleTime(); //开启时间
@@ -714,11 +717,13 @@ void Clan::OnCreateRoom(const Asset::ClanCreateRoom* message)
 
 	++_curr_rounds; //轮次开始
 	
+	/*
 	if (_curr_rounds == 1) //首轮比赛，清理上期数据
 	{
-		_stuff.mutable_match_history()->Clear();
+		_stuff.mutable_last_match_history()->Clear();
 		_dirty = true;
 	}
+	*/
 
 	for (const auto room_id : message->room_list()) _room_list.insert(room_id); //房间列表缓存
 	
@@ -874,7 +879,7 @@ void Clan::SaveMatchHistory()
 
 void Clan::OnMatchOver()
 {
-	if (!_stuff.has_match_history()) return; //尚未存在记录
+	if (!_stuff.match_history().has_open_match()) return; //尚未存在记录
 
 	std::vector<Asset::PlayerBrief> top_list;
 	for (const auto& element : _player_score) top_list.push_back(element.second);
@@ -892,10 +897,12 @@ void Clan::OnMatchOver()
 		hist->CopyFrom(element);
 	}
 	
+	_stuff.mutable_match_history()->mutable_history_list()->Add()->CopyFrom(history);
+	_stuff.mutable_last_match_history()->CopyFrom(_stuff.match_history());
+	
 	_stuff.mutable_match_history()->Clear();
 	_stuff.clear_match_history();
 	_stuff.mutable_applicants()->Clear();
-	_stuff.mutable_match_history()->mutable_history_list()->Add()->CopyFrom(history);
 	_dirty = true;
 
 	//总排行存盘
@@ -916,6 +923,8 @@ void Clan::OnMatchOver()
 	_match_opened = false; //关闭比赛
 	_curr_rounds = 0;
 	_room_list.clear();
+	_applicants.clear();
+	_joiners.clear();
 	_room_players.clear();
 	_player_room.clear();
 	_player_details.clear();
