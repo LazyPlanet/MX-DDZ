@@ -932,6 +932,20 @@ void Clan::OnMatchOver()
 	RedisInstance.Save(key, _stuff.match_history()); //存盘
 	
 	_stuff.add_clan_match_list(_match_id);
+
+	if (_stuff.clan_match_list().size() > 10)
+	{
+		std::vector<int64_t> match_list(_stuff.clan_match_list().begin(), _stuff.clan_match_list().end());
+		_stuff.clear_clan_match_list();
+
+		for (auto it = match_list.rbegin(); it != match_list.rend(); ++it)
+		{
+			_stuff.add_clan_match_list(*it);
+
+			if (_stuff.clan_match_list().size() >= 10) break; //只存储10条比赛记录
+		}
+	}
+
 	_stuff.mutable_match_history()->Clear();
 	_stuff.clear_match_history();
 	_stuff.mutable_applicants()->Clear();
