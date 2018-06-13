@@ -425,17 +425,30 @@ void Clan::OnSetUpdateTime()
 	_dirty = true;
 }
 	
-void Clan::OnMatchOpen(int64_t player_id, Asset::OpenMatch* message)
+void Clan::OnMatchOpen(std::shared_ptr<Player> player, Asset::OpenMatch* message)
 {
-	if (player_id <= 0 || !message) return;
+	if (!player || !message) return;
+
+	auto player_id = player->GetID();
 
 	if (_match_opened || _stuff.match_history().has_open_match()) 
 	{
 		ERROR("玩家:{} 不能开启比赛，是否已经开启:{} 数据缓存:{}", player_id, _match_opened, _stuff.match_history().ShortDebugString());
 		return;//已经开启比赛
 	}
+	
+	auto curr_time = TimerInstance.GetTime();
+	if (message->start_time() < curr_time) 
+	{
+		player->AlertMessage(Asset::ERROR_CLAN_MATCH_TIME_INVALID);
+		return; //比赛不能是过去时间
+	}
 
-	if (!IsHoster(player_id)) return; //没有权限
+	if (!IsHoster(player_id)) 
+	{
+		player->AlertMessage(Asset::ERROR_CLAN_MATCH_NOT_HOSTER);
+		return; //没有权限
+	}
 
 	BroadCast(message); //通知成员报名
 
@@ -468,7 +481,7 @@ bool Clan::IsMatchOpen()
 
 bool Clan::CanJoinMatch(int64_t player_id)
 {
-	if (!_match_opened || !_room_created) return false; //尚未开启比赛
+	if (!_match_opened) return false; //尚未开启比赛
 	
 	auto it = _player_room.find(player_id);
 	if (it != _player_room.end()) return true; //有的玩家退出比赛后回来
@@ -476,14 +489,14 @@ bool Clan::CanJoinMatch(int64_t player_id)
 	auto curr_time = TimerInstance.GetTime();
 	auto start_time = GetBattleTime(); //开启时间
 
-	if (curr_time < start_time) return false;
+	if (curr_time < start_time) return false; //比赛尚未开始
 	
-	if (_curr_rounds > 0) return false; //轮次开始
+	if (_curr_rounds > 0) return false; //轮次开始//比赛已经开始，不能进入
 
 	auto clan_limit = dynamic_cast<Asset::ClanLimit*>(AssetInstance.Get(g_const->clan_id()));
 	if (!clan_limit) return false;
 
-	return start_time + clan_limit->join_match_time_last() < curr_time;
+	return curr_time <= start_time + clan_limit->join_match_time_last(); //比赛开始5分钟后不能进入
 }
 
 //
@@ -631,8 +644,11 @@ void Clan::OnJoinMatch(std::shared_ptr<Player> player, Asset::JoinMatch* message
 	{
 		case Asset::JOIN_TYPE_ENROLL: //报名
 		{
-			if (HasApplicant(player_id)) return; //已经报过名
-			//if (_matching_start) return; //比赛已经开始，不能报名
+			if (HasApplicant(player_id)) 
+			{
+				player->AlertMessage(Asset::ERROR_CLAN_MATCH_HAS_BEEN_APP);
+				return; //已经报过名
+			}
 
 			player->SendProtocol2GameServer(message); //到逻辑服务器进行检查
 		}
@@ -640,9 +656,17 @@ void Clan::OnJoinMatch(std::shared_ptr<Player> player, Asset::JoinMatch* message
 		
 		case Asset::JOIN_TYPE_JOIN: //开始比赛
 		{
-			if (!HasApplicant(player_id)) return; //没有报名不能参加比赛，即没有付费过门票
+			if (!HasApplicant(player_id)) 
+			{
+				player->AlertMessage(Asset::ERROR_CLAN_MATCH_HASNOT_BEEN_APP);
+				return; //没有报名不能参加比赛，即没有付费过门票
+			}
 
-			if (CanJoinMatch(player_id)) return; //是否可以参加比赛，比赛参与时间从开始比赛预留5分钟
+			if (!CanJoinMatch(player_id)) 
+			{
+				player->AlertMessage(Asset::ERROR_CLAN_MATCH_NO_TIME_REACH);
+				return; //是否可以参加比赛，比赛参与时间从开始比赛预留5分钟
+			}
 
 			AddJoiner(player); //参加比赛
 			player->SendProtocol(message); //通知玩家加入成功
@@ -921,7 +945,9 @@ void Clan::OnMatchOver()
 
 	//数据清理
 	_match_opened = false; //关闭比赛
+	_room_created = false; //生成对战房间
 	_curr_rounds = 0;
+	_match_server_id = 0;
 	_room_list.clear();
 	_applicants.clear();
 	_joiners.clear();

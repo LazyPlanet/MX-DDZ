@@ -99,7 +99,7 @@ public:
 	void OnSetUpdateTime();
 
 	//比赛相关
-	void OnMatchOpen(int64_t player_id, Asset::OpenMatch* message);
+	void OnMatchOpen(std::shared_ptr<Player> player, Asset::OpenMatch* message);
 	const Asset::OpenMatch& GetMatchSetting() { return _stuff.match_history().open_match(); }
 	bool IsMatchOpen(); //比赛是否开启
 	void OnMatchUpdate(); //比赛定时维护
