@@ -45,6 +45,7 @@ private:
 	std::unordered_map<int64_t/*玩家ID*/, Asset::PlayerBrief> _player_score; //玩家分数累积
 
 	Asset::Room _room; //俱乐部老板比赛房间设置
+	Asset::MatchHistory _history; //当轮战绩数据缓存
 public:
 	Clan(const Asset::Clan& clan) 
 	{ 
@@ -110,14 +111,15 @@ public:
 	void OnPlayerMatch(); //进行匹配
 	bool GetPlayers(std::vector<int64_t>& players);
 	const Asset::Room& GetRoom() { return _room; } //俱乐部部长比赛房间设置
-	bool CanJoinMatch(); //是否可以参加比赛
+	bool CanJoinMatch(int64_t player_id); //是否可以参加比赛
 	void OnMatchRoomOver(const Asset::ClanRoomStatusChanged* message);
 	void OnRoundsCalculate();
 	bool IsMatchOver() { return _curr_rounds >= _stuff.open_match().lunci_count(); } //比赛是否结束
 	int32_t GetRemainRounds(){ return _stuff.open_match().lunci_count() - _curr_rounds; } //剩余轮次
 	void OnMatchOver();
-	void SaveMatchHistory(int32_t rounds = 0);
+	void SaveMatchHistory();
 	int32_t GetBattleTime() { return _stuff.open_match().start_time(); }
+	int32_t GetMatchRoomCount() { return _room_players.size(); } //获取当前正在比赛的房间数量
 
 	void AddMember(int64_t player_id); //增加成员列表
 	bool HasMember(int64_t player_id); //是否含有成员
