@@ -238,7 +238,6 @@ int32_t Clan::OnChangedInformation(std::shared_ptr<Player> player, Asset::ClanOp
 	if (!player || !message) return Asset::ERROR_INNER;
 
 	if (_stuff.hoster_id() != player->GetID()) return Asset::ERROR_CLAN_NO_PERMISSION;
-			
 
 	auto name = message->name();
 	
@@ -430,13 +429,14 @@ void Clan::OnMatchOpen(int64_t player_id, Asset::OpenMatch* message)
 {
 	if (player_id <= 0 || !message) return;
 
-	if (_match_opened || _stuff.has_open_match()) return;//已经开启比赛
+	if (_match_opened || _stuff.has_match_history()) return;//已经开启比赛
 
 	if (!IsHoster(player_id)) return; //没有权限
 
 	BroadCast(message); //通知成员报名
 
-	_stuff.mutable_open_match()->CopyFrom(*message);
+	_stuff.mutable_last_match_history()->CopyFrom(_stuff.match_history());
+	_stuff.mutable_match_history()->mutable_open_match()->CopyFrom(*message);
 	_dirty = true;
 
 	_match_opened = true; //开始比赛报名
@@ -455,10 +455,10 @@ void Clan::OnMatchOpen(int64_t player_id, Asset::OpenMatch* message)
 //
 bool Clan::IsMatchOpen()
 {
-	if (!_match_opened || !_stuff.has_open_match()) return false; //尚未开启比赛
+	if (!_match_opened || !_stuff.has_match_history()) return false; //尚未开启比赛
 
 	auto curr_time = TimerInstance.GetTime();
-	auto start_time = _stuff.open_match().start_time(); //开启时间
+	auto start_time = GetBattleTime(); //开启时间
 
 	return curr_time > start_time;
 }
@@ -471,7 +471,7 @@ bool Clan::CanJoinMatch(int64_t player_id)
 	if (it != _player_room.end()) return true; //有的玩家退出比赛后回来
 
 	auto curr_time = TimerInstance.GetTime();
-	auto start_time = _stuff.open_match().start_time(); //开启时间
+	auto start_time = GetBattleTime(); //开启时间
 
 	if (curr_time < start_time) return false;
 	
@@ -502,7 +502,7 @@ void Clan::OnMatchUpdate()
 	if (room_size < 3) return; //不足3人，无法进行比赛
 
 	Asset::RoomOptions options;
-	options.set_open_rands(_stuff.open_match().rounds_count());
+	options.set_open_rands(_stuff.match_history().open_match().rounds_count());
 	options.set_zhuang_type(Asset::ZHUANG_TYPE_JIAOFEN);
 
 	_room.set_room_type(Asset::ROOM_TYPE_CLAN_MATCH);
@@ -670,7 +670,9 @@ void Clan::AddApplicant(int64_t player_id)
 bool Clan::HasApplicant(int64_t player_id)
 {
 	std::lock_guard<std::mutex> lock(_applicants_mutex);
+
 	if (_applicants.find(player_id) != _applicants.end()) return true; //已经报名
+
 	return false;
 }
 
@@ -714,10 +716,6 @@ void Clan::OnCreateRoom(const Asset::ClanCreateRoom* message)
 	
 	if (_curr_rounds == 1) //首轮比赛，清理上期数据
 	{
-		_stuff.mutable_last_match_history()->Clear();
-
-		for (const auto& history : _stuff.match_history()) _stuff.mutable_last_match_history()->Add()->CopyFrom(history);
-
 		_stuff.mutable_match_history()->Clear();
 		_dirty = true;
 	}
@@ -729,7 +727,7 @@ void Clan::OnCreateRoom(const Asset::ClanCreateRoom* message)
 	_history.set_room_total(message->room_count());
 	_history.set_battle_time(TimerInstance.GetTime());
 	
-	_stuff.mutable_match_history()->Add()->CopyFrom(_history);
+	_stuff.mutable_match_history()->mutable_history_list()->Add()->CopyFrom(_history);
 
 	DEBUG("茶馆:{} 比赛, 当前轮次:{} 创建房间:{} 成功", _clan_id, _curr_rounds, message->ShortDebugString());
 }
@@ -779,8 +777,8 @@ void Clan::OnMatchRoomOver(const Asset::ClanRoomStatusChanged* message)
 
 	_history.set_room_remain(_room_players.size()); //剩余房间数量
 	
-	if (_curr_rounds <= 0 || _stuff.match_history().size() < _curr_rounds) return
-	_stuff.mutable_match_history(_curr_rounds - 1)->CopyFrom(_history);
+	if (_curr_rounds <= 0 || _stuff.match_history().history_list().size() < _curr_rounds) return
+	_stuff.mutable_match_history()->mutable_history_list(_curr_rounds - 1)->CopyFrom(_history);
 
 	DEBUG("茶馆:{} 比赛 当前轮次:{} 房间:{} 结束", _clan_id, _curr_rounds, room_id, message->ShortDebugString());
 
@@ -825,7 +823,8 @@ void Clan::OnRoundsCalculate()
 		_joiners.insert(top_list[i].player_id());
 	}
 	
-	DEBUG("茶馆:{} 比赛 当前轮次:{} 结束 即将开启下一轮", _clan_id, _curr_rounds);
+	DEBUG("茶馆:{} 比赛当前轮次:{} 结束，剩余轮次:{} 下轮需要玩家数量:{} 剩余玩家数量:{} 即将开启下一轮", 
+			_clan_id, _curr_rounds, remain_rounds, player_needed_count, remain_player_count);
 
 	_room_created = false; //生成对战房间
 
@@ -852,13 +851,15 @@ void Clan::SaveMatchHistory()
 		hist->CopyFrom(element);
 	}
 
-	if (_curr_rounds <= 0 || _stuff.match_history().size() < _curr_rounds) return
+	if (_curr_rounds <= 0 || _stuff.match_history().history_list().size() < _curr_rounds) return
+	_stuff.mutable_match_history()->mutable_history_list(_curr_rounds - 1)->CopyFrom(_history);
 
-	_stuff.mutable_match_history(_curr_rounds - 1)->CopyFrom(_history);
 	_dirty = true;
 
 	//std::string key = "clan_match:" + std::to_string(_clan_id) + "_" + std::to_string(rounds);
 	//RedisInstance.Save(key, _history); //存盘
+	
+	DEBUG("茶馆:{} 比赛 当前轮次:{} 结束，战绩:{}", _clan_id, _curr_rounds, _history.ShortDebugString());
 
 	_history.Clear(); //清理本局战绩
 
@@ -873,7 +874,7 @@ void Clan::SaveMatchHistory()
 
 void Clan::OnMatchOver()
 {
-	if (!_stuff.has_open_match()) return; //尚未存在记录
+	if (!_stuff.has_match_history()) return; //尚未存在记录
 
 	std::vector<Asset::PlayerBrief> top_list;
 	for (const auto& element : _player_score) top_list.push_back(element.second);
@@ -891,9 +892,10 @@ void Clan::OnMatchOver()
 		hist->CopyFrom(element);
 	}
 	
-	_stuff.mutable_open_match()->Clear();
+	_stuff.mutable_match_history()->Clear();
+	_stuff.clear_match_history();
 	_stuff.mutable_applicants()->Clear();
-	_stuff.mutable_match_history()->Add()->CopyFrom(history);
+	_stuff.mutable_match_history()->mutable_history_list()->Add()->CopyFrom(history);
 	_dirty = true;
 
 	//总排行存盘

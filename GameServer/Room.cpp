@@ -978,7 +978,7 @@ void Room::OnCreated(std::shared_ptr<Player> hoster)
 		Asset::Clan clan;
 		if (!ClanInstance.GetCache(_stuff.clan_id(), clan)) return;
 				
-		_ticket_count = clan.open_match().ticket_count(); //门票数量
+		_ticket_count = clan.match_history().open_match().ticket_count(); //门票数量
 	}
 	
 	UpdateClanStatus(); //茶馆房间状态同步

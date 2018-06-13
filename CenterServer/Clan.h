@@ -100,7 +100,7 @@ public:
 
 	//比赛相关
 	void OnMatchOpen(int64_t player_id, Asset::OpenMatch* message);
-	const Asset::OpenMatch& GetMatchSetting() { return _stuff.open_match(); }
+	const Asset::OpenMatch& GetMatchSetting() { return _stuff.match_history().open_match(); }
 	bool IsMatchOpen(); //比赛是否开启
 	void OnMatchUpdate(); //比赛定时维护
 	void OnJoinMatch(std::shared_ptr<Player> player, Asset::JoinMatch* message); //参加比赛
@@ -114,11 +114,11 @@ public:
 	bool CanJoinMatch(int64_t player_id); //是否可以参加比赛
 	void OnMatchRoomOver(const Asset::ClanRoomStatusChanged* message);
 	void OnRoundsCalculate();
-	bool IsMatchOver() { return _curr_rounds >= _stuff.open_match().lunci_count(); } //比赛是否结束
-	int32_t GetRemainRounds(){ return _stuff.open_match().lunci_count() - _curr_rounds; } //剩余轮次
+	bool IsMatchOver() { return _curr_rounds >= _stuff.match_history().open_match().lunci_count(); } //比赛是否结束
+	int32_t GetRemainRounds(){ return _stuff.match_history().open_match().lunci_count() - _curr_rounds; } //剩余轮次
 	void OnMatchOver();
 	void SaveMatchHistory();
-	int32_t GetBattleTime() { return _stuff.open_match().start_time(); }
+	int32_t GetBattleTime() { return _stuff.match_history().open_match().start_time(); }
 	int32_t GetMatchRoomCount() { return _room_players.size(); } //获取当前正在比赛的房间数量
 
 	void AddMember(int64_t player_id); //增加成员列表

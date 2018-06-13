@@ -690,7 +690,7 @@ int32_t Player::CmdJoinMatch(pb::Message* message)
 			Asset::Clan clan;
 			if (!ClanInstance.GetCache(match->clan_id(), clan)) return 1; //尚未存在该俱乐部
 
-			const auto& open_match = clan.open_match();
+			const auto& open_match = clan.match_history().open_match();
 			int32_t ticket_count = open_match.ticket_count();
 
 			if (!CheckRoomCard(ticket_count)) 
