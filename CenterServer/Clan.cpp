@@ -437,6 +437,9 @@ void Clan::OnMatchOpen(std::shared_ptr<Player> player, Asset::OpenMatch* message
 		return;//已经开启比赛
 	}
 	
+	_match_id = RedisInstance.CreateMatch();
+	if (_match_id <= 0) return;
+	
 	auto curr_time = TimerInstance.GetTime();
 	if (message->start_time() < curr_time) 
 	{
@@ -457,7 +460,7 @@ void Clan::OnMatchOpen(std::shared_ptr<Player> player, Asset::OpenMatch* message
 
 	_match_opened = true; //开始比赛报名
 
-	DEBUG("玩家:{} 开启茶馆:{} 比赛:{} 成功", player_id, _clan_id, message->ShortDebugString());     
+	DEBUG("玩家:{} 开启茶馆:{} 比赛全局场次:{} 协议数据:{} 成功", player_id, _clan_id, _match_id, message->ShortDebugString());     
 }
 
 
@@ -924,15 +927,16 @@ void Clan::OnMatchOver()
 	_stuff.mutable_match_history()->mutable_history_list()->Add()->CopyFrom(history);
 	_stuff.mutable_last_match_history()->CopyFrom(_stuff.match_history());
 	
+	//总排行存盘
+	std::string key = "clan_match:" + std::to_string(_match_id);
+	RedisInstance.Save(key, _stuff.match_history()); //存盘
+	
+	_stuff.add_clan_match_list(_match_id);
 	_stuff.mutable_match_history()->Clear();
 	_stuff.clear_match_history();
 	_stuff.mutable_applicants()->Clear();
 	_dirty = true;
 
-	//总排行存盘
-	//std::string key = "clan_match:" + std::to_string(_clan_id);
-	//RedisInstance.Save(key, history); //存盘
-	
 	//排行榜广播
 	/*
 	Asset::ClanMatchHistory proto;
@@ -948,6 +952,7 @@ void Clan::OnMatchOver()
 	_room_created = false; //生成对战房间
 	_curr_rounds = 0;
 	_match_server_id = 0;
+	_match_id = 0;
 	_room_list.clear();
 	_applicants.clear();
 	_joiners.clear();

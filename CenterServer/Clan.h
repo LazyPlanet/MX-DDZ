@@ -32,6 +32,7 @@ private:
 	bool _match_opened = false; //比赛是否可以报名
 	int32_t _match_server_id = 0; //比赛模式茶馆开房逻辑服务器
 	int32_t _curr_rounds = 0; //当前比赛轮次
+	int64_t _match_id = 0; //比赛场次
 
 	//std::atomic<bool> _matching_start; //比赛已经开始，玩家可以比赛
 	bool _room_created = false; //房间是否创建完毕
