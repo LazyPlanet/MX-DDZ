@@ -759,7 +759,7 @@ void Clan::AddJoiner(std::shared_ptr<Player> player)
 
 		for (int i = _taotai_count_per_rounds; i > 0; --i)
 		{
-			if (i % 9 == 0) 
+			if (i % 3 == 0) 
 			{
 				_taotai_count_per_rounds = i; //每轮淘汰人数
 				break;
@@ -868,7 +868,7 @@ void Clan::OnRoundsCalculate()
 	std::lock_guard<std::mutex> lock(_joiners_mutex);
 	size_t remain_player_count = _joiners.size(); //剩余玩家晋级数量//轮空玩家数量
 
-	const auto& top_list = _player_details[_curr_rounds]; //本轮已经排行的积分榜
+	auto& top_list = _player_details[_curr_rounds]; //本轮已经排行的积分榜
 	int32_t player_count = top_list.size(); //本轮玩家数量
 
 	size_t next_round_player_needed = 0;  //下轮比赛需要玩家数量
@@ -892,8 +892,8 @@ void Clan::OnRoundsCalculate()
 	//从本轮玩家选择参加下轮比赛的玩家
 	for (size_t i = 0; i < top_list.size(); ++i)	
 	{
-		if (next_round_player_needed == _joiners.size()) break;
-		_joiners.insert(top_list[i].player_id()); //下轮参与比赛玩家数量
+		if (next_round_player_needed < _joiners.size()) { _joiners.insert(top_list[i].player_id()); } //下轮参与比赛玩家数量
+		else { _player_out_rounds[top_list[i].player_id()] = _curr_rounds; } //淘汰玩家
 	}
 
 	if (_joiners.size() < next_round_player_needed)
@@ -951,6 +951,12 @@ void Clan::OnMatchOver()
 	std::sort(top_list.begin(), top_list.end(), [](const Asset::PlayerBrief& x, const Asset::PlayerBrief& y){
 				return x.score() > y.score();	//根据分数，由大到小排序
 			});
+
+	for (auto& element : top_list) 
+	{
+		auto player_id = element.player_id();
+		element.set_out_rounds(_player_out_rounds[player_id]);
+	}
 	
 	Asset::MatchHistory history;
 	history.set_clan_id(_clan_id);
@@ -1010,6 +1016,7 @@ void Clan::OnMatchOver()
 	_applicants.clear();
 	_joiners.clear();
 	_room_players.clear();
+	_player_out_rounds.clear();
 	_player_room.clear();
 	_player_details.clear();
 	_player_score.clear();
