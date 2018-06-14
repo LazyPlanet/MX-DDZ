@@ -435,7 +435,7 @@ void Clan::OnMatchOpen(std::shared_ptr<Player> player, Asset::OpenMatch* message
 	{
 		ERROR("玩家:{} 不能开启比赛，是否已经开启:{} 数据缓存:{}", player_id, _match_opened, _stuff.match_history().ShortDebugString());
 		
-		player->AlertMessage(Asset::ERROR_CLAN_MATCH_HAS_OPENED);
+		player->AlertMessage(Asset::ERROR_CLAN_MATCH_HAS_OPENED, Asset::ERROR_TYPE_NORMAL, Asset::ERROR_SHOW_TYPE_MESSAGE_BOX);
 		return;//已经开启比赛
 	}
 	
@@ -445,13 +445,13 @@ void Clan::OnMatchOpen(std::shared_ptr<Player> player, Asset::OpenMatch* message
 	auto curr_time = TimerInstance.GetTime();
 	if (message->start_time() < curr_time) 
 	{
-		player->AlertMessage(Asset::ERROR_CLAN_MATCH_TIME_INVALID);
+		player->AlertMessage(Asset::ERROR_CLAN_MATCH_TIME_INVALID, Asset::ERROR_TYPE_NORMAL, Asset::ERROR_SHOW_TYPE_MESSAGE_BOX);
 		return; //比赛不能是过去时间
 	}
 
 	if (!IsHoster(player_id)) 
 	{
-		player->AlertMessage(Asset::ERROR_CLAN_MATCH_NOT_HOSTER);
+		player->AlertMessage(Asset::ERROR_CLAN_MATCH_NOT_HOSTER, Asset::ERROR_TYPE_NORMAL, Asset::ERROR_SHOW_TYPE_MESSAGE_BOX);
 		return; //没有权限
 	}
 
@@ -482,6 +482,11 @@ bool Clan::IsMatchOpen()
 	auto start_time = GetBattleTime(); //开启时间
 
 	return curr_time > start_time;
+}
+
+bool Clan::IsMatching()
+{
+	return _stuff.match_history().has_open_match();
 }
 
 bool Clan::CanJoinMatch(int64_t player_id)
@@ -651,7 +656,7 @@ void Clan::OnJoinMatch(std::shared_ptr<Player> player, Asset::JoinMatch* message
 		{
 			if (HasApplicant(player_id)) 
 			{
-				player->AlertMessage(Asset::ERROR_CLAN_MATCH_HAS_BEEN_APP);
+				player->AlertMessage(Asset::ERROR_CLAN_MATCH_HAS_BEEN_APP, Asset::ERROR_TYPE_NORMAL, Asset::ERROR_SHOW_TYPE_MESSAGE_BOX);
 				return; //已经报过名
 			}
 
@@ -663,13 +668,13 @@ void Clan::OnJoinMatch(std::shared_ptr<Player> player, Asset::JoinMatch* message
 		{
 			if (!HasApplicant(player_id)) 
 			{
-				player->AlertMessage(Asset::ERROR_CLAN_MATCH_HASNOT_BEEN_APP);
+				player->AlertMessage(Asset::ERROR_CLAN_MATCH_HASNOT_BEEN_APP, Asset::ERROR_TYPE_NORMAL, Asset::ERROR_SHOW_TYPE_MESSAGE_BOX);
 				return; //没有报名不能参加比赛，即没有付费过门票
 			}
 
 			if (!CanJoinMatch(player_id)) 
 			{
-				player->AlertMessage(Asset::ERROR_CLAN_MATCH_NO_TIME_REACH);
+				player->AlertMessage(Asset::ERROR_CLAN_MATCH_NO_TIME_REACH, Asset::ERROR_TYPE_NORMAL, Asset::ERROR_SHOW_TYPE_MESSAGE_BOX);
 				return; //是否可以参加比赛，比赛参与时间从开始比赛预留5分钟
 			}
 
@@ -1474,8 +1479,12 @@ void ClanManager::OnOperate(std::shared_ptr<Player> player, Asset::ClanOperation
 				message->set_oper_result(Asset::ERROR_CLAN_DISMISS_GAMING);
 				return;
 			}
-
-			//Remove(message->clan_id());
+			
+			if (clan->IsMatching()) //比赛进行中，不能解散
+			{
+				message->set_oper_result(Asset::ERROR_CLAN_MATCH_DIMISS);
+				return;
+			}
 
 			message->set_recharge_count(clan->GetRoomCard());
 			player->SendProtocol2GameServer(message); //通知逻辑服务器解散

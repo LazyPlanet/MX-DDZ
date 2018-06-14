@@ -103,6 +103,7 @@ public:
 	void OnMatchOpen(std::shared_ptr<Player> player, Asset::OpenMatch* message);
 	const Asset::OpenMatch& GetMatchSetting() { return _stuff.match_history().open_match(); }
 	bool IsMatchOpen(); //比赛是否开启
+	bool IsMatching(); //比赛正在比赛
 	void OnMatchUpdate(); //比赛定时维护
 	void OnJoinMatch(std::shared_ptr<Player> player, Asset::JoinMatch* message); //参加比赛
 	void OnMatchHistory(std::shared_ptr<Player> player, Asset::ClanMatchHistory* message); //比赛记录查询
