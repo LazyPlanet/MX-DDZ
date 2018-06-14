@@ -62,7 +62,7 @@ bool CenterSession::OnMessageProcess(const Asset::Meta& meta)
 		pb::Message* msg = ProtocolInstance.GetMessage(meta.type_t());	
 		if (!msg) 
 		{
-			ERROR("游戏逻辑服务器，尚未找到协议:{}的处理回调.", meta.type_t());
+			ERROR("游戏逻辑服务器，玩家:{} 尚未找到协议:{} 的处理回调.", meta.player_id(), meta.type_t());
 			return false;		//非法协议
 		}
 
