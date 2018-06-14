@@ -1269,6 +1269,9 @@ void ClanManager::Update(int32_t diff)
 void ClanManager::Load()
 {
 	if (_loaded) return;
+			
+	_glimit = dynamic_cast<Asset::ClanLimit*>(AssetInstance.Get(g_const->clan_id()));
+	ASSERT(_glimit != nullptr);
 
 	std::vector<std::string> clan_list;
 	bool has_record = RedisInstance.GetArray("ddz_clan:*", clan_list);	
@@ -1297,9 +1300,6 @@ void ClanManager::Load()
 	DEBUG("加载茶馆数据成功，加载成功数量:{}", _clans.size());
 
 	_loaded = true;
-			
-	_glimit = dynamic_cast<Asset::ClanLimit*>(AssetInstance.Get(g_const->clan_id()));
-	ASSERT(_glimit != nullptr);
 }
 
 void ClanManager::Remove(int64_t clan_id)
