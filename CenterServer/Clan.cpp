@@ -813,14 +813,13 @@ void Clan::OnMatchRoomOver(const Asset::ClanRoomStatusChanged* message)
 		return;
 	}
 
+	for (auto player_id : it->second) _player_waiting.insert(player_id);
 	_room_players.erase(it); //删除比赛房间
 
 	for (auto it = _player_room.begin(); it != _player_room.end();)
 	{
 		if (it->second == room_id)
 		{
-			_player_waiting.insert(it->first);
-
 			it = _player_room.erase(it); //清理玩家房间信息
 			continue;
 		}
