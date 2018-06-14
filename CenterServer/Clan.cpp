@@ -484,19 +484,20 @@ bool Clan::IsMatching()
 	return _stuff.match_history().has_open_match();
 }
 
-bool Clan::CanJoinMatch(int64_t player_id)
+int32_t Clan::CanJoinMatch(int64_t player_id)
 {
-	if (!_match_opened) return false; //尚未开启比赛
+	if (!_match_opened) return Asset::ERROR_CLAN_MATCH_NO_TIME_REACH; //尚未开启比赛
 	
 	auto it = _player_room.find(player_id);
-	if (it != _player_room.end()) return true; //有的玩家退出比赛后回来
+	if (it != _player_room.end()) return 0; //有的玩家退出比赛后回来
 
 	auto curr_time = TimerInstance.GetTime();
 	auto start_time = GetBattleTime(); //开启时间
 
-	if (curr_time < start_time) return false; //比赛尚未开始
-	
-	return curr_time <= start_time + _glimit->join_match_time_last(); //比赛开始5分钟后不能进入
+	if (curr_time < start_time) return Asset::ERROR_CLAN_MATCH_NO_TIME_REACH; //比赛尚未开始
+	if (curr_time > start_time + _glimit->join_match_time_last()) return Asset::ERROR_CLAN_MATCH_TIME_OUT; //比赛开始5分钟后不能进入
+
+	return 0; 
 }
 
 //
@@ -672,9 +673,10 @@ void Clan::OnJoinMatch(std::shared_ptr<Player> player, Asset::JoinMatch* message
 				return; //没有报名不能参加比赛，即没有付费过门票
 			}
 
-			if (!CanJoinMatch(player_id)) 
+			int32_t result = CanJoinMatch(player_id);
+			if (result != 0)
 			{
-				player->AlertMessage(Asset::ERROR_CLAN_MATCH_NO_TIME_REACH, Asset::ERROR_TYPE_NORMAL, Asset::ERROR_SHOW_TYPE_MESSAGE_BOX);
+				player->AlertMessage(result, Asset::ERROR_TYPE_NORMAL, Asset::ERROR_SHOW_TYPE_MESSAGE_BOX);
 				return; //是否可以参加比赛，比赛参与时间从开始比赛预留5分钟
 			}
 
@@ -851,7 +853,12 @@ void Clan::OnMatchRoomOver(const Asset::ClanRoomStatusChanged* message)
 
 	DEBUG("茶馆:{} 比赛 当前轮次:{} 房间:{} 结束", _clan_id, _curr_rounds, room_id, message->ShortDebugString());
 
-	if (_room_players.size() == 0) OnRoundsCalculate(); //所有房间结束比赛，本轮次结束
+	if (_room_players.size() == 0) 
+	{
+		OnRoundsCalculate(); //所有房间结束比赛，本轮次结束
+
+		++_curr_rounds; //轮次结束
+	}
 }
 	
 void Clan::OnRoundsCalculate()
@@ -930,9 +937,9 @@ void Clan::SaveMatchHistory()
 
 	_dirty = true;
 
-	DEBUG("茶馆:{} 比赛 当前轮次:{} 结束，战绩:{}", _clan_id, _curr_rounds, _history.ShortDebugString());
+	DEBUG("茶馆:{} 比赛轮次:{} 结束，战绩:{}", _clan_id, _curr_rounds, _history.ShortDebugString());
 
-	++_curr_rounds; //轮次结束
+	//++_curr_rounds; //轮次结束
 
 	//_player_waiting.clear();
 	_history.Clear(); //清理本局战绩
