@@ -434,6 +434,8 @@ void Clan::OnMatchOpen(std::shared_ptr<Player> player, Asset::OpenMatch* message
 	if (_match_opened || _stuff.match_history().has_open_match()) 
 	{
 		ERROR("玩家:{} 不能开启比赛，是否已经开启:{} 数据缓存:{}", player_id, _match_opened, _stuff.match_history().ShortDebugString());
+		
+		player->AlertMessage(Asset::ERROR_CLAN_MATCH_HAS_OPENED);
 		return;//已经开启比赛
 	}
 	
