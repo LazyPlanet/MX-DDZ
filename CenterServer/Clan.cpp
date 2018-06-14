@@ -11,6 +11,7 @@ namespace Adoter
 
 extern int32_t g_server_id;
 extern const Asset::CommonConst* g_const;
+Asset::ClanLimit* _glimit = nullptr;
 
 //3秒一次
 void Clan::Update()
@@ -56,16 +57,13 @@ bool Clan::Load()
 
 void Clan::OnLoaded()
 {
-	auto clan_limit = dynamic_cast<Asset::ClanLimit*>(AssetInstance.Get(g_const->clan_id()));
-	if (!clan_limit) return;
-
 	auto curr_time = TimerInstance.GetTime();
 
 	std::vector<Asset::SystemMessage> sys_messages;
 
 	for (const auto& sys_message : _stuff.message_list())
 	{
-		if (curr_time > sys_message.oper_time() + clan_limit->sys_message_limit() * 24 * 3600) continue;
+		if (curr_time > sys_message.oper_time() + _glimit->sys_message_limit() * 24 * 3600) continue;
 
 		sys_messages.push_back(sys_message);
 	}
@@ -256,10 +254,7 @@ int32_t Clan::OnChangedInformation(std::shared_ptr<Player> player, Asset::ClanOp
 	{
 		CommonUtil::Trim(announcement);
 
-		auto clan_limit = dynamic_cast<Asset::ClanLimit*>(AssetInstance.Get(g_const->clan_id()));
-		if (!clan_limit) return Asset::ERROR_CLAN_ANNOUCEMENT_INVALID;
-	
-		if ((int32_t)announcement.size() > clan_limit->annoucement_limit()) return Asset::ERROR_CLAN_ANNOUCEMENT_INVALID; //字数限制
+		if ((int32_t)announcement.size() > _glimit->annoucement_limit()) return Asset::ERROR_CLAN_ANNOUCEMENT_INVALID; //字数限制
 
 		if (!NameLimitInstance.IsValid(announcement)) return Asset::ERROR_CLAN_ANNOUCEMENT_INVALID;
 
@@ -503,10 +498,7 @@ bool Clan::CanJoinMatch(int64_t player_id)
 	
 	if (_curr_rounds > 0) return false; //轮次开始//比赛已经开始，不能进入
 
-	auto clan_limit = dynamic_cast<Asset::ClanLimit*>(AssetInstance.Get(g_const->clan_id()));
-	if (!clan_limit) return false;
-
-	return curr_time <= start_time + clan_limit->join_match_time_last(); //比赛开始5分钟后不能进入
+	return curr_time <= start_time + _glimit->join_match_time_last(); //比赛开始5分钟后不能进入
 }
 
 //
@@ -524,11 +516,13 @@ void Clan::OnMatchUpdate()
 	//int32_t room_size = _applicants.size(); //按照报名玩家数量，预创建房间
 	//
 	std::lock_guard<std::mutex> lock(_joiners_mutex); //按照参加比赛人数
+
 	int32_t room_size = _joiners.size(); 
-	if (room_size < 3) return; //不足3人，无法进行比赛
+	if (room_size < GetPeopleLimit()) return; //不足无法进行比赛
 
 	Asset::RoomOptions options;
-	options.set_open_rands(_stuff.match_history().open_match().rounds_count());
+	//options.set_open_rands(_stuff.match_history().open_match().rounds_count());
+	options.set_open_rands(_glimit->match_rounds());
 	options.set_zhuang_type(Asset::ZHUANG_TYPE_JIAOFEN);
 
 	_room.set_room_type(Asset::ROOM_TYPE_CLAN_MATCH);
@@ -755,8 +749,25 @@ void Clan::AddJoiner(std::shared_ptr<Player> player)
 
 		player->SendProtocol(enter_room); //通知玩家加入比赛房间
 	}
+
+	_joiner_count = _joiners.size(); //比赛总人数
+
+	int32_t total_rounds = GetTotalRounds();
+	if (total_rounds > 2 && _joiner_count > 9)
+	{
+		_taotai_count_per_rounds = (_joiner_count - 9) / (total_rounds - 2);
+
+		for (int i = _taotai_count_per_rounds; i > 0; --i)
+		{
+			if (i % 9 == 0) 
+			{
+				_taotai_count_per_rounds = i; //每轮淘汰人数
+				break;
+			}
+		}
+	}
 	
-	DEBUG("茶馆:{} 玩家:{} 参加比赛", _clan_id, player_id);
+	DEBUG("茶馆:{} 玩家:{} 参加比赛，此时参赛总人数:{} 本场比赛需要总轮次:{}", _clan_id, player_id, _joiner_count, total_rounds);
 }
 	
 void Clan::OnCreateRoom(const Asset::ClanCreateRoom* message)
@@ -850,40 +861,53 @@ void Clan::OnRoundsCalculate()
 		return;
 	}
 
-	//
-	//根据分数选择进入下一轮玩家
-	//
-	//未能参加比赛的玩家，直接晋级_joiners
-	//
+	//根据分数选择进入下一轮玩家，未能参加本轮比赛的玩家，直接晋级_joiners
 	int32_t remain_rounds = GetRemainRounds();
 	if (remain_rounds <= 0) return; //轮次已完
 
-	size_t player_needed_count = remain_rounds * 3; //本轮比赛需要玩家数量
-
 	std::lock_guard<std::mutex> lock(_joiners_mutex);
-	size_t remain_player_count = _joiners.size(); //剩余玩家晋级数量
+	size_t remain_player_count = _joiners.size(); //剩余玩家晋级数量//轮空玩家数量
 
-	const auto& top_list = _player_details[_curr_rounds]; //已经排行的积分榜
-	if (top_list.size() + remain_player_count < player_needed_count)
+	const auto& top_list = _player_details[_curr_rounds]; //本轮已经排行的积分榜
+	int32_t player_count = top_list.size(); //本轮玩家数量
+
+	size_t next_round_player_needed = 0;  //下轮比赛需要玩家数量
+
+	//淘汰机制
+	if (remain_rounds == 1) //倒数第一轮，即最后一轮
 	{
-		LOG(ERROR, "严重错误，茶馆:{} 比赛 当前轮次:{} 玩家数量不足，需要玩家:{} 上轮剩余:{} 上轮比赛玩家:{}", 
-				_clan_id, _curr_rounds, player_needed_count, remain_player_count, top_list.size());
-		return;
+		next_round_player_needed = 3; 
+		_joiners.clear(); 
+	}
+	else if (remain_rounds == 2)
+	{
+		next_round_player_needed = std::min(9, player_count);
+		_joiners.clear(); 
+	}
+	else
+	{
+		next_round_player_needed = player_count - _taotai_count_per_rounds;
 	}
 
+	//从本轮玩家选择参加下轮比赛的玩家
 	for (size_t i = 0; i < top_list.size(); ++i)	
 	{
-		if (player_needed_count == _joiners.size())	break;
-
-		_joiners.insert(top_list[i].player_id());
+		if (next_round_player_needed == _joiners.size()) break;
+		_joiners.insert(top_list[i].player_id()); //下轮参与比赛玩家数量
 	}
-	
-	DEBUG("茶馆:{} 比赛当前轮次:{} 结束，剩余轮次:{} 下轮需要玩家数量:{} 剩余玩家数量:{} 即将开启下一轮", 
-			_clan_id, _curr_rounds, remain_rounds, player_needed_count, remain_player_count);
 
-	_room_created = false; //生成对战房间
+	if (_joiners.size() < next_round_player_needed)
+	{
+		ERROR("茶馆:{} 比赛当前轮次:{} 参与玩家数量:{} 结束，剩余轮次:{} 下轮需要玩家数量:{} 剩余玩家数量:{} 下一轮比赛人数错误", 
+			_clan_id, _curr_rounds, player_count, remain_rounds, next_round_player_needed, remain_player_count); //人数不足
+	}
+	else
+	{
+		DEBUG("茶馆:{} 比赛当前轮次:{} 参与玩家数量:{} 结束，剩余轮次:{} 下轮需要玩家数量:{} 剩余玩家数量:{} 即将开启下一轮", 
+				_clan_id, _curr_rounds, player_count, remain_rounds, next_round_player_needed, remain_player_count);
+	}
 
-	//++_curr_rounds; //下一轮次//创建房间成功后，轮次开始
+	_room_created = false; //生成下轮对战房间
 }
 
 void Clan::SaveMatchHistory()
@@ -892,14 +916,7 @@ void Clan::SaveMatchHistory()
 	std::sort(top_list.begin(), top_list.end(), [](const Asset::PlayerBrief& x, const Asset::PlayerBrief& y){
 				return x.score() > y.score();	//根据分数，由大到小排序
 			});
-
-	/*
-	Asset::MatchHistory history;
-	history.set_clan_id(_clan_id);
-	history.set_curr_rounds(rounds);
-	history.set_battle_time(TimerInstance.GetTime());
-	*/
-
+	
 	for (const auto& element : top_list)
 	{
 		auto hist = _history.mutable_top_list()->Add();
@@ -911,9 +928,6 @@ void Clan::SaveMatchHistory()
 
 	_dirty = true;
 
-	//std::string key = "clan_match:" + std::to_string(_clan_id) + "_" + std::to_string(rounds);
-	//RedisInstance.Save(key, _history); //存盘
-	
 	DEBUG("茶馆:{} 比赛 当前轮次:{} 结束，战绩:{}", _clan_id, _curr_rounds, _history.ShortDebugString());
 
 	_history.Clear(); //清理本局战绩
@@ -990,6 +1004,8 @@ void Clan::OnMatchOver()
 	_curr_rounds = 0;
 	_match_server_id = 0;
 	_match_id = 0;
+	_joiner_count = 0;
+	_taotai_count_per_rounds = 0;
 	_room_list.clear();
 	_applicants.clear();
 	_joiners.clear();
@@ -1042,16 +1058,6 @@ int32_t Clan::RemoveMember(int64_t player_id, Asset::ClanOperation* message)
 
 	if (player.login_time() == 0) //离线:直接从茶馆删除
 	{
-		/*
-		for (int32_t i = 0; i < player.clan_hosters().size(); ++i) //茶馆老板
-		{
-			if (_clan_id != player.clan_hosters(i)) continue;
-
-			player.mutable_clan_hosters()->SwapElements(i, player.clan_hosters().size() - 1);
-			player.mutable_clan_hosters()->RemoveLast();
-		}
-		*/
-
 		for (int32_t i = 0; i < player.clan_joiners().size(); ++i) //茶馆成员
 		{
 			if (_clan_id == player.clan_joiners(i)) 
@@ -1198,16 +1204,13 @@ void Clan::OnRoomOver(const Asset::ClanRoomStatusChanged* message)
 	//
 	//删除过期的历史战绩
 	//
-	auto clan_limit = dynamic_cast<Asset::ClanLimit*>(AssetInstance.Get(g_const->clan_id()));
-	if (!clan_limit) return;
-	
 	auto curr_time = TimerInstance.GetTime();
 	std::vector<Asset::Clan_RoomHistory> room_histry;
 
 	for (const auto& history : _stuff.battle_history())
 	{
 		auto battle_time = history.battle_time();
-		if (battle_time + clan_limit->room_history_last_day() * 24 * 3600 < curr_time) continue; //过期
+		if (battle_time + _glimit->room_history_last_day() * 24 * 3600 < curr_time) continue; //过期
 
 		room_histry.push_back(history);
 	}
@@ -1294,6 +1297,9 @@ void ClanManager::Load()
 	DEBUG("加载茶馆数据成功，加载成功数量:{}", _clans.size());
 
 	_loaded = true;
+			
+	_glimit = dynamic_cast<Asset::ClanLimit*>(AssetInstance.Get(g_const->clan_id()));
+	ASSERT(_glimit != nullptr);
 }
 
 void ClanManager::Remove(int64_t clan_id)
@@ -1395,8 +1401,8 @@ void ClanManager::OnOperate(std::shared_ptr<Player> player, Asset::ClanOperation
 		case Asset::CLAN_OPER_TYPE_CREATE: //创建
 		{
 			/*
-			auto clan_limit = dynamic_cast<Asset::ClanLimit*>(AssetInstance.Get(g_const->clan_id()));
-			if (!clan_limit) return;
+			auto _glimit = dynamic_cast<Asset::ClanLimit*>(AssetInstance.Get(g_const->clan_id()));
+			if (!_glimit) return;
 
 			auto trim_name = message->name();
 			CommonUtil::Trim(trim_name);
@@ -1412,7 +1418,7 @@ void ClanManager::OnOperate(std::shared_ptr<Player> player, Asset::ClanOperation
 				message->set_oper_result(Asset::ERROR_CLAN_NAME_EMPTY);
 				return;
 			}
-			if ((int32_t)trim_name.size() > clan_limit->name_limit())
+			if ((int32_t)trim_name.size() > _glimit->name_limit())
 			{
 				message->set_oper_result(Asset::ERROR_CLAN_NAME_UPPER);
 				return;
@@ -1664,16 +1670,13 @@ void ClanManager::OnOperate(std::shared_ptr<Player> player, Asset::ClanOperation
 	
 int32_t ClanManager::IsNameValid(std::string name, std::string trim_name)
 {
-	auto clan_limit = dynamic_cast<Asset::ClanLimit*>(AssetInstance.Get(g_const->clan_id()));
-	if (!clan_limit) return Asset::ERROR_CLAN_NAME_INVALID;
-
 	CommonUtil::Trim(trim_name);
 
 	if (trim_name.size() != name.size()) return Asset::ERROR_CLAN_NAME_INVALID;
 
 	if (trim_name.empty()) return Asset::ERROR_CLAN_NAME_EMPTY;
 
-	if ((int32_t)trim_name.size() > clan_limit->name_limit()) return Asset::ERROR_CLAN_NAME_UPPER;
+	if ((int32_t)trim_name.size() > _glimit->name_limit()) return Asset::ERROR_CLAN_NAME_UPPER;
 
 	if (!NameLimitInstance.IsValid(trim_name)) return Asset::ERROR_CLAN_NAME_INVALID;
 

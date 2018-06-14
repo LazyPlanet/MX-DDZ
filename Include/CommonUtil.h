@@ -19,10 +19,17 @@ namespace Adoter
 		if (debug) { \
 			assert(expr); \
 		} else if (!(expr)) { \
-			LOG(ERROR, "command: {}", #expr); \
+			LOG(ERROR, "指令执行失败: {}", #expr); \
 		} \
 	}
 
+#define ASSERT(expr) \
+	{ \
+		if (!(expr)) { \
+			LOG(ERROR, "指令执行失败: {}", #expr); \
+		} \
+		assert(expr); \
+	}
 }
 
 #define CONCAT_INTERNAL(x,y) x##y

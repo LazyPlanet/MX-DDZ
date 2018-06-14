@@ -12,7 +12,7 @@
 namespace Adoter
 {
 namespace pb = google::protobuf;
-
+	
 class Clan : public std::enable_shared_from_this<Clan>
 {
 private:
@@ -33,6 +33,8 @@ private:
 	int32_t _match_server_id = 0; //比赛模式茶馆开房逻辑服务器
 	int32_t _curr_rounds = 0; //当前比赛轮次
 	int64_t _match_id = 0; //比赛场次
+	int32_t _joiner_count = 0; //参加比赛总人数
+	int32_t _taotai_count_per_rounds = 0; //每轮淘汰玩家数量
 
 	//std::atomic<bool> _matching_start; //比赛已经开始，玩家可以比赛
 	bool _room_created = false; //房间是否创建完毕
@@ -119,9 +121,11 @@ public:
 	void OnRoundsCalculate();
 	bool IsMatchOver() { return _curr_rounds >= _stuff.match_history().open_match().lunci_count(); } //比赛是否结束
 	int32_t GetRemainRounds(){ return _stuff.match_history().open_match().lunci_count() - _curr_rounds; } //剩余轮次
+	int32_t GetTotalRounds(){ return _stuff.match_history().open_match().lunci_count(); } //比赛总轮次
 	void OnMatchOver();
 	void SaveMatchHistory();
-	int32_t GetBattleTime() { return _stuff.match_history().open_match().start_time(); }
+	int32_t GetBattleTime() { return _stuff.match_history().open_match().start_time(); } //比赛开始时间
+	int32_t GetPeopleLimit() { return _stuff.match_history().open_match().people_down(); } //玩家下限
 	int32_t GetMatchRoomCount() { return _room_players.size(); } //获取当前正在比赛的房间数量
 
 	void AddMember(int64_t player_id); //增加成员列表
