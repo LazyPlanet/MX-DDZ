@@ -539,7 +539,7 @@ bool Player::SendProtocol2GameServer(const pb::Message& message)
 	meta.set_stuff(message.SerializeAsString());
 	meta.set_player_id(_player_id); 
 
-	DEBUG("玩家:{} 发送到游戏逻辑服务器:{} 协议类型:{} 内容:{}", _player_id, _stuff.server_id(), Asset::META_TYPE_Name(meta.type_t()), debug_string);
+	//DEBUG("玩家:{} 发送到游戏逻辑服务器:{} 协议类型:{} 内容:{}", _player_id, _stuff.server_id(), Asset::META_TYPE_Name(meta.type_t()), debug_string);
 
 	_gs_session->SendMeta(meta); 
 

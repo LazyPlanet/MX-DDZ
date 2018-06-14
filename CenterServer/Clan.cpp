@@ -496,8 +496,6 @@ bool Clan::CanJoinMatch(int64_t player_id)
 
 	if (curr_time < start_time) return false; //比赛尚未开始
 	
-	if (_curr_rounds > 0) return false; //轮次开始//比赛已经开始，不能进入
-
 	return curr_time <= start_time + _glimit->join_match_time_last(); //比赛开始5分钟后不能进入
 }
 
