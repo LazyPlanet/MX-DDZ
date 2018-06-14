@@ -683,7 +683,23 @@ void Clan::OnJoinMatch(std::shared_ptr<Player> player, Asset::JoinMatch* message
 		break;
 	}
 }
-	
+
+void Clan::OnMatchHistory(std::shared_ptr<Player> player, Asset::ClanMatchHistory* message)
+{
+	if (!player || !message) return;
+
+	for (auto match_id : _stuff.clan_match_list())
+	{
+		Asset::MatchHistoryRecord record;
+		if (!ClanInstance.GetMatchRecord(match_id, record)) continue;
+
+		auto history = message->mutable_list()->Add();
+		history->CopyFrom(record);
+	}
+
+	player->SendProtocol(message);
+}
+
 void Clan::AddApplicant(int64_t player_id)
 {
 	std::lock_guard<std::mutex> lock(_applicants_mutex);
@@ -1809,6 +1825,12 @@ void ClanManager::OnCreateRoom(const Asset::ClanCreateRoom* message)
 	if (!clan_ptr) return;
 
 	clan_ptr->OnCreateRoom(message);
+}
+
+bool ClanManager::GetMatchRecord(int64_t match_id, Asset::MatchHistoryRecord& record)
+{
+	const std::string key = "clan_match:" + std::to_string(match_id);
+	return RedisInstance.Get(key, record); //读取数据库
 }
 
 }

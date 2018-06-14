@@ -164,6 +164,7 @@ public:
 	virtual int32_t CmdClanOperate(pb::Message* message);
 	virtual int32_t CmdOpenMatch(pb::Message* message); //开启比赛
 	virtual int32_t CmdJoinMatch(pb::Message* message); //参加比赛
+	virtual int32_t CmdMatchHistory(pb::Message* message); //比赛战绩
 public:
 	//获取所有包裹
 	const Asset::Inventory& GetInventory() { return _stuff.inventory();	}

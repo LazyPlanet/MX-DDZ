@@ -105,6 +105,7 @@ public:
 	bool IsMatchOpen(); //比赛是否开启
 	void OnMatchUpdate(); //比赛定时维护
 	void OnJoinMatch(std::shared_ptr<Player> player, Asset::JoinMatch* message); //参加比赛
+	void OnMatchHistory(std::shared_ptr<Player> player, Asset::ClanMatchHistory* message); //比赛记录查询
 	void AddApplicant(int64_t player_id); //报名
 	bool HasApplicant(int64_t player_id); //是否报名过
 	void AddJoiner(std::shared_ptr<Player> player); //参加比赛
@@ -159,6 +160,7 @@ public:
 	bool IsLocal(int64_t clan_id);
 	bool GetClan(int64_t clan_id, Asset::Clan& clan);
 	void OnCreateRoom(const Asset::ClanCreateRoom* message);
+	bool GetMatchRecord(int64_t match_id, Asset::MatchHistoryRecord& record);
 };
 
 #define ClanInstance ClanManager::Instance()
