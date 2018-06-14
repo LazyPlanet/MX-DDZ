@@ -506,17 +506,17 @@ bool Clan::CanJoinMatch(int64_t player_id)
 //
 void Clan::OnMatchUpdate()
 {
-	if (_room_created) return; //已经创建完房间，开始比赛
+	//if (_room_created) return; //房间创建中
 
 	if (_match_server_id == 0) _match_server_id = WorldSessionInstance.RandomServer(); //随机一个逻辑服务器
 
-	//std::lock_guard<std::mutex> lock(_applicants_mutex);
-	//int32_t room_size = _applicants.size(); //按照报名玩家数量，预创建房间
-	//
+	int32_t app_count = GetApplicantsCount();
+	if (app_count < GetPeopleLimit()) return; //报名人数不足不能进行比赛
+
 	std::lock_guard<std::mutex> lock(_joiners_mutex); //按照参加比赛人数
 
 	int32_t room_size = _joiners.size(); 
-	if (room_size < GetPeopleLimit()) return; //不足无法进行比赛
+	if (room_size < 3) return; //不足无法组桌
 
 	Asset::RoomOptions options;
 	//options.set_open_rands(_stuff.match_history().open_match().rounds_count());
@@ -549,6 +549,15 @@ void Clan::OnMatchUpdate()
 			_clan_id, _curr_rounds, _match_server_id, _joiners.size(), room_size, proto.ShortDebugString());
 	
 	gs_session->SendProtocol(proto); //去逻辑服务器开房
+
+	//_room_created = true;
+}
+	
+int32_t Clan::GetApplicantsCount()
+{
+	std::lock_guard<std::mutex> lock(_applicants_mutex);
+
+	return _applicants.size(); //按照报名玩家数量，预创建房间
 }
 
 //比赛开始，玩家匹配进房
@@ -559,14 +568,13 @@ void Clan::OnMatchUpdate()
 //
 void Clan::OnPlayerMatch()
 {
-	if (!_room_created) return; //房间尚未创建完毕
+	//if (!_room_created) return; //房间尚未创建完毕
 	
 	Asset::CreateRoom enter_room;
 	enter_room.mutable_room()->CopyFrom(_room);
 
+	std::lock_guard<std::mutex> lock(_match_room_mutex);
 	if (_room_list.size() <= 0) return;
-	
-	//std::lock_guard<std::mutex> lock(_joiners_mutex);
 
 	for (auto it = _room_list.begin(); it != _room_list.end();)
 	{
@@ -670,6 +678,13 @@ void Clan::OnJoinMatch(std::shared_ptr<Player> player, Asset::JoinMatch* message
 				return; //是否可以参加比赛，比赛参与时间从开始比赛预留5分钟
 			}
 
+			auto it = _player_waiting.find(player_id);
+			if (it != _player_waiting.end())
+			{
+				player->AlertMessage(Asset::ERROR_CLAN_MATCH_WAITING, Asset::ERROR_TYPE_NORMAL, Asset::ERROR_SHOW_TYPE_MESSAGE_BOX);
+				return;
+			}
+
 			AddJoiner(player); //参加比赛
 			player->SendProtocol(message); //通知玩家加入成功
 		}
@@ -748,7 +763,7 @@ void Clan::AddJoiner(std::shared_ptr<Player> player)
 		player->SendProtocol(enter_room); //通知玩家加入比赛房间
 	}
 
-	_joiner_count = _joiners.size(); //比赛总人数
+	++_joiner_count; //比赛总人数
 
 	int32_t total_rounds = GetTotalRounds();
 	if (total_rounds > 2 && _joiner_count > 9)
@@ -772,18 +787,7 @@ void Clan::OnCreateRoom(const Asset::ClanCreateRoom* message)
 {
 	if (!message) return;
 
-	_room_created = true; //创建比赛房间列表成功
-
-	++_curr_rounds; //轮次开始
-	
-	/*
-	if (_curr_rounds == 1) //首轮比赛，清理上期数据
-	{
-		_stuff.mutable_last_match_history()->Clear();
-		_dirty = true;
-	}
-	*/
-
+	std::lock_guard<std::mutex> lock(_match_room_mutex);
 	for (const auto room_id : message->room_list()) _room_list.insert(room_id); //房间列表缓存
 	
 	_history.set_clan_id(_clan_id);
@@ -815,6 +819,8 @@ void Clan::OnMatchRoomOver(const Asset::ClanRoomStatusChanged* message)
 	{
 		if (it->second == room_id)
 		{
+			_player_waiting.insert(it->first);
+
 			it = _player_room.erase(it); //清理玩家房间信息
 			continue;
 		}
@@ -905,7 +911,6 @@ void Clan::OnRoundsCalculate()
 				_clan_id, _curr_rounds, player_count, remain_rounds, next_round_player_needed, remain_player_count);
 	}
 
-	_room_created = false; //生成下轮对战房间
 }
 
 void Clan::SaveMatchHistory()
@@ -928,15 +933,10 @@ void Clan::SaveMatchHistory()
 
 	DEBUG("茶馆:{} 比赛 当前轮次:{} 结束，战绩:{}", _clan_id, _curr_rounds, _history.ShortDebugString());
 
-	_history.Clear(); //清理本局战绩
+	++_curr_rounds; //轮次结束
 
-	//排行榜广播
-	/*
-	Asset::ClanMatchHistory proto;
-	proto.set_clan_id(_clan_id);
-	proto.mutable_history()->CopyFrom(history);
-	BroadCast(proto);
-	*/
+	//_player_waiting.clear();
+	_history.Clear(); //清理本局战绩
 }
 
 void Clan::OnMatchOver()
@@ -992,20 +992,12 @@ void Clan::OnMatchOver()
 	_stuff.mutable_applicants()->Clear();
 	_dirty = true;
 
-	//排行榜广播
-	/*
-	Asset::ClanMatchHistory proto;
-	proto.set_clan_id(_clan_id);
-	proto.mutable_history()->CopyFrom(history);
-	BroadCast(proto);
-	*/
-
 	DEBUG("茶馆:{} 总比赛轮次:{} 比赛结束总排行榜产生:{}，清理数据完毕", _clan_id, _curr_rounds, history.ShortDebugString());
 
 	//数据清理
 	_match_opened = false; //关闭比赛
-	_room_created = false; //生成对战房间
-	_curr_rounds = 0;
+	//_room_created = false; //生成对战房间
+	_curr_rounds = 1;
 	_match_server_id = 0;
 	_match_id = 0;
 	_joiner_count = 0;
@@ -1016,6 +1008,7 @@ void Clan::OnMatchOver()
 	_room_players.clear();
 	_player_out_rounds.clear();
 	_player_room.clear();
+	_player_waiting.clear();
 	_player_details.clear();
 	_player_score.clear();
 	_room.Clear();

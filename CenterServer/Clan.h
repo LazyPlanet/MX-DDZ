@@ -18,6 +18,7 @@ class Clan : public std::enable_shared_from_this<Clan>
 private:
 	std::mutex _mutex, _member_mutex;
 	std::mutex _joiners_mutex, _applicants_mutex;
+	std::mutex _match_room_mutex;
 	Asset::Clan _stuff;
 	bool _dirty = false;
 	int64_t _clan_id = 0;
@@ -31,15 +32,16 @@ private:
 
 	bool _match_opened = false; //比赛是否可以报名
 	int32_t _match_server_id = 0; //比赛模式茶馆开房逻辑服务器
-	int32_t _curr_rounds = 0; //当前比赛轮次
+	int32_t _curr_rounds = 1; //当前比赛轮次
 	int64_t _match_id = 0; //比赛场次
 	int32_t _joiner_count = 0; //参加比赛总人数
 	int32_t _taotai_count_per_rounds = 0; //每轮淘汰玩家数量
 
 	//std::atomic<bool> _matching_start; //比赛已经开始，玩家可以比赛
-	bool _room_created = false; //房间是否创建完毕
+	bool _room_created = false; //房间是否创建完毕//房间创建锁
 
 	std::unordered_set<int64_t/*房间ID*/> _room_list; //房间列表：根据报名玩家数量创建的最大房间数量，所有房间缓存
+	std::unordered_set<int64_t/*玩家ID*/> _player_waiting; //等待下轮比赛开始玩家
 
 	std::unordered_map<int64_t/*房间ID*/, std::vector<int64_t>/*比赛玩家列表*/> _room_players; //开局后，每个房间内的所有玩家
 	std::unordered_map<int64_t/*玩家ID*/, int64_t/*房间ID*/> _player_room; //方便查找玩家所在房间
@@ -128,6 +130,7 @@ public:
 	int32_t GetBattleTime() { return _stuff.match_history().open_match().start_time(); } //比赛开始时间
 	int32_t GetPeopleLimit() { return _stuff.match_history().open_match().people_down(); } //玩家下限
 	int32_t GetMatchRoomCount() { return _room_players.size(); } //获取当前正在比赛的房间数量
+	int32_t GetApplicantsCount();
 
 	void AddMember(int64_t player_id); //增加成员列表
 	bool HasMember(int64_t player_id); //是否含有成员
