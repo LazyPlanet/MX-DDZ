@@ -147,7 +147,7 @@ public:
 	virtual int32_t CmdCreateRoom(pb::Message* message);
 	virtual int32_t CreateRoom(pb::Message* message);
 	virtual void OnCreateRoom(Asset::CreateRoom* create_room);
-	virtual void OnRoomRemoved();
+	virtual void OnRoomRemoved(int64_t room_id);
 	//进入房间
 	virtual int32_t CmdEnterRoom(pb::Message* message);
 	virtual int32_t EnterRoom(pb::Message* message);

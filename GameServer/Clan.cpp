@@ -441,8 +441,6 @@ void ClanManager::OnOperate(std::shared_ptr<Player> player, Asset::ClanOperation
 {
 	if (!message || !player) return;
 
-	DEBUG("服务器:{} 接收来自中心服务器的玩家:{} 茶馆操作结果:{}", g_server_id, player->GetID(), message->ShortDebugString());
-		
 	static std::set<int32_t> _valid_operation = { Asset::CLAN_OPER_TYPE_CREATE, Asset::CLAN_OPER_TYPE_MEMEBER_AGEE, Asset::CLAN_OPER_TYPE_CLAN_LIST_QUERY }; //合法
 	
 	defer {
@@ -467,6 +465,9 @@ void ClanManager::OnOperate(std::shared_ptr<Player> player, Asset::ClanOperation
 		}
 	}
 	*/
+	
+	if (Asset::CLAN_OPER_TYPE_MEMEBER_QUERY != message->oper_type()) 
+		DEBUG("服务器:{} 接收来自中心服务器的玩家:{} 茶馆操作结果:{}", g_server_id, player->GetID(), message->ShortDebugString());
 
 	switch (message->oper_type())
 	{

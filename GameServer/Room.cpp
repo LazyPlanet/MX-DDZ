@@ -702,7 +702,7 @@ void Room::OnRemove()
 	{
 		if (!player) continue;
 
-		player->OnRoomRemoved();
+		player->OnRoomRemoved(_stuff.room_id());
 		player.reset();
 	}
 	

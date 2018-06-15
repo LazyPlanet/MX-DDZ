@@ -36,7 +36,8 @@ void Clan::Update()
 
 	if (match_start_time > 0 && curr_time > match_start_time + _glimit->match_timeout() * 3600)
 	{
-		LOG(ERROR, "时间超过{}小时自动清理茶馆:{} 比赛, 记录比赛时间:{}, 数据:{}", _clan_id, match_start_time, GetMatchSetting().ShortDebugString());
+		LOG(ERROR, "时间超过{}小时自动清理茶馆:{} 比赛, 记录比赛时间:{}, 数据:{}", 
+				_glimit->match_timeout(), _clan_id, match_start_time, GetMatchSetting().ShortDebugString());
 
 		OnMatchOver();
 	}
@@ -601,6 +602,7 @@ void Clan::OnPlayerMatch()
 		}
 
 		it = _room_list.erase(it); //删除房间
+		++_room_matching_count;
 
 		for (auto player_id : players) 
 		{
@@ -693,17 +695,18 @@ void Clan::OnJoinMatch(std::shared_ptr<Player> player, Asset::JoinMatch* message
 			auto it = _player_room.find(player_id);
 			if (it == _player_room.end())
 			{
+				if (_player_waiting.find(player_id) != _player_waiting.end())
+				{
+					player->AlertMessage(Asset::ERROR_CLAN_MATCH_WAITING, Asset::ERROR_TYPE_NORMAL, Asset::ERROR_SHOW_TYPE_MESSAGE_BOX);
+					return;
+				}
+
 				int32_t result = CanJoinMatch(player_id); //时间检查
 
 				if (result != 0)
 				{
 					player->AlertMessage(result, Asset::ERROR_TYPE_NORMAL, Asset::ERROR_SHOW_TYPE_MESSAGE_BOX);
 					return; //是否可以参加比赛，比赛参与时间从开始比赛预留5分钟
-				}
-				else if (_player_waiting.find(player_id) != _player_waiting.end())
-				{
-					player->AlertMessage(Asset::ERROR_CLAN_MATCH_WAITING, Asset::ERROR_TYPE_NORMAL, Asset::ERROR_SHOW_TYPE_MESSAGE_BOX);
-					return;
 				}
 			}
 			else
@@ -809,12 +812,10 @@ void Clan::OnCreateRoom(const Asset::ClanCreateRoom* message)
 	std::lock_guard<std::mutex> lock(_match_room_mutex);
 	for (const auto room_id : message->room_list()) _room_list.insert(room_id); //房间列表缓存
 	
-	if (_history.clan_id() == 0)
-	{
-		_history.set_clan_id(_clan_id);
-		_history.set_curr_rounds(_curr_rounds);
-		_history.set_room_total(message->room_count());
-	}
+	if (_history.clan_id() == 0) _history.set_clan_id(_clan_id);
+		
+	_history.set_curr_rounds(_curr_rounds);
+	_history.set_room_total(_room_matching_count);
 	
 	Asset::MatchHistory* history = nullptr;
 	for (int32_t i = 0; i < _stuff.match_history().history_list().size(); ++i)
@@ -886,8 +887,8 @@ void Clan::OnMatchRoomOver(const Asset::ClanRoomStatusChanged* message)
 
 	_history.set_room_remain(_room_players.size()); //剩余房间数量
 	
-	if (_curr_rounds <= 0 || _stuff.match_history().history_list().size() < _curr_rounds) return
-	_stuff.mutable_match_history()->mutable_history_list(_curr_rounds - 1)->CopyFrom(_history);
+	//if (_curr_rounds <= 0 || _stuff.match_history().history_list().size() < _curr_rounds) return
+	//_stuff.mutable_match_history()->mutable_history_list(_curr_rounds - 1)->CopyFrom(_history);
 
 	DEBUG("茶馆:{} 比赛当前轮次:{} 房间:{} 结束", _clan_id, _curr_rounds, room_id, message->ShortDebugString());
 
@@ -896,6 +897,9 @@ void Clan::OnMatchRoomOver(const Asset::ClanRoomStatusChanged* message)
 		OnRoundsCalculate(); //所有房间结束比赛，本轮次结束
 
 		++_curr_rounds; //轮次结束
+	
+		_room.set_curr_round(_curr_rounds);
+		_history.set_curr_rounds(_curr_rounds);
 	}
 }
 	
@@ -971,11 +975,12 @@ void Clan::SaveMatchHistory()
 	}
 
 	if (_curr_rounds <= 0 || _stuff.match_history().history_list().size() < _curr_rounds) return
+
 	_stuff.mutable_match_history()->mutable_history_list(_curr_rounds - 1)->CopyFrom(_history);
 
 	_dirty = true;
 
-	DEBUG("茶馆:{} 比赛轮次:{} 结束，战绩:{}", _clan_id, _curr_rounds, _history.ShortDebugString());
+	DEBUG("茶馆:{} 比赛轮次:{} 结束，本轮战绩:{} 总战绩:{}", _clan_id, _curr_rounds, _history.ShortDebugString(), _stuff.match_history().ShortDebugString());
 
 	//++_curr_rounds; //轮次结束
 
@@ -1046,6 +1051,7 @@ void Clan::OnMatchOver()
 	_match_id = 0;
 	_joiner_count = 0;
 	_taotai_count_per_rounds = 0;
+	_room_matching_count = 0;
 	_room_list.clear();
 	_applicants.clear();
 	_joiners.clear();

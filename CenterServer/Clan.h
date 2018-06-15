@@ -36,6 +36,7 @@ private:
 	int64_t _match_id = 0; //比赛场次
 	int32_t _joiner_count = 0; //参加比赛总人数
 	int32_t _taotai_count_per_rounds = 0; //每轮淘汰玩家数量
+	int32_t _room_matching_count = 0;
 
 	//std::atomic<bool> _matching_start; //比赛已经开始，玩家可以比赛
 	bool _room_created = false; //房间是否创建完毕//房间创建锁

@@ -568,8 +568,16 @@ int32_t Player::CreateRoom(pb::Message* message)
 	return 0;
 }
 	
-void Player::OnRoomRemoved()
+void Player::OnRoomRemoved(int64_t room_id)
 {
+	if (_room && _room->GetID() != room_id)
+	{
+		WARN("玩家:{} 退出房间错误, 当前所在房间:{} 玩家退出房间:{} 已不一致", _player_id, _room->GetID(), room_id);	
+		return;
+	}
+
+	DEBUG("玩家:{} 从房间:{} 中删除", _player_id, room_id);
+
 	ResetRoom(); //房间非法
 }
 
@@ -1704,14 +1712,22 @@ void Player::BroadCast(Asset::MsgItem& item)
 	
 void Player::ResetRoom() 
 { 
-	WARN("清理玩家:{} 房间数据", _player_id);
+	int64_t room_id = 0;
 
-	if (_room) _room.reset(); //刷新房间信息
+	if (_room) 
+	{
+		room_id = _room->GetID();
+		//_room->Remove(_player_id); //死循环可能-->_room->OnLeaveRoom()-->this->ResetRoom()-->_room->Remove()
+		_room.reset(); //刷新房间信息
+	}
+	
+	WARN("清理玩家:{} 房间:{} 数据", _player_id, room_id);
 
-	//if (_game) _game.reset(); //刷新游戏
+	//if (_game) _game.reset(); //刷新游戏//游戏刷新不在此进行，否则严重错误
 
 	_stuff.clear_room_id(); //状态初始化
 	_player_prop.clear_voice_member_id(); //房间语音数据
+
 	_dirty = true;
 }
 
@@ -1954,7 +1970,7 @@ int32_t Player::CmdLoadScene(pb::Message* message)
 	
 			if (_stuff.room_id() > 0 && _stuff.room_id() != room_id)
 			{
-				LOG(ERROR, "玩家:{}加载房间:{}和保存的房间:{}不一致", _player_id, room_id, _stuff.room_id());
+				LOG(ERROR, "玩家:{} 加载房间:{} 和保存的房间:{} 不一致", _player_id, room_id, _stuff.room_id());
 			
 				_stuff.set_room_id(room_id); 
 						
@@ -1963,7 +1979,7 @@ int32_t Player::CmdLoadScene(pb::Message* message)
 				
 			OnEnterScene(is_reenter); //进入房间//场景回调
 			
-			DEBUG("玩家:{} 进入房间:{}成功.", _player_id, room_id);
+			DEBUG("玩家:{} 进入房间:{} 成功.", _player_id, room_id);
 		}
 		break;
 		
