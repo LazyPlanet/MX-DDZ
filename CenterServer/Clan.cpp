@@ -36,7 +36,7 @@ void Clan::Update()
 
 	if (match_start_time > 0 && curr_time > match_start_time + _glimit->match_timeout() * 3600)
 	{
-		LOG(ERROR, "时间超时{}小时自动清理茶馆:{} 比赛, 记录比赛时间:{}, 数据:{}", _clan_id, match_start_time, GetMatchSetting().ShortDebugString());
+		LOG(ERROR, "时间超过{}小时自动清理茶馆:{} 比赛, 记录比赛时间:{}, 数据:{}", _clan_id, match_start_time, GetMatchSetting().ShortDebugString());
 
 		OnMatchOver();
 	}
@@ -528,7 +528,7 @@ void Clan::OnMatchUpdate()
 	Asset::CreateRoom create_room;
 	create_room.mutable_room()->CopyFrom(_room);
 
-	room_size = ceil(room_size / 3.0); //房间数量
+	room_size = room_size / 3.0; //房间数量
 
 	Asset::ClanCreateRoom proto;
 
@@ -589,9 +589,11 @@ void Clan::OnPlayerMatch()
 
 			if (!player) 
 			{
-				LOG(ERROR, "茶馆:{} 比赛选人:{} 没有在线，可能已经掉线", _clan_id, player_id);
+				LOG(ERROR, "茶馆:{} 轮次:{} 比赛选人:{} 没有在线，可能已经掉线", _clan_id, _curr_rounds, player_id);
 				continue;
 			}
+
+			DEBUG("茶馆:{} 轮次:{} 比赛选人:{} 成功, 房间:{}", _clan_id, _curr_rounds, player_id, room_id);
 
 			enter_room.mutable_room()->set_room_id(room_id);
 			player->SendProtocol(enter_room); //通知玩家加入比赛房间
@@ -616,20 +618,31 @@ bool Clan::GetPlayers(std::vector<int64_t>& players)
 {
 	std::lock_guard<std::mutex> lock(_joiners_mutex); //此处加锁，效率可能会比较低但是比较合理
 	
-	if (_joiners.size() < 3) return false;
+	if (_joiners.size() < 3) 
+	{
+		//ERROR("茶馆:{} 轮次:{} 玩家数量:{} 无法开始比赛", _clan_id, _curr_rounds, _joiners.size());
+		return false;
+	}
 
 	for (auto it = _joiners.begin(); it != _joiners.end(); )
 	{
 		auto player_id = *it;
+
+		/*
 		auto player = PlayerInstance.Get(player_id);
 
 		if (!player) 
 		{
+			WARN("茶馆:{} 轮次:{} 玩家:{} 离线，无法参加比赛", _clan_id, _curr_rounds, player_id);
+
 			++it;
 			continue;
 		}
+		*/
 		
 		it = _joiners.erase(it); 
+	
+		DEBUG("茶馆:{} 轮次:{} 选择玩家:{} 参加比赛", _clan_id, _curr_rounds, player_id);
 
 		players.push_back(player_id);
 
@@ -668,6 +681,12 @@ void Clan::OnJoinMatch(std::shared_ptr<Player> player, Asset::JoinMatch* message
 			{
 				player->AlertMessage(Asset::ERROR_CLAN_MATCH_HASNOT_BEEN_APP, Asset::ERROR_TYPE_NORMAL, Asset::ERROR_SHOW_TYPE_MESSAGE_BOX);
 				return; //没有报名不能参加比赛，即没有付费过门票
+			}
+
+			if (_player_out_rounds.find(player_id) != _player_out_rounds.end())
+			{
+				player->AlertMessage(Asset::ERROR_CLAN_MATCH_OUT, Asset::ERROR_TYPE_NORMAL, Asset::ERROR_SHOW_TYPE_MESSAGE_BOX);
+				return;	//已经淘汰
 			}
 
 			auto it = _player_room.find(player_id);
@@ -789,12 +808,30 @@ void Clan::OnCreateRoom(const Asset::ClanCreateRoom* message)
 	std::lock_guard<std::mutex> lock(_match_room_mutex);
 	for (const auto room_id : message->room_list()) _room_list.insert(room_id); //房间列表缓存
 	
-	_history.set_clan_id(_clan_id);
-	_history.set_curr_rounds(_curr_rounds);
-	_history.set_room_total(message->room_count());
-	_history.set_battle_time(TimerInstance.GetTime());
+	if (_history.clan_id() == 0)
+	{
+		_history.set_clan_id(_clan_id);
+		_history.set_curr_rounds(_curr_rounds);
+		_history.set_room_total(message->room_count());
+	}
 	
-	_stuff.mutable_match_history()->mutable_history_list()->Add()->CopyFrom(_history);
+	Asset::MatchHistory* history = nullptr;
+	for (int32_t i = 0; i < _stuff.match_history().history_list().size(); ++i)
+	{
+		if (_curr_rounds == _stuff.match_history().history_list(i).curr_rounds())	
+		{
+			history = _stuff.mutable_match_history()->mutable_history_list(i);
+			break;
+		}
+	}
+			
+	if (!history) 
+	{
+		_history.set_battle_time(TimerInstance.GetTime());
+		history = _stuff.mutable_match_history()->mutable_history_list()->Add();
+	}
+
+	history->CopyFrom(_history);
 
 	DEBUG("茶馆:{} 比赛, 当前轮次:{} 创建房间:{} 成功", _clan_id, _curr_rounds, message->ShortDebugString());
 }
@@ -858,8 +895,6 @@ void Clan::OnMatchRoomOver(const Asset::ClanRoomStatusChanged* message)
 		OnRoundsCalculate(); //所有房间结束比赛，本轮次结束
 
 		++_curr_rounds; //轮次结束
-
-		WARN("茶馆:{} 比赛下场轮次:{}", _clan_id, _curr_rounds);
 	}
 }
 	
@@ -888,13 +923,13 @@ void Clan::OnRoundsCalculate()
 	//淘汰机制
 	if (remain_rounds == 1) //倒数第一轮，即最后一轮
 	{
-		next_round_player_needed = 3; 
 		_joiners.clear(); 
+		next_round_player_needed = 3; 
 	}
 	else if (remain_rounds == 2)
 	{
-		next_round_player_needed = std::min(9, player_count);
 		_joiners.clear(); 
+		next_round_player_needed = std::min(9, player_count);
 	}
 	else
 	{
@@ -1005,7 +1040,7 @@ void Clan::OnMatchOver()
 	//数据清理
 	_match_opened = false; //关闭比赛
 	//_room_created = false; //生成对战房间
-	_curr_rounds = 1;
+	_curr_rounds = 0;
 	_match_server_id = 0;
 	_match_id = 0;
 	_joiner_count = 0;

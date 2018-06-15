@@ -1109,11 +1109,19 @@ int32_t Player::EnterRoom(pb::Message* message)
 		if (_room) 
 		{
 			auto room_id = _room->GetID();
-
 			auto client_room_id = enter_room->room().room_id();
+
 			if (room_id != client_room_id)
 			{
-				LOG(ERROR, "玩家:{}重入房间错误，客户端记录:{}和服务器记录:{}不是一个，以当前客户端为准", _player_id, client_room_id, room_id);
+				LOG(ERROR, "玩家:{} 重入房间错误，客户端记录:{} 和服务器记录:{} 不是一个，以当前客户端为准", _player_id, client_room_id, room_id);
+			
+				if (_room->IsClanMatch())
+				{
+					WARN("玩家:{} 比赛房间:{} 强制退出.", _player_id, room_id);
+					ResetRoom(); //比赛房间强制退出
+					break;
+				}
+				
 				room_id = client_room_id;
 			}
 				
@@ -1690,6 +1698,8 @@ void Player::ResetRoom()
 { 
 	if (_room) _room.reset(); //刷新房间信息
 
+	if (_game) _game.reset(); //刷新游戏
+
 	_stuff.clear_room_id(); //状态初始化
 	_player_prop.clear_voice_member_id(); //房间语音数据
 	_dirty = true;
@@ -2175,19 +2185,20 @@ bool Player::AddRoomRecord(int64_t room_id)
 { 
 	Asset::BattleList message;
 	for (auto id : _stuff.room_history()) message.mutable_room_list()->Add(id);
+
 	message.mutable_room_list()->Add(room_id);
 	SendProtocol(message);
 
-	auto it = std::find(_stuff.room_history().begin(), _stuff.room_history().end(), room_id);
-	if (it == _stuff.room_history().end()) 
+	//auto it = std::find(_stuff.room_history().begin(), _stuff.room_history().end(), room_id);
+	//if (it == _stuff.room_history().end()) 
 	{
 		_stuff.mutable_room_history()->Add(room_id); 
 		_dirty = true; 
 		
-		DEBUG("玩家:{}增加房间:{}历史战绩", _player_id, room_id);
+		DEBUG("玩家:{} 房间:{} 整体结束，存储历史战绩列表", _player_id, room_id);
 	}
 	
-	OnGameOver(); 
+	OnGameOver(); //正常结束
 
 	return true;
 }
