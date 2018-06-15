@@ -523,6 +523,7 @@ void Clan::OnMatchUpdate()
 
 	_room.set_room_type(Asset::ROOM_TYPE_CLAN_MATCH);
 	_room.set_clan_id(_clan_id);
+	_room.set_curr_round(_curr_rounds);
 	_room.mutable_options()->CopyFrom(options);
 
 	Asset::CreateRoom create_room;

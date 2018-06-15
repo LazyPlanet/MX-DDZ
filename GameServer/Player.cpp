@@ -183,11 +183,17 @@ int32_t Player::Logout(pb::Message* message)
 
 				return 3;
 			}
+			if (_room->IsClanMatch() && !_room->HasBeenOver() && !_room->HasDisMiss()) //比赛房间不能退出
+			{
+				SetOffline(); //玩家状态
+
+				return 4;
+			}
 			else
 			{
 				_room->Remove(_player_id, Asset::GAME_OPER_TYPE_LOGOUT); //退出房间，回调会调用OnLogout接口，从而退出整个游戏逻辑服务器
 
-				return 4;
+				return 5;
 			}
 		}
 	}
@@ -1461,6 +1467,8 @@ void Player::SendProtocol(const pb::Message& message)
 	if (_room) room_id = _room->GetID();
 	if (_game) game_id = _game->GetID();
 
+	if (Asset::META_TYPE_SHARE_CLAN_OPERATION == type_t) return; //茶馆日志太多
+
 	DEBUG("玩家:{} 发送协议，类型:{} 房间:{} 局数:{} 内容:{}", 
 			_player_id, Asset::META_TYPE_Name(meta.type_t()), room_id, game_id, message.ShortDebugString());
 }
@@ -1696,9 +1704,11 @@ void Player::BroadCast(Asset::MsgItem& item)
 	
 void Player::ResetRoom() 
 { 
+	WARN("清理玩家:{} 房间数据", _player_id);
+
 	if (_room) _room.reset(); //刷新房间信息
 
-	if (_game) _game.reset(); //刷新游戏
+	//if (_game) _game.reset(); //刷新游戏
 
 	_stuff.clear_room_id(); //状态初始化
 	_player_prop.clear_voice_member_id(); //房间语音数据
