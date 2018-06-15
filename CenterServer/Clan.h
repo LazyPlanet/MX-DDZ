@@ -52,7 +52,7 @@ private:
 	std::unordered_map<int64_t/*玩家ID*/, int32_t/*轮次*/> _player_out_rounds; //玩家出局轮次
 
 	Asset::Room _room; //俱乐部老板比赛房间设置
-	Asset::MatchHistory _history; //当轮战绩数据缓存
+	Asset::MatchHistory* _history = nullptr; //当轮战绩数据缓存
 public:
 	Clan(const Asset::Clan& clan) 
 	{ 
