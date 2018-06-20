@@ -132,6 +132,7 @@ public:
 	int32_t GetPeopleLimit() { return _stuff.match_history().open_match().people_down(); } //玩家下限
 	int32_t GetMatchRoomCount() { return _room_players.size(); } //获取当前正在比赛的房间数量
 	int32_t GetApplicantsCount();
+	int32_t GetAvailableMatchRoomCount();
 
 	void AddMember(int64_t player_id); //增加成员列表
 	bool HasMember(int64_t player_id); //是否含有成员

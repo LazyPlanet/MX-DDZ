@@ -498,6 +498,12 @@ int32_t Clan::CanJoinMatch(int64_t player_id)
 	return 0; 
 }
 
+int32_t Clan::GetAvailableMatchRoomCount()
+{
+	std::lock_guard<std::mutex> lock(_match_room_mutex);
+	return _room_list.size();
+}
+
 //
 //选择一个逻辑服务器开设房间
 //
@@ -505,7 +511,7 @@ int32_t Clan::CanJoinMatch(int64_t player_id)
 //
 void Clan::OnMatchUpdate()
 {
-	//if (_room_created) return; //房间创建中
+	if (GetAvailableMatchRoomCount()) return; //房间尚有余
 
 	if (_match_server_id == 0) _match_server_id = WorldSessionInstance.RandomServer(); //随机一个逻辑服务器
 
@@ -595,14 +601,14 @@ void Clan::OnPlayerMatch()
 				continue;
 			}
 
-			DEBUG("茶馆:{} 轮次:{} 比赛选人:{} 成功, 房间:{}", _clan_id, _curr_rounds, player_id, room_id);
+			//DEBUG("茶馆:{} 轮次:{} 比赛选人:{} 成功, 房间:{}", _clan_id, _curr_rounds, player_id, room_id);
 
 			enter_room.mutable_room()->set_room_id(room_id);
 			player->SendProtocol(enter_room); //通知玩家加入比赛房间
 		}
 
 		it = _room_list.erase(it); //删除房间
-		++_room_matching_count;
+		++_room_matching_count; //房间总数量
 
 		for (auto player_id : players) 
 		{
@@ -611,7 +617,11 @@ void Clan::OnPlayerMatch()
 		}
 	}
 		
-	if (_history) _history->set_room_total(_room_matching_count);
+	if (_history) 
+	{
+		_history->set_room_total(_room_matching_count);
+		_history->set_room_remain(_room_players.size()); //剩余房间数量
+	}
 }
 
 //由于最终点击参加比赛的玩家不可能都进行比赛(比如，很可能不是3的倍数)
@@ -646,7 +656,7 @@ bool Clan::GetPlayers(std::vector<int64_t>& players)
 		
 		it = _joiners.erase(it); 
 	
-		DEBUG("茶馆:{} 轮次:{} 选择玩家:{} 参加比赛", _clan_id, _curr_rounds, player_id);
+		//DEBUG("茶馆:{} 轮次:{} 选择玩家:{} 参加比赛", _clan_id, _curr_rounds, player_id);
 
 		players.push_back(player_id);
 
@@ -813,23 +823,6 @@ void Clan::OnCreateRoom(const Asset::ClanCreateRoom* message)
 	std::lock_guard<std::mutex> lock(_match_room_mutex);
 	for (const auto room_id : message->room_list()) _room_list.insert(room_id); //房间列表缓存
 	
-	//if (_history.clan_id() == 0) _history.set_clan_id(_clan_id);
-		
-	//_history.set_curr_rounds(_curr_rounds);
-	//_history.set_room_total(_room_matching_count);
-	
-	//Asset::MatchHistory* history = nullptr;
-	/*
-	for (int32_t i = 0; i < _stuff.match_history().history_list().size(); ++i)
-	{
-		if (_curr_rounds == _stuff.match_history().history_list(i).curr_rounds())	
-		{
-			history = _stuff.mutable_match_history()->mutable_history_list(i);
-			break;
-		}
-	}
-	*/
-
 	if (_stuff.match_history().history_list().size() < _curr_rounds)
 	{
 		_history = _stuff.mutable_match_history()->mutable_history_list()->Add();
@@ -837,20 +830,9 @@ void Clan::OnCreateRoom(const Asset::ClanCreateRoom* message)
 		_history->set_clan_id(_clan_id);
 		_history->set_battle_time(TimerInstance.GetTime());
 		_history->set_curr_rounds(_curr_rounds);
-		//_history->set_room_total(_room_matching_count);
 	}
 			
-	/*
-	if (!history) 
-	{
-		_history.set_battle_time(TimerInstance.GetTime());
-		history = _stuff.mutable_match_history()->mutable_history_list()->Add();
-	}
-	*/
-
-	//history->CopyFrom(_history);
-
-	DEBUG("茶馆:{} 比赛, 当前轮次:{} 创建房间:{} 成功", _clan_id, _curr_rounds, message->ShortDebugString());
+	DEBUG("茶馆:{} 比赛, 当前轮次:{} 本轮需要总房间数量:{} 创建房间:{} 成功", _clan_id, _curr_rounds, _room_matching_count, message->ShortDebugString());
 }
 	
 void Clan::OnMatchRoomOver(const Asset::ClanRoomStatusChanged* message)
@@ -902,14 +884,10 @@ void Clan::OnMatchRoomOver(const Asset::ClanRoomStatusChanged* message)
 
 	if (_history) 
 	{
-		//_history->set_room_total(_room_matching_count);
 		_history->set_room_remain(_room_players.size()); //剩余房间数量
 	}
 	
-	//if (_curr_rounds <= 0 || _stuff.match_history().history_list().size() < _curr_rounds) return
-	//_stuff.mutable_match_history()->mutable_history_list(_curr_rounds - 1)->CopyFrom(_history);
-
-	DEBUG("茶馆:{} 比赛当前轮次:{} 房间:{} 结束", _clan_id, _curr_rounds, room_id, message->ShortDebugString());
+	DEBUG("茶馆:{} 比赛当前轮次:{} 房间:{} 结束 总房间数量:{} 剩余房间数量:{}", _clan_id, _curr_rounds, room_id, _room_matching_count, _room_players.size());
 
 	if (_room_players.size() == 0) 
 	{
@@ -918,7 +896,6 @@ void Clan::OnMatchRoomOver(const Asset::ClanRoomStatusChanged* message)
 		++_curr_rounds; //轮次结束
 	
 		_room.set_curr_round(_curr_rounds); //同步房间轮次
-		//if (_history) _history->set_curr_rounds(_curr_rounds);
 	}
 }
 	
