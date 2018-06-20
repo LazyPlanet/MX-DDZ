@@ -2807,22 +2807,26 @@ void Player::OnBind(std::string account)
 	
 void Player::OnQuitClan(int64_t clan_id)
 {
-	for (int32_t i = 0; i < _stuff.clan_hosters().size(); ++i) //茶馆老板
-	{
-		if (clan_id != _stuff.clan_hosters(i)) continue;
+	std::unordered_set<int64_t> clan_list;
 
-		_stuff.mutable_clan_hosters()->SwapElements(i, _stuff.clan_hosters().size() - 1);
-		_stuff.mutable_clan_hosters()->RemoveLast();
-	}
-	
-	for (int32_t i = 0; i < _stuff.clan_joiners().size(); ++i) //茶馆成员
-	{
-		if (clan_id != _stuff.clan_joiners(i)) continue;
+	for (auto clan_id : _stuff.clan_hosters()) clan_list.insert(clan_id);
 
-		_stuff.mutable_clan_joiners()->SwapElements(i, _stuff.clan_joiners().size() - 1);
-		_stuff.mutable_clan_joiners()->RemoveLast();
-	}
+	_stuff.mutable_clan_hosters()->Clear();
+
+	clan_list.erase(clan_id);
+
+	for (auto clan_id : clan_list) _stuff.add_clan_hosters(clan_id);
+
+	clan_list.clear();
 	
+	for (auto clan_id : _stuff.clan_joiners()) clan_list.insert(clan_id);
+
+	_stuff.mutable_clan_joiners()->Clear();
+
+	clan_list.erase(clan_id);
+
+	for (auto clan_id : clan_list) _stuff.add_clan_joiners(clan_id);
+
 	if (_stuff.selected_clan_id() == clan_id) _stuff.set_selected_clan_id(0);
 
 	Asset::ClanOperation message;
