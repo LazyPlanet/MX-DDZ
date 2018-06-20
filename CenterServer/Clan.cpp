@@ -976,20 +976,11 @@ void Clan::SaveMatchHistory()
 		hist->set_out_rounds(_player_out_rounds[player_id]);
 	}
 
-	//if (_curr_rounds <= 0 || _stuff.match_history().history_list().size() < _curr_rounds) return
-
-	//_stuff.mutable_match_history()->mutable_history_list(_curr_rounds - 1)->CopyFrom(_history);
-
 	_dirty = true;
 
 	DEBUG("茶馆:{} 比赛轮次:{} 结束，本轮战绩:{} 总战绩:{}", _clan_id, _curr_rounds, _history->ShortDebugString(), _stuff.match_history().ShortDebugString());
 	
 	_room_matching_count = 0;
-
-	//++_curr_rounds; //轮次结束
-
-	//_player_waiting.clear();
-	//_history.Clear(); //清理本局战绩
 }
 
 void Clan::OnMatchOver()
