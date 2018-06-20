@@ -104,6 +104,9 @@ void ServerSession::OnInnerProcess(const Asset::InnerMeta& meta)
 		{
 			Asset::Register* register_server = dynamic_cast<Asset::Register*>(message);
 			if (!register_server) return; 
+
+			_server_id = register_server->server_id(); 
+			_server_type = register_server->server_type();
 			
 			DEBUG("GMT服务器接收服务器ID:{} 地址:{} 的注册数据:{}", _server_id, _ip_address, register_server->ShortDebugString());
 
