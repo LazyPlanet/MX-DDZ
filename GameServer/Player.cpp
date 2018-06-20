@@ -405,7 +405,7 @@ bool Player::HasClan(int64_t clan_id)
 
 	return false;
 }
-	
+
 int32_t Player::OnEnterGame() 
 {
 	DEBUG("玩家:{} 进入逻辑服务器:{}", _player_id, g_server_id);
