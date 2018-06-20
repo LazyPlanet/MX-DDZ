@@ -970,8 +970,10 @@ void Clan::SaveMatchHistory()
 	
 	for (const auto& element : top_list)
 	{
+		auto player_id = element.player_id();
 		auto hist = _history->mutable_top_list()->Add();
 		hist->CopyFrom(element);
+		hist->set_out_rounds(_player_out_rounds[player_id]);
 	}
 
 	//if (_curr_rounds <= 0 || _stuff.match_history().history_list().size() < _curr_rounds) return
