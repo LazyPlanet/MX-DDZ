@@ -916,7 +916,7 @@ void Clan::OnRoundsCalculate()
 	std::lock_guard<std::mutex> lock(_joiners_mutex);
 	size_t remain_player_count = _joiners.size(); //剩余玩家晋级数量//轮空玩家数量
 
-	auto& top_list = _player_details[_curr_rounds]; //本轮已经排行的积分榜
+	const auto& top_list = _player_details[_curr_rounds]; //本轮已经排行的积分榜
 	int32_t player_count = top_list.size(); //本轮玩家数量
 
 	size_t next_round_player_needed = 0;  //下轮比赛需要玩家数量
@@ -955,6 +955,14 @@ void Clan::OnRoundsCalculate()
 				_clan_id, _curr_rounds, player_count, remain_rounds, next_round_player_needed, remain_player_count);
 	}
 
+	if (!_history) return;
+
+	for (int32_t i = 0; i < _history->top_list().size(); ++i)
+	{
+		auto player_id = _history->top_list(i).player_id();
+		auto hist = _history->mutable_top_list(i);
+		hist->set_out_rounds(_player_out_rounds[player_id]); //玩家淘汰轮次存盘
+	}
 }
 
 void Clan::SaveMatchHistory()
@@ -970,10 +978,10 @@ void Clan::SaveMatchHistory()
 	
 	for (const auto& element : top_list)
 	{
-		auto player_id = element.player_id();
+		//auto player_id = element.player_id();
 		auto hist = _history->mutable_top_list()->Add();
 		hist->CopyFrom(element);
-		hist->set_out_rounds(_player_out_rounds[player_id]);
+		//hist->set_out_rounds(_player_out_rounds[player_id]);
 	}
 
 	_dirty = true;
