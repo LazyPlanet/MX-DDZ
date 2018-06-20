@@ -909,7 +909,9 @@ void Clan::OnRoundsCalculate()
 		return;
 	}
 
-	//根据分数选择进入下一轮玩家，未能参加本轮比赛的玩家，直接晋级_joiners
+	//根据分数选择进入下一轮玩家
+	//
+	//未能参加本轮比赛的玩家直接晋级_joiners
 	int32_t remain_rounds = GetRemainRounds();
 	if (remain_rounds <= 0) return; //轮次已完
 
