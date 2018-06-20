@@ -610,7 +610,8 @@ void Clan::OnPlayerMatch()
 			_player_room[player_id] = room_id; //缓存玩家<->房间数据
 		}
 	}
-
+		
+	if (_history) _history->set_room_total(_room_matching_count);
 }
 
 //由于最终点击参加比赛的玩家不可能都进行比赛(比如，很可能不是3的倍数)
@@ -833,9 +834,10 @@ void Clan::OnCreateRoom(const Asset::ClanCreateRoom* message)
 	{
 		_history = _stuff.mutable_match_history()->mutable_history_list()->Add();
 
+		_history->set_clan_id(_clan_id);
 		_history->set_battle_time(TimerInstance.GetTime());
 		_history->set_curr_rounds(_curr_rounds);
-		_history->set_room_total(_room_matching_count);
+		//_history->set_room_total(_room_matching_count);
 	}
 			
 	/*
@@ -898,7 +900,11 @@ void Clan::OnMatchRoomOver(const Asset::ClanRoomStatusChanged* message)
 		}
 	}
 
-	if (_history) _history->set_room_remain(_room_players.size()); //剩余房间数量
+	if (_history) 
+	{
+		//_history->set_room_total(_room_matching_count);
+		_history->set_room_remain(_room_players.size()); //剩余房间数量
+	}
 	
 	//if (_curr_rounds <= 0 || _stuff.match_history().history_list().size() < _curr_rounds) return
 	//_stuff.mutable_match_history()->mutable_history_list(_curr_rounds - 1)->CopyFrom(_history);
@@ -911,8 +917,8 @@ void Clan::OnMatchRoomOver(const Asset::ClanRoomStatusChanged* message)
 
 		++_curr_rounds; //轮次结束
 	
-		_room.set_curr_round(_curr_rounds);
-		if (_history) _history->set_curr_rounds(_curr_rounds);
+		_room.set_curr_round(_curr_rounds); //同步房间轮次
+		//if (_history) _history->set_curr_rounds(_curr_rounds);
 	}
 }
 	
@@ -977,6 +983,8 @@ void Clan::OnRoundsCalculate()
 void Clan::SaveMatchHistory()
 {
 	if (!_history) return;
+		
+	_history->set_curr_rounds(_curr_rounds);
 
 	auto& top_list = _player_details[_curr_rounds];
 	std::sort(top_list.begin(), top_list.end(), [](const Asset::PlayerBrief& x, const Asset::PlayerBrief& y){
@@ -996,6 +1004,8 @@ void Clan::SaveMatchHistory()
 	_dirty = true;
 
 	DEBUG("茶馆:{} 比赛轮次:{} 结束，本轮战绩:{} 总战绩:{}", _clan_id, _curr_rounds, _history->ShortDebugString(), _stuff.match_history().ShortDebugString());
+	
+	_room_matching_count = 0;
 
 	//++_curr_rounds; //轮次结束
 
