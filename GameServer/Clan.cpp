@@ -574,6 +574,8 @@ void ClanManager::OnOperate(std::shared_ptr<Player> player, Asset::ClanOperation
 	
 		case Asset::CLAN_OPER_TYPE_DISMISS: //解散
 		{
+			if (!player->HasClan(message->clan_id())) return;
+
 			player->GainRoomCard(Asset::ROOM_CARD_CHANGED_TYPE_DISMISS_CLAN, message->recharge_count());
 			
 			OnResult(message); //执行成功：广播执行结果
