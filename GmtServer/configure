@@ -15,3 +15,5 @@ ln -sf ../GameServer/Config.h .
 ln -sf ../GameServer/Config.cpp .
 ln -sf ../GameServer/Asset.h .
 ln -sf ../GameServer/Asset.cpp .
+ln -sf ../GameServer/Protocol.h .
+ln -sf ../GameServer/Protocol.cpp .

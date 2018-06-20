@@ -10,6 +10,7 @@
 #include "Timer.h"
 #include "Config.h"
 #include "Asset.h"
+#include "Protocol.h"
 #include "MXLog.h"
 #include "ServerSession.h"
 
@@ -57,6 +58,13 @@ int main(int argc, const char* argv[])
 		
 		//日志系统配置
 		MXLogInstance.Load();
+	
+		//协议初始化：必须最先初始化
+		if (!ProtocolInstance.Load()) 
+		{
+			ERROR("协议加载失败.");
+			return false;
+		}
 
 		//数据初始化
 		if (!AssetInstance.Load())
