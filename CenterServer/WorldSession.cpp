@@ -66,7 +66,9 @@ void WorldSession::InitializeHandler(const boost::system::error_code error, cons
 
 				if (!result) 
 				{
-					LOG(ERROR, "会话类型:{} 会话全局ID:{} 来自地址:{} 端口:{} 玩家:{} 转换Protobuff数据失败.", _role_type, _global_id, _ip_address, _remote_endpoint.port(), _player ? _player->GetID() : 0);
+					LOG(ERROR, "会话类型:{} 会话全局ID:{} 来自地址:{} 端口:{} 玩家:{} 转换Protobuff数据失败，数据长度:{}", 
+							_role_type, _global_id, _ip_address, _remote_endpoint.port(), _player ? _player->GetID() : 0, body_size);
+
 					AsyncReceiveWithCallback(&WorldSession::InitializeHandler); //递归持续接收	
 					return; //非法协议
 				}

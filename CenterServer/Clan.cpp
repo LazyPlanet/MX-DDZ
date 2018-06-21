@@ -1000,11 +1000,22 @@ void Clan::OnRoundsCalculate()
 
 	if (!_history) return;
 
+	Asset::ClanMatchOut proto;
+	proto.set_curr_round(_curr_rounds);
+
 	for (int32_t i = 0; i < _history->top_list().size(); ++i)
 	{
 		auto player_id = _history->top_list(i).player_id();
 		auto hist = _history->mutable_top_list(i);
 		hist->set_out_rounds(_player_out_rounds[player_id]); //玩家淘汰轮次存盘
+
+		if (hist->out_rounds() == 0) continue; //未被淘汰
+		
+		auto member_ptr = PlayerInstance.Get(player_id);
+		if (!member_ptr) continue; //玩家离线
+
+		proto.set_top(i + 1); //名次
+		member_ptr->SendProtocol(proto); //通知玩家被淘汰
 	}
 }
 
