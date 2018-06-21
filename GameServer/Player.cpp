@@ -52,6 +52,7 @@ Player::Player()
 
 	AddHandler(Asset::META_TYPE_SHARE_CLAN_OPERATION, std::bind(&Player::CmdClanOperate, this, std::placeholders::_1));
 	AddHandler(Asset::META_TYPE_SHARE_JOIN_MATCH, std::bind(&Player::CmdJoinMatch, this, std::placeholders::_1));
+	AddHandler(Asset::META_TYPE_SHARE_CLAN_MATCH_DISMISS, std::bind(&Player::OnMatchDismiss, this, std::placeholders::_1));
 	
 	//中心服务器协议处理
 	AddHandler(Asset::META_TYPE_S2S_KICKOUT_PLAYER, std::bind(&Player::OnKickOut, this, std::placeholders::_1));
@@ -737,6 +738,15 @@ int32_t Player::CmdJoinMatch(pb::Message* message)
 
 	WorldInstance.BroadCast2CenterServer(proto); //回复给中心服务器 
 
+	return 0;
+}
+
+int32_t Player::OnMatchDismiss(pb::Message* message)
+{
+	auto match = dynamic_cast<Asset::ClanMatchDismiss*>(message);
+	if (!match) return 1;
+
+	GainRoomCard(Asset::ROOM_CARD_CHANGED_TYPE_CLAN_MATCH_DISMISS, match->room_card_count());
 	return 0;
 }
 

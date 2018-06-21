@@ -57,6 +57,7 @@ Player::Player()
 	AddHandler(Asset::META_TYPE_SHARE_OPEN_MATCH, std::bind(&Player::CmdOpenMatch, this, std::placeholders::_1));
 	AddHandler(Asset::META_TYPE_SHARE_JOIN_MATCH, std::bind(&Player::CmdJoinMatch, this, std::placeholders::_1));
 	AddHandler(Asset::META_TYPE_SHARE_CLAN_MATCH_HISTORY, std::bind(&Player::CmdMatchHistory, this, std::placeholders::_1));
+	AddHandler(Asset::META_TYPE_SHARE_CLAN_MATCH_DISMISS, std::bind(&Player::CmdDismissMatch, this, std::placeholders::_1));
 
 	//AddHandler(Asset::META_TYPE_C2S_GET_REWARD, std::bind(&Player::CmdGetReward, this, std::placeholders::_1)); //逻辑服务器处理
 }
@@ -1117,6 +1118,19 @@ int32_t Player::CmdMatchHistory(pb::Message* message)
 	if (!clan_ptr) return 2;
 	
 	clan_ptr->OnMatchHistory(shared_from_this(), match);
+
+	return 0;
+}
+
+int32_t Player::CmdDismissMatch(pb::Message* message)
+{
+	auto match_dismiss = dynamic_cast<Asset::ClanMatchDismiss*>(message);
+	if (!match_dismiss) return 1;
+	
+	auto clan_ptr = ClanInstance.Get(match_dismiss->clan_id());
+	if (!clan_ptr) return 2;
+	
+	clan_ptr->OnMatchDismiss(shared_from_this(), match_dismiss);
 
 	return 0;
 }

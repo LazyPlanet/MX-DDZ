@@ -202,6 +202,7 @@ public:
 	//茶馆
 	virtual int32_t CmdClanOperate(pb::Message* message);
 	virtual int32_t CmdJoinMatch(pb::Message* message); //参加比赛
+	virtual int32_t OnMatchDismiss(pb::Message* message); //解散比赛
 
 	//踢下线
 	virtual int32_t OnKickOut(pb::Message* message);

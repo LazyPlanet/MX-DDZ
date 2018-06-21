@@ -758,6 +758,36 @@ void Clan::OnMatchHistory(std::shared_ptr<Player> player, Asset::ClanMatchHistor
 
 	player->SendProtocol(message);
 }
+	
+void Clan::OnMatchDismiss(std::shared_ptr<Player> player, Asset::ClanMatchDismiss* message)
+{
+	if (!player || !message) return;
+
+	auto player_id = player->GetID();
+
+	if (!IsHoster(player_id)) 
+	{
+		player->AlertMessage(Asset::ERROR_CLAN_MATCH_DISMISS_NO_PERMISSION);
+		return;  //不是馆长不能解散
+	}
+
+	if (IsMatchOpen())
+	{
+		player->AlertMessage(Asset::ERROR_CLAN_MATCH_DISMISS_STARTED);
+		return;
+	}
+
+	auto app_count = GetApplicantsCount();
+	auto ticket_count = GetTicketCount();
+	message->set_room_card_count(app_count * ticket_count);
+
+	player->SendProtocol(message);
+	player->SendProtocol2GameServer(message);
+
+	DEBUG("茶馆:{} 馆长:{} 报名者数量:{} 门票数量:{} 解散比赛", _clan_id, player_id, app_count, ticket_count);
+	
+	ClearMatch();
+}
 
 void Clan::AddApplicant(int64_t player_id)
 {
@@ -1040,13 +1070,48 @@ void Clan::OnMatchOver()
 			if (_stuff.clan_match_list().size() >= 10) break; //只存储10条比赛记录
 		}
 	}
+	
+	DEBUG("茶馆:{} 总比赛轮次:{} 比赛结束总排行榜产生:{}，清理数据完毕", _clan_id, _curr_rounds, history.ShortDebugString());
 
+	ClearMatch(); //清理比赛
+
+	/*
 	_stuff.mutable_match_history()->Clear();
 	_stuff.clear_match_history();
 	_stuff.mutable_applicants()->Clear();
 	_dirty = true;
 
 	DEBUG("茶馆:{} 总比赛轮次:{} 比赛结束总排行榜产生:{}，清理数据完毕", _clan_id, _curr_rounds, history.ShortDebugString());
+
+	//数据清理
+	_match_opened = false; //关闭比赛
+	//_room_created = false; //生成对战房间
+	_curr_rounds = 0;
+	_match_server_id = 0;
+	_match_id = 0;
+	_joiner_count = 0;
+	_taotai_count_per_rounds = 0;
+	_room_matching_count = 0;
+	_room_list.clear();
+	_applicants.clear();
+	_joiners.clear();
+	_room_players.clear();
+	_player_out_rounds.clear();
+	_player_room.clear();
+	_player_waiting.clear();
+	_player_details.clear();
+	_player_score.clear();
+	_room.Clear();
+	if (_history) _history->Clear(); 
+	*/
+}
+
+void Clan::ClearMatch()
+{
+	_stuff.mutable_match_history()->Clear();
+	_stuff.clear_match_history();
+	_stuff.mutable_applicants()->Clear();
+	_dirty = true;
 
 	//数据清理
 	_match_opened = false; //关闭比赛
