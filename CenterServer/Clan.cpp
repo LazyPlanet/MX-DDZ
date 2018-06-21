@@ -24,7 +24,7 @@ void Clan::Update()
 
 	if (!ClanInstance.IsLocal(_clan_id)) Load(); //从茶馆加载数据
 
-	OnQueryMemberStatus(); //定期更新茶馆成员状态
+	//OnQueryMemberStatus(); //定期更新茶馆成员状态
 
 	if (IsMatchOpen()) 
 	{
@@ -271,7 +271,7 @@ int32_t Clan::OnChangedInformation(std::shared_ptr<Player> player, Asset::ClanOp
 
 void Clan::OnQueryMemberStatus(Asset::ClanOperation* message)
 {
-	std::lock_guard<std::mutex> lock(_member_mutex);
+	//std::lock_guard<std::mutex> lock(_member_mutex); //可能死锁
 
 	auto online_mem_count = _stuff.online_mem_count(); //当前在线人数
 	_stuff.set_online_mem_count(0); //在线成员数量缓存
