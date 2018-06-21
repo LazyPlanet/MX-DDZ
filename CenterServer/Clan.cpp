@@ -13,6 +13,8 @@ extern int32_t g_server_id;
 extern const Asset::CommonConst* g_const;
 Asset::ClanLimit* _glimit = nullptr;
 
+#define MIN_PLAYER_COUNT 6
+
 //3秒一次
 void Clan::Update()
 {
@@ -838,9 +840,9 @@ void Clan::AddJoiner(std::shared_ptr<Player> player)
 	++_joiner_count; //比赛总人数
 
 	int32_t total_rounds = GetTotalRounds();
-	if (total_rounds > 2 && _joiner_count > 9)
+	if (total_rounds > 2 && _joiner_count > MIN_PLAYER_COUNT)
 	{
-		_taotai_count_per_rounds = (_joiner_count - 9) / (total_rounds - 2);
+		_taotai_count_per_rounds = (_joiner_count - MIN_PLAYER_COUNT) / (total_rounds - 2);
 
 		for (int i = _taotai_count_per_rounds; i > 0; --i)
 		{
@@ -971,7 +973,7 @@ void Clan::OnRoundsCalculate()
 	else if (remain_rounds == 2)
 	{
 		_joiners.clear(); 
-		next_round_player_needed = std::min(9, player_count);
+		next_round_player_needed = std::min(MIN_PLAYER_COUNT, player_count);
 	}
 	else
 	{
