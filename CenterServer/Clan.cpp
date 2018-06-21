@@ -946,10 +946,6 @@ void Clan::OnMatchRoomOver(const Asset::ClanRoomStatusChanged* message)
 	if (_room_players.size() == 0) 
 	{
 		OnRoundsCalculate(); //所有房间结束比赛，本轮次结束
-
-		++_curr_rounds; //轮次结束
-	
-		_room.set_curr_round(_curr_rounds); //同步房间轮次
 	}
 }
 	
@@ -962,7 +958,7 @@ void Clan::OnRoundsCalculate()
 		OnMatchOver(); //整场比赛是否结束
 		return;
 	}
-
+	
 	//根据分数选择进入下一轮玩家
 	//
 	//未能参加本轮比赛的玩家直接晋级_joiners
@@ -1030,6 +1026,9 @@ void Clan::OnRoundsCalculate()
 		proto.set_top(i + 1); //名次
 		member_ptr->SendProtocol(proto); //通知玩家被淘汰
 	}
+	
+	++_curr_rounds; //轮次结束
+	_room.set_curr_round(_curr_rounds); //同步房间轮次
 }
 
 void Clan::SaveMatchHistory()
@@ -1151,7 +1150,7 @@ void Clan::ClearMatch()
 	//数据清理
 	_match_opened = false; //关闭比赛
 	//_room_created = false; //生成对战房间
-	_curr_rounds = 0;
+	_curr_rounds = 1; //初始第1轮
 	_match_server_id = 0;
 	_match_id = 0;
 	_joiner_count = 0;
