@@ -435,9 +435,6 @@ void Clan::OnMatchOpen(std::shared_ptr<Player> player, Asset::OpenMatch* message
 		return;//已经开启比赛
 	}
 	
-	_match_id = RedisInstance.CreateMatch();
-	if (_match_id <= 0) return;
-	
 	auto curr_time = TimerInstance.GetTime();
 	if (message->start_time() < curr_time) 
 	{
@@ -450,6 +447,18 @@ void Clan::OnMatchOpen(std::shared_ptr<Player> player, Asset::OpenMatch* message
 		player->AlertMessage(Asset::ERROR_CLAN_MATCH_NOT_HOSTER, Asset::ERROR_TYPE_NORMAL, Asset::ERROR_SHOW_TYPE_MESSAGE_BOX);
 		return; //没有权限
 	}
+
+	//人数下限>=轮次*3
+	int32_t lunci_count = message->lunci_count();
+	int32_t people_down = message->people_down();
+	if (people_down < lunci_count * 3)
+	{
+		player->AlertMessage(Asset::ERROR_CLAN_MATCH_PARA, Asset::ERROR_TYPE_NORMAL, Asset::ERROR_SHOW_TYPE_MESSAGE_BOX);
+		return;
+	}
+	
+	_match_id = RedisInstance.CreateMatch(); //生成唯一识别码
+	if (_match_id <= 0) return;
 
 	BroadCast(message); //通知成员报名
 
