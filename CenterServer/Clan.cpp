@@ -1003,17 +1003,17 @@ void Clan::SaveMatchHistory()
 		
 	_history->set_curr_rounds(_curr_rounds);
 
-	auto& top_list = _player_details[_curr_rounds];
-	std::sort(top_list.begin(), top_list.end(), [](const Asset::PlayerBrief& x, const Asset::PlayerBrief& y){
-				return x.score() > y.score();	//根据分数，由大到小排序
+	auto& top_list = _player_details[_curr_rounds]; //本轮排行榜
+	std::sort(top_list.begin(), top_list.end(), [this](const Asset::PlayerBrief& x, const Asset::PlayerBrief& y){
+				if (x.score() > y.score()) return true;	//根据分数，由大到小排序
+				if (x.score() == y.score() && _player_score[x.player_id()].score() > _player_score[y.player_id()].score()) return true; //分数相同的玩家比较总积分
+				return false;
 			});
 	
 	for (const auto& element : top_list)
 	{
-		//auto player_id = element.player_id();
 		auto hist = _history->mutable_top_list()->Add();
 		hist->CopyFrom(element);
-		//hist->set_out_rounds(_player_out_rounds[player_id]);
 	}
 
 	_dirty = true;

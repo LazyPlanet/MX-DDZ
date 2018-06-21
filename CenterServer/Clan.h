@@ -48,7 +48,7 @@ private:
 	std::unordered_map<int64_t/*玩家ID*/, int64_t/*房间ID*/> _player_room; //方便查找玩家所在房间
 	
 	std::unordered_map<int32_t/*轮次*/, std::vector<Asset::PlayerBrief>> _player_details; //轮次各个玩家分数
-	std::unordered_map<int64_t/*玩家ID*/, Asset::PlayerBrief> _player_score; //玩家分数累积
+	std::unordered_map<int64_t/*玩家ID*/, Asset::PlayerBrief> _player_score; //玩家分数累积//总排行
 	std::unordered_map<int64_t/*玩家ID*/, int32_t/*轮次*/> _player_out_rounds; //玩家出局轮次
 
 	Asset::Room _room; //俱乐部老板比赛房间设置
