@@ -437,6 +437,19 @@ void Clan::OnMatchOpen(std::shared_ptr<Player> player, Asset::OpenMatch* message
 		return;//已经开启比赛
 	}
 	
+	auto announcement = message->announce();
+
+	if (announcement.size()) 
+	{
+		CommonUtil::Trim(announcement);
+
+		if (!NameLimitInstance.IsValid(announcement)) 
+		{
+			player->AlertMessage(Asset::ERROR_CLAN_ANNOUCEMENT_INVALID, Asset::ERROR_TYPE_NORMAL, Asset::ERROR_SHOW_TYPE_MESSAGE_BOX);
+			return;
+		}
+	}
+	
 	auto curr_time = TimerInstance.GetTime();
 	if (message->start_time() < curr_time) 
 	{
