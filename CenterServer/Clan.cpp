@@ -1048,6 +1048,7 @@ void Clan::SaveMatchHistory()
 	{
 		auto hist = _history->mutable_top_list()->Add();
 		hist->CopyFrom(element);
+		hist->clear_headimgurl();
 	}
 
 	_dirty = true;
