@@ -451,21 +451,6 @@ void ClanManager::OnOperate(std::shared_ptr<Player> player, Asset::ClanOperation
 		//OnResult(message); //执行成功：广播执行结果
 	};
 			
-	/*
-	std::shared_ptr<Clan> clan = nullptr;
-	
-	if (message->oper_type() != Asset::CLAN_OPER_TYPE_CREATE) 
-	{
-		clan = ClanInstance.Get(message->clan_id());
-
-		if (!clan) //只有创建茶馆无需检查
-		{
-			message->set_oper_result(Asset::ERROR_CLAN_NOT_FOUND); //没找到茶馆
-			return 2;
-		}
-	}
-	*/
-	
 	if (Asset::CLAN_OPER_TYPE_MEMEBER_QUERY != message->oper_type()) 
 		DEBUG("服务器:{} 接收来自中心服务器的玩家:{} 茶馆操作结果:{}", g_server_id, player->GetID(), message->ShortDebugString());
 
@@ -475,34 +460,6 @@ void ClanManager::OnOperate(std::shared_ptr<Player> player, Asset::ClanOperation
 		{
 			auto clan_limit = dynamic_cast<Asset::ClanLimit*>(AssetInstance.Get(g_const->clan_id()));
 			if (!clan_limit) return;
-
-			const auto& trim_name = message->name();
-			
-			/*
-			boost::trim(trim_name);
-
-			if (trim_name.size() != message->name().size())
-			{
-				message->set_oper_result(Asset::ERROR_CLAN_NAME_INVALID);
-				return;
-			}
-
-			if (trim_name.empty()) 
-			{
-				message->set_oper_result(Asset::ERROR_CLAN_NAME_EMPTY);
-				return;
-			}
-			if ((int32_t)trim_name.size() > clan_limit->name_limit())
-			{
-				message->set_oper_result(Asset::ERROR_CLAN_NAME_UPPER);
-				return;
-			}
-			if (!NameLimitInstance.IsValid(trim_name))
-			{
-				message->set_oper_result(Asset::ERROR_CLAN_NAME_INVALID);
-				return;
-			}
-			*/
 
 			if (clan_limit->create_daili_limit() && !player->IsDaili())
 			{
@@ -538,7 +495,7 @@ void ClanManager::OnOperate(std::shared_ptr<Player> player, Asset::ClanOperation
 
 			Asset::Clan clan;
 			clan.set_clan_id(clan_id);
-			clan.set_name(trim_name);
+			clan.set_name(message->name());
 			clan.set_created_time(CommonTimerInstance.GetTime());
 			clan.set_hoster_id(player->GetID());
 			clan.set_hoster_name(player->GetNickName());

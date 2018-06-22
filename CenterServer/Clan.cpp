@@ -1562,36 +1562,6 @@ void ClanManager::OnOperate(std::shared_ptr<Player> player, Asset::ClanOperation
 	{
 		case Asset::CLAN_OPER_TYPE_CREATE: //创建
 		{
-			/*
-			auto _glimit = dynamic_cast<Asset::ClanLimit*>(AssetInstance.Get(g_const->clan_id()));
-			if (!_glimit) return;
-
-			auto trim_name = message->name();
-			CommonUtil::Trim(trim_name);
-
-			if (trim_name.size() != message->name().size()) //有空格
-			{
-				message->set_oper_result(Asset::ERROR_CLAN_NAME_INVALID);
-				return;
-			}
-
-			if (trim_name.empty()) 
-			{
-				message->set_oper_result(Asset::ERROR_CLAN_NAME_EMPTY);
-				return;
-			}
-			if ((int32_t)trim_name.size() > _glimit->name_limit())
-			{
-				message->set_oper_result(Asset::ERROR_CLAN_NAME_UPPER);
-				return;
-			}
-			if (!NameLimitInstance.IsValid(trim_name))
-			{
-				message->set_oper_result(Asset::ERROR_CLAN_NAME_INVALID);
-				return;
-			}
-			*/
-
 			auto result = ClanInstance.IsNameValid(message->name(), message->name());
 			if (result)
 			{
@@ -1676,34 +1646,7 @@ void ClanManager::OnOperate(std::shared_ptr<Player> player, Asset::ClanOperation
 			if (!des_player) return;
 
 			message->mutable_clan()->CopyFrom(clan->Get()); //茶馆信息
-
-			//des_player->SendProtocol(message); //通知玩家馆长同意加入茶馆
 			des_player->SendProtocol2GameServer(message); //通知逻辑服务器加入茶馆成功
-			
-			//player->SendProtocol2GameServer(message); //通知逻辑服务器加入成功
-		
-			/*
-			Asset::Player des_player;
-			if (!PlayerInstance.GetCache(message->dest_player_id(), des_player)) return; //没有记录
-
-			if (des_player.login_time() == 0) //离线
-			{
-				des_player.add_clan_joiners(message->clan_id());
-
-				PlayerInstance.Save(message->dest_player_id(), des_player); //直接存盘
-			}
-			else //在线 
-			{
-				auto des_player = PlayerInstance.Get(message->dest_player_id()); //不在当前中心服务器
-				if (!des_player) return;
-
-				message->mutable_clan()->CopyFrom(clan->Get()); //茶馆信息
-
-				//des_player->OnClanJoin(message->clan_id());
-				des_player->SendProtocol(message); //通知玩家馆长同意加入茶馆
-				des_player->SendProtocol2GameServer(message); //通知逻辑服务器加入茶馆成功
-			}
-			*/
 		}
 		break;
 		
