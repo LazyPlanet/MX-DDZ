@@ -856,6 +856,8 @@ void Clan::AddJoiner(std::shared_ptr<Player> player)
 	auto player_id = player->GetID();
 
 	std::lock_guard<std::mutex> lock(_joiners_mutex);
+	
+	if (_joiners.find(player_id) != _joiners.end()) return; 
 
 	_joiners.insert(player_id); 
 
