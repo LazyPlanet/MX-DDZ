@@ -24,7 +24,7 @@ void Clan::Update()
 
 	if (!ClanInstance.IsLocal(_clan_id)) Load(); //从茶馆加载数据
 
-	UpdateMemberStatus(); //定期更新茶馆成员状态
+	if (_heart_count % 2 == 0) UpdateMemberStatus(); //茶馆成员状态
 
 	if (IsMatchOpen()) 
 	{
@@ -276,7 +276,7 @@ void Clan::UpdateMemberStatus()
 	auto online_mem_count = _stuff.online_mem_count(); //当前在线人数
 
 	_stuff.clear_online_mem_count(); //在线成员数量缓存
-
+	
 	for (int32_t i = 0; i < _stuff.member_list().size(); ++i)
 	{
 		auto member_ptr = _stuff.mutable_member_list(i);
@@ -288,11 +288,13 @@ void Clan::UpdateMemberStatus()
 		auto loaded = PlayerInstance.GetCache(member_ptr->player_id(), player);
 		if (!loaded) continue;
 		
+		/* 可能死锁
 		Asset::User user;
 		loaded = RedisInstance.GetUser(player.account(), user);
 		if (!loaded) continue;
 
 		member_ptr->set_headimgurl(user.wechat().headimgurl()); //头像信息
+		*/
 
 		if (player.login_time()) //在线
 		{
@@ -1730,14 +1732,17 @@ void ClanManager::OnOperate(std::shared_ptr<Player> player, Asset::ClanOperation
 
 		case Asset::CLAN_OPER_TYPE_MEMEBER_QUERY: //成员状态查询
 		{
+			/*
 			if (!clan->HasMember(player->GetID())) //不是成员不能查询
 			{
 				message->set_oper_result(Asset::ERROR_CLAN_QUERY_NO_CLAN);
 				return; //不是成员
 			}
-			
-			clan->OnQueryMemberStatus(message);
-			player->SendProtocol2GameServer(message); //到逻辑服务器进行同步当前茶馆
+			*/
+			player->SendProtocol2GameServer(message); //到逻辑服务器进行同步当前茶馆，先进行此处转发，再同步数据
+
+			//clan->UpdateMemberStatus(); //茶馆成员状态//防止死锁
+			message->mutable_clan()->CopyFrom(clan->Get());
 		}
 		break;
 

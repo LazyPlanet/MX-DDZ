@@ -436,7 +436,7 @@ void WorldSession::OnProcessMessage(const Asset::Meta& meta)
 				return;
 			}
 			
-			//_player->SendProtocol2GameServer(message); //进入逻辑服务器
+			PlayerInstance.UpdateUser(_player->GetID(), _user);
 		}
 		else if (Asset::META_TYPE_C2S_SWITCH_ACCOUNT == meta.type_t()) //切换账号
 		{

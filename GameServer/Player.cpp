@@ -122,6 +122,7 @@ int32_t Player::Save(bool force)
 	
 void Player::OnLogin()
 {
+	BattleHistory();
 }
 
 int32_t Player::Logout(pb::Message* message)

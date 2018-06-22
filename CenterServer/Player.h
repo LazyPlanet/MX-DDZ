@@ -241,8 +241,12 @@ class PlayerManager : public std::enable_shared_from_this<PlayerManager>
 {
 private:
 	std::mutex _mutex;
+	std::mutex _player_mutex, _user_mutex;
 	std::unordered_map<int64_t, std::shared_ptr<Player>> _players; //实体为智能指针，不要传入引用
 	int64_t _heart_count = 0;
+	
+	std::unordered_map<int64_t, Asset::Player> _player_cache; //防止频繁访问数据库，数据缓存
+	std::unordered_map<int64_t, Asset::User> _uer_cache; //防止频繁访问数据库，数据缓存
 public:
 	static PlayerManager& Instance()
 	{
@@ -264,13 +268,19 @@ public:
 	std::shared_ptr<Player> Get(int64_t player_id);
 	int32_t GetOnlinePlayerCount(); //获取在线玩家数量//带缓存
 
+	void UpdatePlayer(int64_t player_id, const Asset::Player& player);
+	
+	void UpdateUser(int64_t player_id, const Asset::User& user);
+	bool GetUser(int64_t player_id, Asset::User& user);
+
 	bool GetCache(int64_t player_id, Asset::Player& player);
+	bool GetCache(const std::vector<int64_t>& player_ids, std::unordered_map<int64_t, Asset::Player>& player_list);
+
 	bool Save(int64_t player_id, Asset::Player& player);
 	
 	virtual void BroadCast(const pb::Message& message);
 	bool IsLocal(int64_t player_id);
 
-	bool GetCache(const std::vector<int64_t>& player_ids, std::unordered_map<int64_t, Asset::Player>& player_list);
 };
 
 #define PlayerInstance PlayerManager::Instance()

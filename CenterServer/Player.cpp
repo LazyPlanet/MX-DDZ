@@ -1320,6 +1320,14 @@ int32_t PlayerManager::GetOnlinePlayerCount()
 	
 bool PlayerManager::GetCache(int64_t player_id, Asset::Player& player)
 {
+	/*
+	auto player_ptr = GetPlayer(player_id);
+	if (player_ptr)
+	{
+		player = player_ptr->Get();
+		return true;
+	}
+	*/
 	return RedisInstance.Get("player:" + std::to_string(player_id), player);
 }
 
@@ -1407,6 +1415,31 @@ bool PlayerManager::SendProtocol2GameServer(int64_t player_id, const pb::Message
 	if (!message) return false;
 
 	return SendProtocol2GameServer(player_id, *message);
+}
+	
+void PlayerManager::UpdatePlayer(int64_t player_id, const Asset::Player& player)
+{
+	std::lock_guard<std::mutex> lock(_player_mutex);
+	
+	_player_cache[player_id] = player;
+}
+
+void PlayerManager::UpdateUser(int64_t player_id, const Asset::User& user)
+{
+	std::lock_guard<std::mutex> lock(_user_mutex);
+
+	_uer_cache[player_id] = user;
+}
+	
+bool PlayerManager::GetUser(int64_t player_id, Asset::User& user)
+{
+	std::lock_guard<std::mutex> lock(_user_mutex);
+
+	auto it = _uer_cache.find(player_id);
+	if (it == _uer_cache.end()) return false;
+
+	user = it->second;
+	return true;
 }
 
 }
