@@ -987,6 +987,15 @@ void Clan::OnRoundsCalculate()
 	else
 	{
 		next_round_player_needed = player_count - _taotai_count_per_rounds;
+		
+		for (int i = next_round_player_needed; i < _joiner_count; ++i)
+		{
+			if (i % 3 == 0) 
+			{
+				next_round_player_needed = i; //向上取3的倍数，可能会多纳入几个成员
+				break;
+			}
+		}
 	}
 
 	//从本轮玩家选择参加下轮比赛的玩家
