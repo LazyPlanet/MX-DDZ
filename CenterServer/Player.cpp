@@ -487,25 +487,21 @@ void Player::SendProtocol(const pb::Message& message)
 	if (!session || !session->IsConnect()) return;
 
 	session->SendProtocol(message);
+	
+	const pb::FieldDescriptor* field = message.GetDescriptor()->FindFieldByName("type_t");
+	if (!field) return;
+	
+	int type_t = field->default_value_enum()->number();
+	if (Asset::CLAN_OPER_TYPE_MEMEBER_QUERY == type_t) return; //日志过滤
 
 	DEBUG("玩家:{} 发送协议:{}", _player_id, message.ShortDebugString());
 }
 	
 void Player::SendMeta(const Asset::Meta& meta)
 {
-	/*
-	if (!Connected()) 
-	{
-		LOG(ERROR, "玩家:{}未能找到合适逻辑服务器，当前服务器:{}", _player_id, _stuff.server_id());
-		return;
-	}
-	*/
-	
 	auto session = WorldSessionInstance.GetPlayerSession(_player_id);
 	if (!session || !session->IsConnect()) return;
 	
-	//DEBUG("玩家:{}发送协议:{}到游戏逻辑服务器", _player_id, meta.ShortDebugString());
-
 	session->SendMeta(meta);
 }
 	

@@ -396,7 +396,7 @@ void Clan::Save(bool force)
 
 	if (!ClanInstance.IsLocal(_clan_id)) return; //不是本服俱乐部，不进行存储
 
-	DEBUG("存储茶馆:{} 数据:{} 成功", _clan_id, _stuff.ShortDebugString());
+	//DEBUG("存储茶馆:{} 数据:{} 成功", _clan_id, _stuff.ShortDebugString());
 		
 	RedisInstance.Save("ddz_clan:" + std::to_string(_clan_id), _stuff);
 
