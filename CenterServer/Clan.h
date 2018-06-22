@@ -18,7 +18,7 @@ class Clan : public std::enable_shared_from_this<Clan>
 private:
 	std::mutex _mutex, _member_mutex;
 	std::mutex _joiners_mutex, _applicants_mutex;
-	std::mutex _match_room_mutex;
+	std::mutex _match_room_mutex, _player_room_mutex;
 	Asset::Clan _stuff;
 	bool _dirty = false;
 	int64_t _clan_id = 0;
@@ -106,6 +106,8 @@ public:
 	void OnQueryGamingList(Asset::ClanOperation* message);
 	void OnSetUpdateTime();
 
+	void OnPlayerLogin(std::shared_ptr<Player> player);
+
 	//比赛相关
 	void OnMatchOpen(std::shared_ptr<Player> player, Asset::OpenMatch* message);
 	const Asset::OpenMatch& GetMatchSetting() { return _stuff.match_history().open_match(); }
@@ -137,6 +139,10 @@ public:
 	int32_t GetApplicantsCount();
 	int32_t GetAvailableMatchRoomCount();
 	void OnMatchDismiss(std::shared_ptr<Player> player, Asset::ClanMatchDismiss* message); //解散比赛
+
+	void InsertPlayerRoom(int64_t player_id, int64_t room_id);
+	void DeleteRoom(int64_t room_id);
+	int64_t GetPlayerRoom(int64_t player_id);
 
 	void AddMember(int64_t player_id); //增加成员列表
 	bool HasMember(int64_t player_id); //是否含有成员

@@ -424,6 +424,31 @@ void Clan::OnDisMiss()
 
 	_dirty = true;
 }
+	
+void Clan::OnPlayerLogin(std::shared_ptr<Player> player)
+{
+	if (!player) return;
+
+	auto player_id = player->GetID();
+
+	/*
+	auto it = _player_room.find(player_id);
+	if (it == _player_room.end()) return;
+
+	int64_t room_id = it->second;
+	*/
+
+	int64_t room_id = GetPlayerRoom(player_id);
+	if (room_id == 0) return;
+
+	Asset::CreateRoom enter_room;
+	enter_room.mutable_room()->CopyFrom(_room);
+	enter_room.mutable_room()->set_room_id(room_id);
+
+	player->SendProtocol(enter_room); //通知玩家加入比赛房间
+
+	DEBUG("玩家:{} 登陆茶馆:{} 参与比赛缓存房间:{} ", player_id, _clan_id, room_id);     
+}
 
 void Clan::OnSetUpdateTime()
 {
@@ -646,7 +671,8 @@ void Clan::OnPlayerMatch()
 		for (auto player_id : players) 
 		{
 			_room_players[room_id].push_back(player_id); //缓存房间<->玩家列表数据
-			_player_room[player_id] = room_id; //缓存玩家<->房间数据
+			//_player_room[player_id] = room_id; //缓存玩家<->房间数据
+			InsertPlayerRoom(player_id, room_id);
 		}
 	}
 		
@@ -736,8 +762,9 @@ void Clan::OnJoinMatch(std::shared_ptr<Player> player, Asset::JoinMatch* message
 				return;	//已经淘汰
 			}
 
-			auto it = _player_room.find(player_id);
-			if (it == _player_room.end())
+			int64_t room_id = GetPlayerRoom(player_id); //玩家当前所在房间
+
+			if (room_id == 0)
 			{
 				if (_player_waiting.find(player_id) != _player_waiting.end())
 				{
@@ -757,7 +784,7 @@ void Clan::OnJoinMatch(std::shared_ptr<Player> player, Asset::JoinMatch* message
 			{
 				Asset::CreateRoom enter_room;
 				enter_room.mutable_room()->CopyFrom(_room);
-				enter_room.mutable_room()->set_room_id(it->second);
+				enter_room.mutable_room()->set_room_id(room_id);
 
 				player->SendProtocol(enter_room); //通知玩家加入比赛房间
 				return;
@@ -820,6 +847,39 @@ void Clan::OnMatchDismiss(std::shared_ptr<Player> player, Asset::ClanMatchDismis
 	DEBUG("茶馆:{} 馆长:{} 报名者数量:{} 门票数量:{} 解散比赛", _clan_id, player_id, app_count, ticket_count);
 	
 	ClearMatch();
+}
+	
+void Clan::InsertPlayerRoom(int64_t player_id, int64_t room_id)
+{
+	std::lock_guard<std::mutex> lock(_player_room_mutex);
+			
+	_player_room[player_id] = room_id; //缓存玩家<->房间数据
+}
+
+void Clan::DeleteRoom(int64_t room_id)
+{
+	std::lock_guard<std::mutex> lock(_player_room_mutex);
+	
+	for (auto it = _player_room.begin(); it != _player_room.end();)
+	{
+		if (it->second == room_id)
+		{
+			it = _player_room.erase(it); //清理玩家房间信息
+			continue;
+		}
+	
+		++it;
+	}
+}
+
+int64_t Clan::GetPlayerRoom(int64_t player_id)
+{
+	std::lock_guard<std::mutex> lock(_player_room_mutex);
+
+	auto it = _player_room.find(player_id);
+	if (it == _player_room.end()) return 0;
+
+	return it->second;
 }
 
 void Clan::AddApplicant(int64_t player_id)
@@ -919,6 +979,9 @@ void Clan::OnMatchRoomOver(const Asset::ClanRoomStatusChanged* message)
 
 	_room_players.erase(it); //删除比赛房间
 
+	DeleteRoom(room_id); //清理玩家房间信息
+
+	/*
 	for (auto it = _player_room.begin(); it != _player_room.end();)
 	{
 		if (it->second == room_id)
@@ -929,6 +992,7 @@ void Clan::OnMatchRoomOver(const Asset::ClanRoomStatusChanged* message)
 	
 		++it;
 	}
+	*/
 		
 	for (const auto& player_brief : message->player_list()) 
 	{

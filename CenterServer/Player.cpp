@@ -218,10 +218,16 @@ int32_t Player::OnEnterCenter()
 	
 int32_t Player::OnLogin(bool is_login)
 {
-	ActivityInstance.OnPlayerLogin(shared_from_this()); //活动数据
+	//////////活动数据//////////
+	ActivityInstance.OnPlayerLogin(shared_from_this()); 
 
-	//if (is_login) BattleHistory(); //历史对战表
-	//if (is_login) MultiplyRoomCard(); //房卡翻倍//营口不再翻倍
+	//////////战队比赛//////////
+	int64_t clan_id = _stuff.selected_clan_id();
+	if (clan_id)
+	{
+		auto clan = ClanInstance.Get(clan_id);
+		if (clan) clan->OnPlayerLogin(shared_from_this());
+	}
 
 	return 0;
 }
