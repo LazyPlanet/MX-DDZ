@@ -40,7 +40,7 @@ void WorldSession::InitializeHandler(const boost::system::error_code error, cons
 	{
 		if (error)
 		{
-			ERROR("地址:{} 端口:{} 玩家:{}断开连接，错误码:{} 错误描述:{}", _ip_address, _remote_endpoint.port(), _player ? _player->GetID() : 0, error.value(), error.message());
+			ERROR("地址:{} 端口:{} 玩家:{} 断开连接，错误码:{} 错误描述:{}", _ip_address, _remote_endpoint.port(), _player ? _player->GetID() : 0, error.value(), error.message());
 			
 			Close();
 			return;
@@ -81,7 +81,7 @@ void WorldSession::InitializeHandler(const boost::system::error_code error, cons
 	}
 	catch (std::exception& e)
 	{
-		ERROR("地址:{} 端口:{} 玩家:{}断开连接，错误码:{}", _ip_address, _remote_endpoint.port(), _player ? _player->GetID() : 0, e.what());
+		ERROR("地址:{} 端口:{} 玩家:{} 断开连接，错误码:{}", _ip_address, _remote_endpoint.port(), _player ? _player->GetID() : 0, e.what());
 		Close();
 
 		KickOutPlayer(Asset::KICK_OUT_REASON_DISCONNECT);

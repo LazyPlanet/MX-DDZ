@@ -517,11 +517,11 @@ bool Player::SendProtocol2GameServer(const pb::Message& message)
 		_gs_session = WorldSessionInstance.GetServerSession(GetLocalServer());
 	}
 		
-	auto debug_string = message.ShortDebugString();
+	//auto debug_string = message.ShortDebugString();
 	
 	if (!_gs_session) 
 	{
-		LOG(ERROR, "玩家:{}未能找到合适发逻辑服务器，当前服务器:{}，协议内容:{}", _player_id, _stuff.server_id(), debug_string);
+		//LOG(ERROR, "玩家:{} 未能找到合适发逻辑服务器，当前服务器:{}，协议类型:{}", _player_id, _stuff.server_id(), Asset::META_TYPE_Name(meta.type_t()));
 		return false;
 	}
 
@@ -1321,6 +1321,31 @@ int32_t PlayerManager::GetOnlinePlayerCount()
 bool PlayerManager::GetCache(int64_t player_id, Asset::Player& player)
 {
 	return RedisInstance.Get("player:" + std::to_string(player_id), player);
+}
+
+bool PlayerManager::GetCache(const std::vector<int64_t>& player_ids, std::unordered_map<int64_t, Asset::Player>& player_list)
+{
+	std::vector<std::string> keys;
+	std::vector<std::string> values;
+
+	for (auto player_id : player_ids)
+	{
+		std::string key = "player:" + std::to_string(player_id);
+		keys.push_back(key);	
+	}
+
+	bool has_record = RedisInstance.MGet(keys, values);
+	if (!has_record) return false;
+
+	for (const auto& value : values)
+	{
+		Asset::Player player;
+		if (!player.ParseFromString(value)) return false;
+
+		player_list.emplace(player.common_prop().player_id(), player);
+	}
+
+	return true;
 }
 
 bool PlayerManager::Save(int64_t player_id, Asset::Player& player)

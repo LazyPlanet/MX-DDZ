@@ -269,6 +269,8 @@ public:
 	
 	virtual void BroadCast(const pb::Message& message);
 	bool IsLocal(int64_t player_id);
+
+	bool GetCache(const std::vector<int64_t>& player_ids, std::unordered_map<int64_t, Asset::Player>& player_list);
 };
 
 #define PlayerInstance PlayerManager::Instance()

@@ -101,6 +101,7 @@ public:
 	int32_t OnDisAgree(std::shared_ptr<Player> player, Asset::ClanOperation* message);
 	int32_t OnRecharge(int32_t count);
 	void OnQueryMemberStatus(Asset::ClanOperation* message = nullptr);
+	void UpdateMemberStatus();
 	void OnQueryRoomList(std::shared_ptr<Player> player, Asset::ClanOperation* message);
 	void OnQueryGamingList(Asset::ClanOperation* message);
 	void OnSetUpdateTime();
