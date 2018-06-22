@@ -492,7 +492,7 @@ void Player::SendProtocol(const pb::Message& message)
 	if (!field) return;
 	
 	int type_t = field->default_value_enum()->number();
-	if (Asset::CLAN_OPER_TYPE_MEMEBER_QUERY == type_t) return; //日志过滤
+	if (Asset::META_TYPE_SHARE_CLAN_OPERATION == type_t) return; //日志过滤
 
 	DEBUG("玩家:{} 发送协议:{}", _player_id, message.ShortDebugString());
 }
