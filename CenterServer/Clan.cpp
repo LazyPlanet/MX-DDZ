@@ -5,6 +5,7 @@
 #include "Player.h"
 #include "RedisManager.h"
 #include "NameLimit.h"
+#include "Activity.h"
 
 namespace Adoter
 {
@@ -460,6 +461,12 @@ void Clan::OnSetUpdateTime()
 void Clan::OnMatchOpen(std::shared_ptr<Player> player, Asset::OpenMatch* message)
 {
 	if (!player || !message) return;
+	
+	if (!ActivityInstance.IsOpen(_glimit->match_activiy_id())) 
+	{
+		player->AlertMessage(Asset::ERROR_CLAN_MATCH_ACTIVITY_CLOSED, Asset::ERROR_TYPE_NORMAL, Asset::ERROR_SHOW_TYPE_MESSAGE_BOX);
+		return;
+	}
 
 	auto player_id = player->GetID();
 
@@ -1078,7 +1085,7 @@ void Clan::OnRoundsCalculate()
 	}
 	else
 	{
-		next_round_player_needed = player_count - _taotai_count_per_rounds;
+		next_round_player_needed = player_count - _taotai_count_per_rounds + remain_player_count;
 		
 		for (int i = next_round_player_needed; i < _joiner_count; ++i)
 		{
