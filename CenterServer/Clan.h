@@ -119,6 +119,7 @@ public:
 	void AddApplicant(int64_t player_id); //报名
 	bool HasApplicant(int64_t player_id); //是否报名过
 	void AddJoiner(std::shared_ptr<Player> player); //参加比赛
+	bool HasJoiner(int64_t player_id); //是否已经参赛
 	void OnCreateRoom(const Asset::ClanCreateRoom* message);
 	void OnPlayerMatch(); //进行匹配
 	bool GetPlayers(std::vector<int64_t>& players);

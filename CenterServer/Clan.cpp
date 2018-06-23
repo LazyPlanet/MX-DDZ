@@ -776,8 +776,18 @@ void Clan::OnJoinMatch(std::shared_ptr<Player> player, Asset::JoinMatch* message
 
 				if (result != 0)
 				{
-					player->AlertMessage(result, Asset::ERROR_TYPE_NORMAL, Asset::ERROR_SHOW_TYPE_MESSAGE_BOX);
-					return; //是否可以参加比赛，比赛参与时间从开始比赛预留5分钟
+					if (HasJoiner(player_id))
+					{
+						//已经报名成功，但是超时了，这种为留空等待状态，下一轮直接晋级
+						player->AlertMessage(Asset::ERROR_CLAN_MATCH_LUNKONG_WAITING, Asset::ERROR_TYPE_NORMAL, Asset::ERROR_SHOW_TYPE_MESSAGE_BOX);
+					}
+					else
+					{
+						//是否可以参加比赛，比赛参与时间从开始比赛预留5分钟
+						player->AlertMessage(result, Asset::ERROR_TYPE_NORMAL, Asset::ERROR_SHOW_TYPE_MESSAGE_BOX); 
+					}
+
+					return; //返回错误
 				}
 			}
 			else
@@ -902,6 +912,13 @@ bool Clan::HasApplicant(int64_t player_id)
 	if (_applicants.find(player_id) != _applicants.end()) return true; //已经报名
 
 	return false;
+}
+	
+bool Clan::HasJoiner(int64_t player_id)
+{
+	std::lock_guard<std::mutex> lock(_joiners_mutex);
+	
+	return _joiners.find(player_id) != _joiners.end();
 }
 
 //
