@@ -571,6 +571,14 @@ bool Clan::IsInMatchTime()
 	return curr_time <= start_time + _glimit->join_match_time_last();
 }
 
+bool Clan::IsTimeOut()
+{
+	auto curr_time = TimerInstance.GetTime();
+	auto start_time = GetBattleTime(); //开启时间
+
+	return curr_time > start_time + _glimit->join_match_time_last();
+}
+
 int32_t Clan::GetAvailableMatchRoomCount()
 {
 	std::lock_guard<std::mutex> lock(_match_room_mutex);
@@ -695,6 +703,14 @@ void Clan::OnPlayerMatch()
 	{
 		_history->set_room_total(_room_matching_count);
 		_history->set_room_remain(_room_players.size()); //剩余房间数量
+	}
+
+	if (IsTimeOut() && IsMatchOpen())
+	{
+		if (_curr_rounds == 1 && _room_players.size() == 0) 
+		{
+			OnRoundsCalculate(); //所有房间结束比赛，本轮次结束
+		}
 	}
 }
 

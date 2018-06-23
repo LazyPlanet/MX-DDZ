@@ -126,6 +126,7 @@ public:
 	const Asset::Room& GetRoom() { return _room; } //俱乐部部长比赛房间设置
 	int32_t CanJoinMatch(); //是否可以参加比赛
 	bool IsInMatchTime(); //可以进场时间
+	bool IsTimeOut(); //比赛超时
 	void OnMatchRoomOver(const Asset::ClanRoomStatusChanged* message);
 	void OnRoundsCalculate();
 	bool IsMatchOver() { return _curr_rounds >= _stuff.match_history().open_match().lunci_count(); } //比赛是否结束
