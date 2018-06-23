@@ -123,6 +123,9 @@ int32_t Player::Save(bool force)
 void Player::OnLogin()
 {
 	BattleHistory();
+
+	Asset::EnterGameServer proto;
+	SendProtocol(proto);
 }
 
 int32_t Player::Logout(pb::Message* message)

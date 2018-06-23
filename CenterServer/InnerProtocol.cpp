@@ -154,14 +154,16 @@ bool WorldSession::OnInnerProcess(const Asset::Meta& meta)
 
 		default:
 		{
-			auto player = WorldSessionInstance.GetPlayerSession(meta.player_id());
+			//auto session = WorldSessionInstance.GetPlayerSession(meta.player_id());
+			auto player = PlayerInstance.Get(meta.player_id());
 
 			if (!player) 
 			{
-				ERROR("未能找到玩家:{}网络连接 不能处理协议:{}", meta.player_id(), Asset::META_TYPE_Name(meta.type_t()));
+				ERROR("未能找到玩家:{} 网络连接 不能处理协议:{}", meta.player_id(), Asset::META_TYPE_Name(meta.type_t()));
 				return false;
 			}
-			player->SendMeta(meta);
+			//player->SendMeta(meta);
+			player->OnGameServerBack(meta);
 		}
 		break;
 	}

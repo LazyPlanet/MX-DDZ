@@ -58,6 +58,8 @@ Player::Player()
 	AddHandler(Asset::META_TYPE_SHARE_JOIN_MATCH, std::bind(&Player::CmdJoinMatch, this, std::placeholders::_1));
 	AddHandler(Asset::META_TYPE_SHARE_CLAN_MATCH_HISTORY, std::bind(&Player::CmdMatchHistory, this, std::placeholders::_1));
 	AddHandler(Asset::META_TYPE_SHARE_CLAN_MATCH_DISMISS, std::bind(&Player::CmdDismissMatch, this, std::placeholders::_1));
+	
+	AddHandler(Asset::META_TYPE_S2S_ENTER_GAME_SERVER, std::bind(&Player::OnEnterGameServer, this, std::placeholders::_1));
 
 	//AddHandler(Asset::META_TYPE_C2S_GET_REWARD, std::bind(&Player::CmdGetReward, this, std::placeholders::_1)); //逻辑服务器处理
 }
@@ -220,14 +222,6 @@ int32_t Player::OnLogin(bool is_login)
 {
 	//////////活动数据//////////
 	ActivityInstance.OnPlayerLogin(shared_from_this()); 
-
-	//////////战队比赛//////////
-	int64_t clan_id = _stuff.selected_clan_id();
-	if (clan_id)
-	{
-		auto clan = ClanInstance.Get(clan_id);
-		if (clan) clan->OnPlayerLogin(shared_from_this());
-	}
 
 	return 0;
 }
@@ -582,6 +576,32 @@ void Player::SendGmtProtocol(const pb::Message& message, int64_t session_id)
 	gmt_meta.set_inner_meta(inner_meta);
 
 	SendProtocol2GameServer(gmt_meta);
+}
+	
+void Player::OnGameServerBack(const Asset::Meta& meta)
+{
+	pb::Message* msg = ProtocolInstance.GetMessage(meta.type_t());	
+	if (!msg) return;
+
+	auto message = msg->New();
+
+	defer {
+		delete message;
+		message = nullptr;
+	};
+
+	auto result = message->ParseFromArray(meta.stuff().c_str(), meta.stuff().size());
+	if (!result) return; 
+
+	auto it = _callbacks.find(meta.type_t());
+	if (it != _callbacks.end()) //中心服有处理逻辑，则直接在中心服处理
+	{
+		it->second(std::forward<pb::Message*>(message));	
+	}
+	else
+	{
+		SendMeta(meta);
+	}
 }
 
 //
@@ -1134,6 +1154,23 @@ int32_t Player::CmdDismissMatch(pb::Message* message)
 	
 	clan_ptr->OnMatchDismiss(shared_from_this(), match_dismiss);
 
+	return 0;
+}
+
+int32_t Player::OnEnterGameServer(pb::Message* message)
+{
+	auto enter_game = dynamic_cast<Asset::EnterGameServer*>(message);
+	if (!enter_game) return 1;
+	
+	//战队比赛
+	const int64_t clan_id = _stuff.selected_clan_id();
+	if (clan_id)
+	{
+		auto clan = ClanInstance.Get(clan_id);
+		if (clan) clan->OnPlayerLogin(shared_from_this());
+	}
+
+	DEBUG("玩家:{} 进入逻辑服务器:{}", _player_id, enter_game->ShortDebugString());
 	return 0;
 }
 	

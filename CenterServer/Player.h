@@ -108,6 +108,8 @@ public:
 	virtual void SendProtocol(const pb::Message* message);
 	virtual void SendMeta(const Asset::Meta& meta);
 	
+	virtual void OnGameServerBack(const Asset::Meta& meta);
+	
 	virtual bool SendProtocol2GameServer(const pb::Message& message);
 	virtual bool SendProtocol2GameServer(const pb::Message* message);
 
@@ -166,6 +168,7 @@ public:
 	virtual int32_t CmdJoinMatch(pb::Message* message); //参加比赛
 	virtual int32_t CmdMatchHistory(pb::Message* message); //比赛战绩
 	virtual int32_t CmdDismissMatch(pb::Message* message); //解散比赛
+	virtual int32_t OnEnterGameServer(pb::Message* message); //逻辑服务器进入回调
 public:
 	//获取所有包裹
 	const Asset::Inventory& GetInventory() { return _stuff.inventory();	}

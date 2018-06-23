@@ -656,6 +656,11 @@ int32_t Clan::GetApplicantsCount()
 void Clan::OnPlayerMatch()
 {
 	//if (!_room_created) return; //房间尚未创建完毕
+
+	if (IsTimeOut() && IsMatchOpen())
+	{
+		if (_curr_rounds == 1 && _room_players.size() == 0) OnRoundsCalculate(); //解决参赛时间已经完结房间之后//再没有人加入比赛的情况
+	}
 	
 	Asset::CreateRoom enter_room;
 	enter_room.mutable_room()->CopyFrom(_room);
@@ -703,14 +708,6 @@ void Clan::OnPlayerMatch()
 	{
 		_history->set_room_total(_room_matching_count);
 		_history->set_room_remain(_room_players.size()); //剩余房间数量
-	}
-
-	if (IsTimeOut() && IsMatchOpen())
-	{
-		if (_curr_rounds == 1 && _room_players.size() == 0) 
-		{
-			OnRoundsCalculate(); //所有房间结束比赛，本轮次结束
-		}
 	}
 }
 
