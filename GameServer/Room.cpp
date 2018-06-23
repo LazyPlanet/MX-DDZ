@@ -1390,6 +1390,12 @@ void RoomManager::Update(int32_t diff)
 				it->second->OnRemove();
 				it = _rooms.erase(it); //删除房间
 			}
+			else if (it->second->IsClanMatch() && it->second->IsExpired())
+			{
+				WARN("比赛房间:{} 超时强制解散", it->first);
+
+				it->second->DoDisMiss(); //比赛房间超时强制删除
+			}
 			else
 			{
 				++it;

@@ -869,13 +869,17 @@ void Clan::OnMatchDismiss(std::shared_ptr<Player> player, Asset::ClanMatchDismis
 		return;  //不是馆长不能解散
 	}
 
+	auto app_count = GetApplicantsCount();
+
 	if (IsMatchOpen())
 	{
-		player->AlertMessage(Asset::ERROR_CLAN_MATCH_DISMISS_STARTED);
-		return;
+		if (app_count >= GetPeopleLimit()) //报名人数不足方可解散比赛
+		{
+			player->AlertMessage(Asset::ERROR_CLAN_MATCH_DISMISS_STARTED);
+			return;
+		}
 	}
 
-	auto app_count = GetApplicantsCount();
 	auto ticket_count = GetTicketCount();
 	message->set_room_card_count(app_count * ticket_count);
 
