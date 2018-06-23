@@ -124,7 +124,8 @@ public:
 	void OnPlayerMatch(); //进行匹配
 	bool GetPlayers(std::vector<int64_t>& players);
 	const Asset::Room& GetRoom() { return _room; } //俱乐部部长比赛房间设置
-	int32_t CanJoinMatch(int64_t player_id); //是否可以参加比赛
+	int32_t CanJoinMatch(); //是否可以参加比赛
+	bool IsInMatchTime(); //可以进场时间
 	void OnMatchRoomOver(const Asset::ClanRoomStatusChanged* message);
 	void OnRoundsCalculate();
 	bool IsMatchOver() { return _curr_rounds >= _stuff.match_history().open_match().lunci_count(); } //比赛是否结束

@@ -550,7 +550,7 @@ bool Clan::IsMatching()
 	return _stuff.match_history().has_open_match();
 }
 
-int32_t Clan::CanJoinMatch(int64_t player_id)
+int32_t Clan::CanJoinMatch()
 {
 	if (!_match_opened) return Asset::ERROR_CLAN_MATCH_NO_TIME_REACH; //尚未开启比赛
 	
@@ -561,6 +561,14 @@ int32_t Clan::CanJoinMatch(int64_t player_id)
 	if (curr_time > start_time + _glimit->join_match_time_last()) return Asset::ERROR_CLAN_MATCH_TIME_OUT; //比赛开始5分钟后不能进入
 
 	return 0; 
+}
+	
+bool Clan::IsInMatchTime()
+{
+	auto curr_time = TimerInstance.GetTime();
+	auto start_time = GetBattleTime(); //开启时间
+
+	return curr_time <= start_time + _glimit->join_match_time_last();
 }
 
 int32_t Clan::GetAvailableMatchRoomCount()
@@ -779,7 +787,7 @@ void Clan::OnJoinMatch(std::shared_ptr<Player> player, Asset::JoinMatch* message
 					return;
 				}
 
-				int32_t result = CanJoinMatch(player_id); //时间检查
+				int32_t result = CanJoinMatch(); //时间检查
 
 				if (result != 0)
 				{
@@ -1050,6 +1058,8 @@ void Clan::OnMatchRoomOver(const Asset::ClanRoomStatusChanged* message)
 	
 void Clan::OnRoundsCalculate()
 {
+	if (IsInMatchTime()) return; //比赛尚可以进入玩家不能结算
+
 	SaveMatchHistory();//当前轮次排行存盘
 	
 	if (IsMatchOver()) 
