@@ -967,7 +967,15 @@ void Room::OnCreated(std::shared_ptr<Player> hoster)
 	if (hoster) _hoster_id = hoster->GetID();
 
 	_created_time = CommonTimerInstance.GetTime(); //创建时间
-	SetExpiredTime(_created_time + g_const->room_last_time());
+
+	if (IsClanMatch()) //比赛房间时间限制
+	{
+		SetExpiredTime(_created_time + g_const->match_room_last_time());
+	}
+	else
+	{
+		SetExpiredTime(_created_time + g_const->room_last_time());
+	}
 	
 	_history.set_room_id(GetID());
 	_history.set_create_time(CommonTimerInstance.GetTime()); //创建时间
