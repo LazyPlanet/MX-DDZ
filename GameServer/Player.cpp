@@ -417,7 +417,7 @@ int32_t Player::OnEnterGame()
 
 	if (Load()) 
 	{
-		LOG(ERROR, "玩家:{}加载数据失败", _player_id);
+		LOG(ERROR, "玩家:{} 加载数据失败", _player_id);
 		return 1;
 	}
 	
@@ -428,10 +428,10 @@ int32_t Player::OnEnterGame()
 	//
 	SetLocalServer(ConfigInstance.GetInt("ServerID", 1));
 
-	SendPlayer(); //发送数据给玩家
-	
 	_stuff.set_login_time(CommonTimerInstance.GetTime());
 	_stuff.set_logout_time(0);
+	
+	SendPlayer(); //发送数据给玩家
 
 	SetDirty(); //存盘
 

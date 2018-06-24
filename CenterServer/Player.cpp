@@ -104,11 +104,9 @@ int32_t Player::Save(bool force)
 {
 	LOG_BI("player", _stuff);	
 
-	//if (!force && !IsDirty()) return 1;
-	//if (!force && !IsCenterServer()) return 2; 
-	
 	if (!force && !IsDirty()) return 1;
-	if (!IsCenterServer()) return 2; //不能强制存盘，防止数据覆盖
+
+	if (!IsCenterServer()) return 2; //不能强制存盘，防止数据覆盖//玩家初始化之后貌似就再也没机会在此处存盘了
 	
 	auto success = RedisInstance.SavePlayer(_player_id, _stuff); 
 	if (!success) return 3;
@@ -168,13 +166,13 @@ int32_t Player::OnLogout()
 
 int32_t Player::OnEnterGame(bool is_login) 
 {
-	DEBUG("玩家:{}进入游戏，是否登陆:{} 是否已经加载数据:{}", _player_id, is_login, _loaded);
+	DEBUG("玩家:{} 进入游戏，是否登陆:{} 是否已经加载数据:{}", _player_id, is_login, _loaded);
 
 	if (!_loaded)
 	{
 		if (Load())
 		{
-			LOG(ERROR, "加载玩家{}数据失败", _player_id);
+			LOG(ERROR, "加载玩家{} 数据失败", _player_id);
 			return 1;
 		}
 	}
