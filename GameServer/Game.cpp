@@ -853,13 +853,26 @@ int32_t GameManager::GetCardWeight(const Asset::PaiElement& card)
 	
 bool GameManager::ComparePai(const Asset::PaiElement& p1, const Asset::PaiElement& p2)
 {
-	if (GetCardWeight(p1) > GetCardWeight(p2)) return true; //除了大小王，其他的根据牌值进行判断
-
 	int32_t p1_value = p1.card_value();
 	int32_t p2_value = p2.card_value();
 
-	if (p1_value == 1 || p1_value == 2) p1_value += 13;
-	if (p2_value == 1 || p2_value == 2) p2_value += 13;
+	if (p1.card_type() == Asset::CARD_TYPE_KINGS)
+	{
+		p1_value += 15; 
+	}
+	else
+	{
+	    if (p1_value == 1 || p1_value == 2) p1_value += 13;
+	}
+
+	if (p2.card_type() == Asset::CARD_TYPE_KINGS)
+	{
+	    p2_value += 15; 
+	}
+	else
+	{
+	    if (p2_value == 1 || p2_value == 2) p2_value += 13;
+	}
 
 	return p1_value > p2_value;
 }
