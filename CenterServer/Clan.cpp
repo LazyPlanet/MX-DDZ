@@ -784,7 +784,7 @@ void Clan::OnJoinMatch(std::shared_ptr<Player> player, Asset::JoinMatch* message
 				return; //没有报名不能参加比赛，即没有付费过门票
 			}
 
-			if (_player_out_rounds.find(player_id) != _player_out_rounds.end())
+			if (_player_out_rounds[player_id])
 			{
 				player->AlertMessage(Asset::ERROR_CLAN_MATCH_OUT, Asset::ERROR_TYPE_NORMAL, Asset::ERROR_SHOW_TYPE_MESSAGE_BOX);
 				return;	//已经淘汰
