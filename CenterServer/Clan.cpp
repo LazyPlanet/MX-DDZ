@@ -174,6 +174,18 @@ bool Clan::HasMember(int64_t player_id)
 	return false;
 }
 	
+Asset::Clan_Member Clan::GetMember(int64_t player_id)
+{
+	std::lock_guard<std::mutex> lock(_member_mutex);
+	
+	auto it = std::find_if(_stuff.member_list().begin(), _stuff.member_list().end(), [player_id](const Asset::Clan_Member& member){
+				return player_id == member.player_id();
+			});
+	if (it != _stuff.member_list().end()) return *it;
+
+	return {};
+}
+	
 void Clan::AddMember(int64_t player_id)
 {
 	if (HasMember(player_id)) return; //已是成员
@@ -885,6 +897,13 @@ void Clan::OnMatchDismiss(std::shared_ptr<Player> player, Asset::ClanMatchDismis
 
 	player->SendProtocol(message);
 	player->SendProtocol2GameServer(message);
+	
+	std::lock_guard<std::mutex> lock(_applicants_mutex);
+	for (const auto player_id : _applicants)
+	{
+		auto applicant = PlayerInstance.Get(player_id);
+		if (applicant) applicant->SendProtocol(message);
+	}
 
 	DEBUG("茶馆:{} 馆长:{} 报名者数量:{} 门票数量:{} 解散比赛", _clan_id, player_id, app_count, ticket_count);
 	
@@ -987,7 +1006,8 @@ void Clan::AddJoiner(std::shared_ptr<Player> player)
 		}
 	}
 	
-	DEBUG("茶馆:{} 玩家:{} 参加比赛，此时参赛总人数:{} 本场比赛需要总轮次:{} 即将开始轮次:{}", _clan_id, player_id, _joiner_count, total_rounds, _curr_rounds);
+	DEBUG("茶馆:{} 玩家:{} 参加比赛，此时参赛总人数:{} 每轮淘汰玩家数量:{} 本场比赛需要总轮次:{} 即将开始轮次:{}", 
+			_clan_id, player_id, _joiner_count, _taotai_count_per_rounds, total_rounds, _curr_rounds);
 }
 	
 void Clan::OnCreateRoom(const Asset::ClanCreateRoom* message)
@@ -1184,6 +1204,15 @@ void Clan::SaveMatchHistory()
 		auto hist = _history->mutable_top_list()->Add();
 		hist->CopyFrom(element);
 		hist->clear_headimgurl();
+	}
+	
+	std::lock_guard<std::mutex> lock(_joiners_mutex);
+	for (const auto player_id : _joiners) 
+	{
+		auto mem_ptr = _history->mutable_unmathers()->Add();
+		auto mem = GetMember(player_id);
+		mem_ptr->set_player_id(player_id);
+		mem_ptr->set_nickname(mem.name());
 	}
 
 	_dirty = true;
