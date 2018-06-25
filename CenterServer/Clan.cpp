@@ -1260,7 +1260,7 @@ void Clan::OnMatchOver()
 
 	if (_stuff.clan_match_list().size() > MATCH_HISTORY_COUNT)
 	{
-		WARN("茶馆:{} 记录超过{}条进行清理", _clan_id, MATCH_HISTORY_COUNT);
+		WARN("茶馆:{} 比赛记录超过{}条进行清理", _clan_id, MATCH_HISTORY_COUNT);
 
 		std::vector<int64_t> match_list(_stuff.clan_match_list().begin(), _stuff.clan_match_list().end());
 		_stuff.clear_clan_match_list();
