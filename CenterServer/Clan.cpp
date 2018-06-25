@@ -996,7 +996,7 @@ void Clan::AddJoiner(std::shared_ptr<Player> player)
 	if (total_rounds > 2 && _joiner_count > MIN_PLAYER_COUNT)
 	{
 		_taotai_count_per_rounds = (_joiner_count - MIN_PLAYER_COUNT) / (total_rounds - 2);
-
+		/*
 		for (int i = _taotai_count_per_rounds; i > 0; --i)
 		{
 			if (i % 3 == 0) 
@@ -1005,6 +1005,7 @@ void Clan::AddJoiner(std::shared_ptr<Player> player)
 				break;
 			}
 		}
+		*/
 	}
 	
 	DEBUG("茶馆:{} 玩家:{} 参加比赛，此时参赛总人数:{} 每轮淘汰玩家数量:{} 本场比赛需要总轮次:{} 即将开始轮次:{}", 
