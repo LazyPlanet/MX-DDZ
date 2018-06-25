@@ -672,7 +672,7 @@ int32_t Player::CommonCheck(int32_t type_t, pb::Message* message)
 			auto enter_room = dynamic_cast<Asset::EnterRoom*>(message);
 			if (!enter_room) return 0;
 
-			if (enter_room->room().room_type() != Asset::ROOM_TYPE_CLAN_MATCH) return 0; //非茶馆比赛不进行检查
+			if (enter_room->room().room_type() == Asset::ROOM_TYPE_CLAN_MATCH) return 0; //茶馆比赛不进行检查
 		
 			auto clan = ClanInstance.Get(_stuff.selected_clan_id());
 			if (!clan) return 0;
