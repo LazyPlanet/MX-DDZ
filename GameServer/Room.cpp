@@ -997,7 +997,7 @@ void Room::SyncRoom()
 		*/
 	}
 
-	DEBUG("同步房间数据:{}", message.ShortDebugString());
+	DEBUG("同步房间:{} 数据:{}", _stuff.room_id(), message.ShortDebugString());
 
 	BroadCast(message);
 }
