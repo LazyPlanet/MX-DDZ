@@ -508,7 +508,7 @@ void WorldSession::OnProcessMessage(const Asset::Meta& meta)
 				if (_player->IsCoolDown(Asset::SYSTEM_COOLDOWN_TYPE_MATCHING))
 				{
 					ERROR("玩家:{} 冷却中...", _player->GetID());
-					_player->AlertMessage(Asset::ERROR_COOLDOWN_MATCHING);
+					//_player->AlertMessage(Asset::ERROR_COOLDOWN_MATCHING);
 					return;
 				}
 
