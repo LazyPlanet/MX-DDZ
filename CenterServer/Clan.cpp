@@ -1665,6 +1665,8 @@ void ClanManager::Emplace(int64_t clan_id, std::shared_ptr<Clan> clan)
 
 std::shared_ptr<Clan> ClanManager::GetClan(int64_t clan_id)
 {
+	if (clan_id <= 0) return nullptr;
+
 	std::lock_guard<std::mutex> lock(_mutex);
 
 	auto it = _clans.find(clan_id);
@@ -1883,16 +1885,9 @@ void ClanManager::OnOperate(std::shared_ptr<Player> player, Asset::ClanOperation
 
 		case Asset::CLAN_OPER_TYPE_MEMEBER_QUERY: //成员状态查询
 		{
-			/*
-			if (!clan->HasMember(player->GetID())) //不是成员不能查询
-			{
-				message->set_oper_result(Asset::ERROR_CLAN_QUERY_NO_CLAN);
-				return; //不是成员
-			}
-			*/
+			player->SetCurrClan(message->clan_id());
 			player->SendProtocol2GameServer(message); //到逻辑服务器进行同步当前茶馆，先进行此处转发，再同步数据
 
-			//clan->UpdateMemberStatus(); //茶馆成员状态//防止死锁
 			message->mutable_clan()->CopyFrom(clan->Get());
 		}
 		break;

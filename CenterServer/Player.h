@@ -169,6 +169,8 @@ public:
 	virtual int32_t CmdMatchHistory(pb::Message* message); //比赛战绩
 	virtual int32_t CmdDismissMatch(pb::Message* message); //解散比赛
 	virtual int32_t OnEnterGameServer(pb::Message* message); //逻辑服务器进入回调
+
+	void SetCurrClan(int64_t clan_id); //设置当前所在俱乐部
 public:
 	//获取所有包裹
 	const Asset::Inventory& GetInventory() { return _stuff.inventory();	}

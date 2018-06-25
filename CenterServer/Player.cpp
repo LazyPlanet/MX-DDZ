@@ -659,26 +659,30 @@ int32_t Player::CommonCheck(int32_t type_t, pb::Message* message)
 			auto result = CheckCreateRoom(message);
 			if (result) return result;
 		
-			int64_t server_id = 0;
-
-			if (!IsInRoom()) server_id = WorldSessionInstance.RandomServer(); //随机一个逻辑服务器//防止茶馆老板房间内还创建房间
-
-			/*
-			if (server_id != 0 && server_id != GetLocalServer())
+			if (!IsInRoom()) 
 			{
-				Asset::KickOutPlayer kickout_player; //通知当前游戏逻辑服务器下线
-				kickout_player.set_player_id(_player_id);
-				kickout_player.set_reason(Asset::KICK_OUT_REASON_CHANGE_SERVER);
-
-				WARN("玩家:{} 创建房间，随机服务器:{} 当前所在服务器:{} 踢出当前服务器", _player_id, server_id, GetLocalServer());
-				
-				SendProtocol2GameServer(kickout_player); 
+				int64_t server_id = WorldSessionInstance.RandomServer(); //随机一个逻辑服务器//防止茶馆老板房间内还创建房间
+				if (server_id > 0) SetLocalServer(server_id); //开房随机
 			}
-			*/
+		}
+		break;
 
-			if (server_id > 0) SetLocalServer(server_id); //开房随机
+		case Asset::META_TYPE_SHARE_ENTER_ROOM: //加入房间
+		{
+			auto enter_room = dynamic_cast<Asset::EnterRoom*>(message);
+			if (!enter_room) return 0;
 
-			//WARN("玩家:{} 当前所在服务器:{} 开房随机服务器:{}", _player_id, _stuff.server_id(), server_id);
+			if (enter_room->room().room_type() != Asset::ROOM_TYPE_CLAN_MATCH) return 0; //非茶馆比赛不进行检查
+		
+			auto clan = ClanInstance.Get(_stuff.selected_clan_id());
+			if (!clan) return 0;
+
+			//
+			//比赛中，不能加入非比赛房间
+			//
+			//此处初略处理，如果玩家切了茶馆再次创建或者加入房间就可以进入
+			//
+			if (clan->HasJoiner(_player_id)) return Asset::ERROR_CLAN_MATCH_ENTER_ROOM; 
 		}
 		break;
 
@@ -1129,6 +1133,13 @@ int32_t Player::CmdJoinMatch(pb::Message* message)
 	return 0;
 }
 
+void Player::SetCurrClan(int64_t clan_id) 
+{ 
+	if (clan_id == _stuff.selected_clan_id()) return; 
+
+	_stuff.set_selected_clan_id(clan_id); 
+} 
+
 int32_t Player::CmdMatchHistory(pb::Message* message)
 {
 	auto match = dynamic_cast<Asset::ClanMatchHistory*>(message);
@@ -1160,13 +1171,8 @@ int32_t Player::OnEnterGameServer(pb::Message* message)
 	auto enter_game = dynamic_cast<Asset::EnterGameServer*>(message);
 	if (!enter_game) return 1;
 	
-	//战队比赛
-	const int64_t clan_id = _stuff.selected_clan_id();
-	if (clan_id)
-	{
-		auto clan = ClanInstance.Get(clan_id);
-		if (clan) clan->OnPlayerLogin(shared_from_this());
-	}
+	auto clan = ClanInstance.Get(_stuff.selected_clan_id()); //战队比赛
+	if (clan) clan->OnPlayerLogin(shared_from_this());
 
 	DEBUG("玩家:{} 进入逻辑服务器:{}", _player_id, enter_game->ShortDebugString());
 	return 0;

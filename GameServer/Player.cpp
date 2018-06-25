@@ -2883,7 +2883,9 @@ bool Player::OnClanJoin(int64_t clan_id)
 void Player::SetCurrClan(int64_t clan_id) 
 { 
 	if (clan_id == _stuff.selected_clan_id()) return; 
+
 	_stuff.set_selected_clan_id(clan_id); 
+
 	_dirty = true; 
 } 
 
