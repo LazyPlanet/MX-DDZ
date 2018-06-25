@@ -702,6 +702,17 @@ int32_t Player::CheckCreateRoom(pb::Message* message)
 
 	auto create_room = dynamic_cast<Asset::CreateRoom*>(message);
 	if (!create_room) return Asset::ERROR_INNER;
+			
+	//
+	//比赛中，不能加入非比赛房间
+	//
+	//此处初略处理，如果玩家切了茶馆再次创建或者加入房间就可以进入
+	//
+	if (create_room->room().room_type() != Asset::ROOM_TYPE_CLAN_MATCH) 
+	{
+		auto clan = ClanInstance.Get(_stuff.selected_clan_id());
+		if (clan && clan->HasJoiner(_player_id)) return Asset::ERROR_CLAN_MATCH_ENTER_ROOM; 
+	}
 	
 	if (ActivityInstance.IsOpen(g_const->room_card_limit_free_activity_id())) return 0; //限免开启
 
