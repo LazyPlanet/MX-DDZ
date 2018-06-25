@@ -730,7 +730,6 @@ void Room::OnRemove()
 	WARN("房间:{} 删除成功", _stuff.room_id());
 
 	auto players = GetPlayers();
-
 	for (auto player : players)
 	{
 		if (!player) continue;

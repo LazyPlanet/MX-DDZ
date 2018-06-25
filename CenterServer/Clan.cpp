@@ -15,6 +15,7 @@ extern const Asset::CommonConst* g_const;
 Asset::ClanLimit* _glimit = nullptr;
 
 #define MIN_PLAYER_COUNT 6
+#define MATCH_HISTORY_COUNT 10
 
 //3秒一次
 void Clan::Update()
@@ -1257,17 +1258,21 @@ void Clan::OnMatchOver()
 	
 	_stuff.add_clan_match_list(_match_id);
 
-	if (_stuff.clan_match_list().size() > 10)
+	if (_stuff.clan_match_list().size() > MATCH_HISTORY_COUNT)
 	{
+		WARN("茶馆:{} 记录超过{}条进行清理", _clan_id, MATCH_HISTORY_COUNT);
+
 		std::vector<int64_t> match_list(_stuff.clan_match_list().begin(), _stuff.clan_match_list().end());
 		_stuff.clear_clan_match_list();
 
+		std::vector<int64_t> matchs;
 		for (auto it = match_list.rbegin(); it != match_list.rend(); ++it)
 		{
-			_stuff.add_clan_match_list(*it);
-
-			if (_stuff.clan_match_list().size() >= 10) break; //只存储10条比赛记录
+			matchs.push_back(*it);
+			if (matchs.size() >= MATCH_HISTORY_COUNT) break; //只存储MATCH_HISTORY_COUNT条比赛记录
 		}
+			
+		for (auto it = matchs.rbegin(); it != matchs.rend(); ++it) _stuff.add_clan_match_list(*it);
 	}
 	
 	DEBUG("茶馆:{} 总比赛轮次:{} 比赛结束总排行榜产生:{}，清理数据完毕", _clan_id, _curr_rounds, history.ShortDebugString());
