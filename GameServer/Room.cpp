@@ -289,7 +289,7 @@ std::shared_ptr<Player> Room::GetPlayer(int64_t player_id)
 
 void Room::OnPlayerOperate(std::shared_ptr<Player> player, pb::Message* message)
 {
-	//std::lock_guard<std::mutex> lock(_mutex);
+	//std::lock_guard<std::mutex> lock(_mutex); //此处不必加锁，在各个操作的里面进行加锁
 
 	if (!player || !message) return;
 
@@ -492,8 +492,8 @@ void Room::OnPlayerStateChanged()
 	Asset::RoomInformation message;
 	message.set_sync_type(Asset::ROOM_SYNC_TYPE_STATE_CHANGED);
 			
-	std::lock_guard<std::mutex> lock(_player_mutex);
-	for (auto player : _players)
+	auto players = GetPlayers();	
+	for (const auto player : players)
 	{
 		if (!player) continue;
 
@@ -521,14 +521,16 @@ void Room::OnGameStart()
 	game_start.set_total_rounds(_stuff.options().open_rands());
 	game_start.set_current_rounds(_games.size());
 
-	BroadCast(game_start);
+	BroadCast(game_start); //广播牌局信息
 
-	std::lock_guard<std::mutex> plock(_player_mutex);
-	for (auto player : _players)
+	auto players = GetPlayers();
+	for (auto player : players)
 	{
 		if (!player) continue;
-		player->SetOperState(Asset::GAME_OPER_TYPE_ONLINE);
+		player->SetOperState(Asset::GAME_OPER_TYPE_ONLINE); //设置各个玩家的开局状态
 	}
+
+	DEBUG("房间:{} 开局:{}", _stuff.room_id(), game_start.ShortDebugString());
 }
 	
 void Room::ResetGame(std::shared_ptr<Game> game)
@@ -543,6 +545,8 @@ void Room::ResetGame(std::shared_ptr<Game> game)
 	if (!game) _game = std::make_shared<Game>();
 
 	_game->Init(shared_from_this()); //洗牌
+	
+	std::lock_guard<std::mutex> lock(_player_mutex);
 	_game->Start(_players, _stuff.room_id(), _games.size()); //开始游戏//防止回放数据不正确
 
 	DEBUG("房间:{} 刷新局数:{}", _stuff.room_id(), _game->GetID());
@@ -941,17 +945,6 @@ bool Room::OnJiaoZhuang(int64_t player_id, int32_t beilv)
 
 void Room::KickOutPlayer(int64_t player_id)
 {
-	/*
-	for (auto player : _players)
-	{
-		if (!player) continue;
-
-		if (player_id != 0 && player->GetID() != player_id) continue;
-
-		Remove(player->GetID(), Asset::GAME_OPER_TYPE_HOSTER_DISMISS); //加锁踢人
-	}
-	*/
-
 	if (player_id > 0)
 	{
 		Remove(player_id, Asset::GAME_OPER_TYPE_HOSTER_DISMISS); //加锁踢人
@@ -972,12 +965,11 @@ void Room::KickOutPlayer(int64_t player_id)
 	
 void Room::SyncRoom()
 {
-	std::lock_guard<std::mutex> lock(_player_mutex); //玩家锁
-	
 	Asset::RoomInformation message;
 	message.set_sync_type(Asset::ROOM_SYNC_TYPE_NORMAL);
 			
-	for (auto player : _players)
+	auto players = GetPlayers();	
+	for (const auto player : players)
 	{
 		if (!player) continue;
 
@@ -989,7 +981,7 @@ void Room::SyncRoom()
 		p->mutable_wechat()->CopyFrom(player->GetWechat());
 		p->set_ip_address(player->GetIpAddress());
 		p->set_voice_member_id(player->GetVoiceMemberID());
-	
+		/*
 		for (auto dis_player : _players)
 		{
 			if (!dis_player || dis_player->GetID() == player->GetID()) continue;
@@ -1002,6 +994,7 @@ void Room::SyncRoom()
 
 			//DEBUG("获取玩家{}和玩家{}之间的距离:{}", dis_player->GetID(), player->GetID(), distance);
 		}
+		*/
 	}
 
 	DEBUG("同步房间数据:{}", message.ShortDebugString());
