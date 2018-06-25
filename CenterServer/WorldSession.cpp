@@ -468,6 +468,14 @@ void WorldSession::OnProcessMessage(const Asset::Meta& meta)
 
 			Asset::EnterRoom* enter_room = dynamic_cast<Asset::EnterRoom*>(message);
 			if (!enter_room) return; 
+	
+			int32_t result = _player->CommonCheck(meta.type_t(), message); //通用限制检查
+
+			if (result)
+			{
+				_player->AlertMessage(result, Asset::ERROR_TYPE_NORMAL, Asset::ERROR_SHOW_TYPE_MESSAGE_BOX); //通用错误码
+				return;
+			}
 
 			int64_t room_id = enter_room->room().room_id();
 			/*
