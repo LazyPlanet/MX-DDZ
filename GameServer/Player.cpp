@@ -663,7 +663,11 @@ int32_t Player::CmdGameOperate(pb::Message* message)
 		break;
 	}
 
-	if (!_room) return 4;
+	if (!_room) 
+	{
+		ERROR("玩家:{} 尚未在任何房间，不能进行操作:{}", _player_id, message->ShortDebugString());
+		return 4;
+	}
 
 	_room->OnPlayerOperate(shared_from_this(), message); //广播给其他玩家
 

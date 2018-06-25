@@ -24,18 +24,13 @@ extern const Asset::CommonConst* g_const;
 
 Asset::ERROR_CODE Room::TryEnter(std::shared_ptr<Player> player)
 {
-	std::lock_guard<std::mutex> lock(_mutex);
+	std::lock_guard<std::mutex> lock(_mutex); //房间状态锁
 
 	if (!player) return Asset::ERROR_INNER;
 
 	if (player->GetLocalRoomID() == GetID()) return Asset::ERROR_SUCCESS; //重入
 
-	auto it = std::find_if(_players.begin(), _players.end(), [player](std::shared_ptr<Player> p) {
-				if (!p) return false;
-				return player->GetID() == p->GetID();
-			});
-
-	if (it != _players.end()) 
+	if (HasPlayer(player)) 
 	{
 		return Asset::ERROR_ROOM_HAS_BEEN_IN; //已经在房间
 	}
@@ -65,6 +60,8 @@ Asset::ERROR_CODE Room::TryEnter(std::shared_ptr<Player> player)
 //
 bool Room::IsFull() 
 { 
+	std::lock_guard<std::mutex> lock(_player_mutex);
+
 	if (_players.size() < (size_t)MAX_PLAYER_COUNT) return false;
 
 	for (auto player : _players)
@@ -77,6 +74,8 @@ bool Room::IsFull()
 	
 bool Room::IsEmpty()
 {
+	std::lock_guard<std::mutex> lock(_player_mutex);
+
 	if (_players.size() == 0) return true;
 	
 	for (auto player : _players)
@@ -86,6 +85,27 @@ bool Room::IsEmpty()
 
 	return true;
 }
+	
+bool Room::HasPlayer(std::shared_ptr<Player> player_ptr)
+{
+	if (!player_ptr) return false;
+
+	return HasPlayer(player_ptr->GetID());
+}
+	
+bool Room::HasPlayer(int64_t player_id)
+{
+	std::lock_guard<std::mutex> lock(_player_mutex);
+
+	for (auto player : _players)
+	{
+		if (!player) continue;
+
+		if (player->GetID() == player_id) return true;
+	}
+
+	return false;
+}
 
 bool Room::Enter(std::shared_ptr<Player> player)
 {
@@ -93,7 +113,7 @@ bool Room::Enter(std::shared_ptr<Player> player)
 	
 	auto enter_status = TryEnter(player);
 	
-	std::lock_guard<std::mutex> lock(_mutex);
+	//std::lock_guard<std::mutex> lock(_player_mutex); //TryEnter已经加锁检查，此处不必加锁，也防止OnReEnter中死锁
 
 	if (enter_status != Asset::ERROR_SUCCESS && enter_status != Asset::ERROR_ROOM_HAS_BEEN_IN) 
 	{
@@ -204,7 +224,8 @@ void Room::OnReEnter(std::shared_ptr<Player> op_player)
 	//
 	//牌局相关数据推送
 	//
-	for (auto player : _players)
+	auto players = GetPlayers();
+	for (const auto player : players)
 	{
 		if (!player) continue;
 
@@ -225,8 +246,6 @@ void Room::OnReEnter(std::shared_ptr<Player> op_player)
 	}
 
 	op_player->SendProtocol(message);
-
-	//_game->OnPlayerReEnter(op_player); //玩家操作
 }
 
 void Room::OnPlayerLeave(int64_t player_id)
@@ -258,6 +277,8 @@ bool Room::IsHoster(int64_t player_id)
 
 std::shared_ptr<Player> Room::GetPlayer(int64_t player_id)
 {
+	std::lock_guard<std::mutex> lock(_player_mutex);
+	
 	for (auto player : _players)
 	{
 		if (player->GetID() == player_id) return player;
@@ -436,7 +457,8 @@ bool Room::HasBeenOver()
 
 bool Room::Remove(int64_t player_id, Asset::GAME_OPER_TYPE reason)
 {
-	std::lock_guard<std::mutex> lock(_mutex);
+	/*
+	std::lock_guard<std::mutex> lock(_player_mutex);
 
 	for (size_t i = 0; i < _players.size(); ++i)
 	{
@@ -446,30 +468,31 @@ bool Room::Remove(int64_t player_id, Asset::GAME_OPER_TYPE reason)
 		if (player->GetID() != player_id) continue;
 			
 		player->OnLeaveRoom(reason); //玩家退出房间
-
-		//player = nullptr; 
-		
 		player.reset();
-
-		//_players.erase(it); //删除玩家
 
 		OnPlayerLeave(player_id); //玩家离开房间
 		
-		//DEBUG("玩家:{}离开房间:{}", player_id, _stuff.room_id());
-
 		return true;
 	}
+	*/
 
-	return false;
+	auto player = GetPlayer(player_id);
+	if (!player) return false;
+		
+	player->OnLeaveRoom(reason); //玩家退出房间
+	player.reset();
+
+	OnPlayerLeave(player_id); //玩家离开房间
+
+	return true;
 }
 	
 void Room::OnPlayerStateChanged()
 {
-	//std::lock_guard<std::mutex> lock(_mutex);
-
 	Asset::RoomInformation message;
 	message.set_sync_type(Asset::ROOM_SYNC_TYPE_STATE_CHANGED);
 			
+	std::lock_guard<std::mutex> lock(_player_mutex);
 	for (auto player : _players)
 	{
 		if (!player) continue;
@@ -500,6 +523,7 @@ void Room::OnGameStart()
 
 	BroadCast(game_start);
 
+	std::lock_guard<std::mutex> plock(_player_mutex);
 	for (auto player : _players)
 	{
 		if (!player) continue;
@@ -558,6 +582,8 @@ void Room::OnClanOver()
 
 void Room::OnGameOver(int64_t player_id)
 {
+	std::lock_guard<std::mutex> lock(_mutex); //状态锁
+
 	_no_robed_count = 0;
 
 	_rob_dizhu.clear();
@@ -601,6 +627,8 @@ void Room::OnGameOver(int64_t player_id)
 
 	if (_games.size() == 0) return; //没有对局
 	
+	std::lock_guard<std::mutex> plock(_player_mutex); //玩家锁
+
 	for (auto player : _players)
 	{
 		if (!player) continue;
@@ -653,7 +681,6 @@ void Room::OnGameOver(int64_t player_id)
 	for (auto player : _players)
 	{
 		if (!player/* || player->IsOffline()*/) continue;
-
 		player->SendProtocol(message);
 	}
 	
@@ -677,6 +704,8 @@ void Room::BroadCast(pb::Message* message, int64_t exclude_player_id)
 {
 	if (!message) return;
 			
+	std::lock_guard<std::mutex> plock(_player_mutex); //玩家锁
+
 	for (auto player : _players)
 	{
 		if (!player) continue; //可能已经释放//或者退出房间
@@ -698,7 +727,9 @@ void Room::OnRemove()
 
 	WARN("房间:{} 删除成功", _stuff.room_id());
 
-	for (auto& player : _players)
+	auto players = GetPlayers();
+
+	for (auto player : players)
 	{
 		if (!player) continue;
 
@@ -910,13 +941,30 @@ bool Room::OnJiaoZhuang(int64_t player_id, int32_t beilv)
 
 void Room::KickOutPlayer(int64_t player_id)
 {
+	/*
 	for (auto player : _players)
 	{
 		if (!player) continue;
 
 		if (player_id != 0 && player->GetID() != player_id) continue;
 
-		Remove(player->GetID(), Asset::GAME_OPER_TYPE_HOSTER_DISMISS); //踢人
+		Remove(player->GetID(), Asset::GAME_OPER_TYPE_HOSTER_DISMISS); //加锁踢人
+	}
+	*/
+
+	if (player_id > 0)
+	{
+		Remove(player_id, Asset::GAME_OPER_TYPE_HOSTER_DISMISS); //加锁踢人
+	}
+	else
+	{
+		const auto players = GetPlayers();	
+		for (const auto player : players)
+		{
+			if (!player) continue;
+
+			Remove(player->GetID(), Asset::GAME_OPER_TYPE_HOSTER_DISMISS); //加锁踢人
+		}
 	}
 
 	_is_dismiss = true;
@@ -924,7 +972,7 @@ void Room::KickOutPlayer(int64_t player_id)
 	
 void Room::SyncRoom()
 {
-	//std::lock_guard<std::mutex> lock(_mutex); //防止死锁
+	std::lock_guard<std::mutex> lock(_player_mutex); //玩家锁
 	
 	Asset::RoomInformation message;
 	message.set_sync_type(Asset::ROOM_SYNC_TYPE_NORMAL);
@@ -997,6 +1045,8 @@ void Room::OnCreated(std::shared_ptr<Player> hoster)
 bool Room::CanStarGame()
 {
 	if (IsFriend() && !_hoster && !_gmt_opened) return false; //好友房检查
+
+	std::lock_guard<std::mutex> lock(_player_mutex); //玩家锁
 
 	if (_players.size() != MAX_PLAYER_COUNT) return false; //玩家数量检查
 
@@ -1191,6 +1241,8 @@ void Room::OnClanCreated()
 
 bool Room::CanDisMiss()
 {
+	std::lock_guard<std::mutex> lock(_player_mutex); //玩家锁
+
 	for (auto player : _players)
 	{
 		if (!player) return false;
@@ -1206,6 +1258,8 @@ void Room::ClearDisMiss()
 	_dismiss_time = 0;
 	_dismiss_cooldown = 0;
 	
+	std::lock_guard<std::mutex> lock(_player_mutex); //玩家锁
+
 	for (auto player : _players)
 	{
 		if (!player) continue;
@@ -1245,6 +1299,8 @@ void Room::UpdateClanStatus()
 	Asset::RoomInformation room_information;
 	room_information.set_sync_type(Asset::ROOM_SYNC_TYPE_QUERY); //外服查询房间信息
 			
+	std::lock_guard<std::mutex> lock(_player_mutex); //玩家锁
+
 	for (const auto player : _players)
 	{
 		if (!player) continue;
@@ -1272,6 +1328,21 @@ void Room::UpdateClanStatus()
 	DEBUG("逻辑服务器:{} 向中心服务器广播茶馆房间信息:{}", g_server_id, room_info.ShortDebugString());
 
 	WorldInstance.BroadCast2CenterServer(message);
+}
+
+int32_t Room::GetPlayerOrder(int32_t player_id)
+{
+	std::lock_guard<std::mutex> lock(_player_mutex); //玩家锁
+
+	for (int i = 0; i < MAX_PLAYER_COUNT; ++i)
+	{
+		auto player = _players[i];
+		if (!player) continue;
+
+		if (player->GetID() == player_id) return i; //序号
+	}
+
+	return -1;
 }
 	
 /////////////////////////////////////////////////////
@@ -1455,17 +1526,5 @@ void RoomManager::Remove(int64_t room_id)
 	_rooms.erase(it);
 }
 
-int32_t Room::GetPlayerOrder(int32_t player_id)
-{
-	for (int i = 0; i < MAX_PLAYER_COUNT; ++i)
-	{
-		auto player = _players[i];
-		if (!player) continue;
-
-		if (player->GetID() == player_id) return i; //序号
-	}
-
-	return -1;
-}
 
 }

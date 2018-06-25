@@ -25,7 +25,7 @@ private:
 	int32_t _expired_time = 0; //过期时间
 	bool _gmt_opened = false; //GMT开房
 private:
-	std::mutex _mutex;
+	std::mutex _mutex/*房间状态锁*/, _player_mutex/*玩家锁*/;
 	Asset::Room _stuff; //数据
 	std::shared_ptr<Game> _game = nullptr; 
 	std::shared_ptr<Player> _hoster = nullptr; 
@@ -59,7 +59,7 @@ public:
 
 	void OnClanCreated();
 
-	const std::vector<std::shared_ptr<Player>> GetPlayers() { return _players; } 
+	const std::vector<std::shared_ptr<Player>> GetPlayers() { std::lock_guard<std::mutex> lock(_player_mutex); return _players; } 
 	int32_t GetCreateTime() { return _created_time; } //创建时间
 
 	virtual int64_t GetID() { return _stuff.room_id(); }
@@ -103,6 +103,8 @@ public:
 
 	bool IsFull(); //是否已满
 	bool IsEmpty(); //是否没人
+	bool HasPlayer(int64_t player_id);
+	bool HasPlayer(std::shared_ptr<Player> player_ptr);
 
 	bool CanStarGame(); //能否开启游戏
 
