@@ -627,7 +627,11 @@ void Room::OnGameOver(int64_t player_id)
 
 	if (!HasBeenOver() && !HasDisMiss()) return; //没有对局结束，且没有解散房间
 
-	if (_games.size() == 0) return; //没有对局
+	if (_games.size() == 0) 
+	{
+		if (IsClanMatch()) { LOG(ERROR, "房间:{} 数据:{} 尚未开始比赛，没有进行牌局", _stuff.room_id(), _stuff.ShortDebugString()); }
+		else { return; } //没有对局
+	}
 	
 	std::lock_guard<std::mutex> plock(_player_mutex); //玩家锁
 
