@@ -969,8 +969,8 @@ void Room::SyncRoom()
 	Asset::RoomInformation message;
 	message.set_sync_type(Asset::ROOM_SYNC_TYPE_NORMAL);
 			
-	auto players = GetPlayers();	
-	for (const auto player : players)
+	//auto players = GetPlayers();	
+	for (const auto player : _players)
 	{
 		if (!player) continue;
 
