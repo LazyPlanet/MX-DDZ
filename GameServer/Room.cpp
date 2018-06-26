@@ -697,7 +697,7 @@ void Room::BroadCast(pb::Message* message, int64_t exclude_player_id)
 {
 	if (!message) return;
 			
-	std::lock_guard<std::mutex> plock(_player_mutex); //玩家锁
+	//std::lock_guard<std::mutex> plock(_player_mutex); //玩家锁死锁
 
 	for (auto player : _players)
 	{
