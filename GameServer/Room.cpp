@@ -457,7 +457,6 @@ bool Room::HasBeenOver()
 
 bool Room::Remove(int64_t player_id, Asset::GAME_OPER_TYPE reason)
 {
-	/*
 	std::lock_guard<std::mutex> lock(_player_mutex);
 
 	for (size_t i = 0; i < _players.size(); ++i)
@@ -474,17 +473,8 @@ bool Room::Remove(int64_t player_id, Asset::GAME_OPER_TYPE reason)
 		
 		return true;
 	}
-	*/
 
-	auto player = GetPlayer(player_id);
-	if (!player) return false;
-		
-	player->OnLeaveRoom(reason); //玩家退出房间
-	player.reset();
-
-	OnPlayerLeave(player_id); //玩家离开房间
-
-	return true;
+	return false;
 }
 	
 void Room::OnPlayerStateChanged()
@@ -1293,7 +1283,7 @@ void Room::UpdateClanStatus()
 	Asset::RoomInformation room_information;
 	room_information.set_sync_type(Asset::ROOM_SYNC_TYPE_QUERY); //外服查询房间信息
 			
-	std::lock_guard<std::mutex> lock(_player_mutex); //玩家锁
+	//std::lock_guard<std::mutex> lock(_player_mutex); //玩家锁
 
 	for (const auto player : _players)
 	{
