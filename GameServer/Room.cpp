@@ -620,7 +620,7 @@ void Room::OnGameOver(int64_t player_id)
 		else { return; } //没有对局
 	}
 	
-	std::lock_guard<std::mutex> plock(_player_mutex); //玩家锁
+	//std::lock_guard<std::mutex> plock(_player_mutex); //玩家锁
 
 	for (auto player : _players)
 	{
