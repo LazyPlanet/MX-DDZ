@@ -779,6 +779,11 @@ void Clan::OnJoinMatch(std::shared_ptr<Player> player, Asset::JoinMatch* message
 	{
 		case Asset::JOIN_TYPE_ENROLL: //报名
 		{
+			if (IsMatchOpen())
+			{
+				player->AlertMessage(Asset::ERROR_CLAN_MATCH_TIME_OUT, Asset::ERROR_TYPE_NORMAL, Asset::ERROR_SHOW_TYPE_MESSAGE_BOX);
+				return; //比赛已经开始
+			}
 			if (HasApplicant(player_id)) 
 			{
 				player->AlertMessage(Asset::ERROR_CLAN_MATCH_HAS_BEEN_APP, Asset::ERROR_TYPE_NORMAL, Asset::ERROR_SHOW_TYPE_MESSAGE_BOX);
