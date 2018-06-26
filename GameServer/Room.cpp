@@ -224,8 +224,7 @@ void Room::OnReEnter(std::shared_ptr<Player> op_player)
 	//
 	//牌局相关数据推送
 	//
-	auto players = GetPlayers();
-	for (const auto player : players)
+	for (const auto player : _players)
 	{
 		if (!player) continue;
 
@@ -482,8 +481,7 @@ void Room::OnPlayerStateChanged()
 	Asset::RoomInformation message;
 	message.set_sync_type(Asset::ROOM_SYNC_TYPE_STATE_CHANGED);
 			
-	auto players = GetPlayers();	
-	for (const auto player : players)
+	for (const auto player : _players)
 	{
 		if (!player) continue;
 
@@ -513,8 +511,7 @@ void Room::OnGameStart()
 
 	BroadCast(game_start); //广播牌局信息
 
-	auto players = GetPlayers();
-	for (auto player : players)
+	for (auto player : _players)
 	{
 		if (!player) continue;
 		player->SetOperState(Asset::GAME_OPER_TYPE_ONLINE); //设置各个玩家的开局状态
@@ -723,8 +720,7 @@ void Room::OnRemove()
 
 	WARN("房间:{} 删除成功", _stuff.room_id());
 
-	auto players = GetPlayers();
-	for (auto player : players)
+	for (auto player : _players)
 	{
 		if (!player) continue;
 
@@ -942,8 +938,7 @@ void Room::KickOutPlayer(int64_t player_id)
 	}
 	else
 	{
-		const auto players = GetPlayers();	
-		for (const auto player : players)
+		for (const auto player : _players)
 		{
 			if (!player) continue;
 
@@ -959,7 +954,6 @@ void Room::SyncRoom()
 	Asset::RoomInformation message;
 	message.set_sync_type(Asset::ROOM_SYNC_TYPE_NORMAL);
 			
-	//auto players = GetPlayers();	
 	for (const auto player : _players)
 	{
 		if (!player) continue;
