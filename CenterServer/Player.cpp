@@ -1185,7 +1185,7 @@ int32_t Player::OnEnterGameServer(pb::Message* message)
 	auto clan = ClanInstance.Get(_stuff.selected_clan_id()); //战队比赛
 	if (clan) clan->OnPlayerLogin(shared_from_this());
 
-	DEBUG("玩家:{} 进入逻辑服务器:{}", _player_id, enter_game->ShortDebugString());
+	DEBUG("玩家:{} 比赛相关，进入逻辑服务器:{} 回调，此时房间缓存:{}", _player_id, enter_game->ShortDebugString(), _stuff.room_id());
 	return 0;
 }
 	
