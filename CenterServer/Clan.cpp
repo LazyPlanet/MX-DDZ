@@ -455,6 +455,8 @@ void Clan::OnPlayerLogin(std::shared_ptr<Player> player)
 	int64_t room_id = GetPlayerRoom(player_id);
 	if (room_id == 0) return;
 
+	if (player->GetRoom() == room_id) return;
+
 	Asset::CreateRoom enter_room;
 	enter_room.mutable_room()->CopyFrom(_room);
 	enter_room.mutable_room()->set_room_id(room_id);
