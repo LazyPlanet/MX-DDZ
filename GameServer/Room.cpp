@@ -346,7 +346,7 @@ void Room::OnPlayerOperate(std::shared_ptr<Player> player, pb::Message* message)
 			{
 				KickOutPlayer();
 			}
-			else if (IsGmtOpened() && (!HasStarted() || HasBeenOver()))
+			else if ((IsGmtOpened() || IsClan()) && (!HasStarted() || HasBeenOver()))
 			{
 				Remove(player->GetID(), Asset::GAME_OPER_TYPE_LEAVE); //玩家退出房间
 			}
