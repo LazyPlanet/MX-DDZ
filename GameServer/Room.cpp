@@ -1463,7 +1463,7 @@ void RoomManager::Remove(int64_t room_id)
 
 int32_t Room::GetPlayerOrder(int32_t player_id)
 {
-	for (int i = 0; i < MAX_PLAYER_COUNT; ++i)
+	for (size_t i = 0; i < _players.size(); ++i)
 	{
 		auto player = _players[i];
 		if (!player) continue;
