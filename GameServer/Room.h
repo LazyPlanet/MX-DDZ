@@ -42,6 +42,7 @@ private:
 	bool _is_dismiss = false; //是否已经解散
 	int32_t _dismiss_time = 0; //解散时间
 	int32_t _created_time = 0; //创建时间
+	int32_t _match_can_dismiss_time = 0; //比赛可解散时间
 	int32_t _dismiss_cooldown = 0; //解散冷却时间
 	int32_t _no_robed_count = 0; //不叫地主数量
 	std::vector<Asset::RobElement> _rob_dizhu; //玩家是否叫地主和叫地主的分数
@@ -152,6 +153,7 @@ public:
 
 	bool IsExpired(); //是否过期
 	bool IsTimeOut(); //是否超时
+	bool CanDismissClanMatch(); //比赛房间是否可以解散
 	bool HasDisMiss() { return _is_dismiss; } //是否解散状态
 	void ClearDisMiss(); //清除解散状态
 	void OnRemove();

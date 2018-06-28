@@ -901,16 +901,24 @@ void Clan::OnMatchDismiss(std::shared_ptr<Player> player, Asset::ClanMatchDismis
 	}
 
 	auto ticket_count = GetTicketCount();
-	message->set_room_card_count(app_count * ticket_count);
+	message->set_room_card_count(/*app_count */ticket_count);
 
-	player->SendProtocol(message);
-	player->SendProtocol2GameServer(message);
+	player->SendProtocol(message); //通知馆长
+	//player->SendProtocol2GameServer(message);
 	
 	std::lock_guard<std::mutex> lock(_applicants_mutex);
 	for (const auto player_id : _applicants)
 	{
 		auto applicant = PlayerInstance.Get(player_id);
-		if (applicant) applicant->SendProtocol(message);
+		if (applicant) 
+		{
+			applicant->SendProtocol(message);
+			applicant->SendProtocol2GameServer(message);
+		}
+		else
+		{
+			LOG(ERROR, "茶馆:{} 比赛解散 返还玩家:{} 房卡数量:{} 由于该玩家没有在线，返还失败", _clan_id, player_id, ticket_count);
+		}
 	}
 
 	DEBUG("茶馆:{} 馆长:{} 报名者数量:{} 门票数量:{} 解散比赛", _clan_id, player_id, app_count, ticket_count);
@@ -1042,9 +1050,13 @@ void Clan::OnMatchRoomOver(const Asset::ClanRoomStatusChanged* message)
 {
 	if (!message) return;
 
-	if (message->player_list().size() == 0) return; //不关心不含具体战绩的结束协议
-
 	auto room_id = message->room().room_id();
+	
+	if (message->player_list().size() == 0) 
+	{
+		LOG(ERROR, "茶馆:{} 结束房间:{} 比赛，玩家列表尚无数据，出现此情况一般为未开局解散，房间数据:{}", _clan_id, room_id, message->ShortDebugString());
+		//return; //不关心不含具体战绩的结束协议//不能返回，否则比赛无法继续进行
+	}
 
 	auto it = _room_players.find(room_id);
 	if (it == _room_players.end())

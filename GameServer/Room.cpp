@@ -260,6 +260,8 @@ std::shared_ptr<Player> Room::GetPlayer(int64_t player_id)
 {
 	for (auto player : _players)
 	{
+		if (!player) continue;
+
 		if (player->GetID() == player_id) return player;
 	}
 
@@ -339,7 +341,17 @@ void Room::OnPlayerOperate(std::shared_ptr<Player> player, pb::Message* message)
 		{
 			OnDisMiss(player->GetID(), game_operate);
 
-			//
+			/*
+
+			if (IsClanMatch() && !CanDismissClanMatch())
+			{
+				player->AlertMessage(Asset::ERROR_CLAN_MATCH_ROOM_DISMISS_LIMIT); //开局未到x分钟，不能解散比赛
+
+				return;	
+			}
+
+			*/
+
 			//如果房主发起解散房间，且此时尚未开局，则直接解散
 			//
 			if (IsHoster(player->GetID()) && _games.size() == 0) //GMT开房没有房主
@@ -543,8 +555,7 @@ void Room::OnClanOver()
 {
 	if (!IsClan()) return;
 	
-	//RedisInstance.SaveRoomHistory(_stuff.room_id(), _history); //茶馆房间，存储战绩信息
-	//if (_history.list().size() == 0) return;
+	DEBUG("茶馆:{} 房间:{} 结束.", _stuff.clan_id(), _stuff.room_id());
 	
 	Asset::ClanRoomStatusChanged proto;
 	proto.set_created_time(_created_time);
@@ -915,6 +926,8 @@ bool Room::OnJiaoZhuang(int64_t player_id, int32_t beilv)
 
 void Room::KickOutPlayer(int64_t player_id)
 {
+	DEBUG("房间:{} 开始解散，踢出所有玩家.", _stuff.room_id());
+
 	for (auto player : _players)
 	{
 		if (!player) continue;
@@ -977,6 +990,7 @@ void Room::OnCreated(std::shared_ptr<Player> hoster)
 	if (IsClanMatch()) //比赛房间时间限制
 	{
 		SetExpiredTime(_created_time + g_const->match_room_last_time());
+		_match_can_dismiss_time = _created_time + g_const->match_room_dismiss_time_limit();
 	}
 	else
 	{
@@ -1155,11 +1169,7 @@ bool Room::CanStarGame()
 		//
 		for (auto player : _players)
 		{
-			if (!player) 
-			{
-				DEBUG_ASSERT(false && "开局失败，未能找到玩家");
-				return false;
-			}
+			if (!player) return false;
 		
 			auto beans_count = player->GetHuanledou();
 			if (beans_count < room_limit->cost_count()) return false;
@@ -1170,11 +1180,7 @@ bool Room::CanStarGame()
 		//
 		for (auto player : _players)
 		{
-			if (!player) 
-			{
-				DEBUG_ASSERT(false && "开局失败，未能找到玩家");
-				return false;
-			}
+			if (!player) return false;
 			
 			auto real_cost = player->ConsumeHuanledou(Asset::HUANLEDOU_CHANGED_TYPE_ROOM_TICKET, room_limit->cost_count());
 			if (room_limit->cost_count() != real_cost) return false;
@@ -1228,6 +1234,12 @@ bool Room::IsExpired()
 
 	auto curr_time = CommonTimerInstance.GetTime();
 	return _expired_time < curr_time;
+}
+
+bool Room::CanDismissClanMatch()
+{
+	auto curr_time = CommonTimerInstance.GetTime();
+	return _match_can_dismiss_time <= curr_time;
 }
 
 void Room::Update()
