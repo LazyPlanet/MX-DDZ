@@ -299,7 +299,7 @@ void Room::OnPlayerOperate(std::shared_ptr<Player> player, pb::Message* message)
 		{
 			if ((IsFriend() || IsClanMatch()) && !HasDisMiss() && HasStarted() && !HasBeenOver()) return; //好友房没有解散，且没有对战完，则不允许退出
 			
-			if (IsMatch() && !IsGaming()) return; //非好友房结束可以直接退出
+			if (IsMatch() && IsGaming()) return; //非好友房结束可以直接退出
 
 			if (IsHoster(player->GetID()) && !IsClan()) //非茶馆房间
 			{
