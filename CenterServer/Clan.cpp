@@ -698,7 +698,7 @@ void Clan::OnPlayerMatch()
 
 			if (!player) 
 			{
-				LOG(ERROR, "茶馆:{} 轮次:{} 比赛选人:{} 没有在线，可能已经掉线", _clan_id, _curr_rounds, player_id);
+				LOG(ERROR, "茶馆:{} 轮次:{} 房间:{} 比赛选人:{} 没有在线，可能已经掉线", _clan_id, _curr_rounds, room_id, player_id);
 				continue;
 			}
 
