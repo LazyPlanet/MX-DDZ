@@ -1155,7 +1155,7 @@ void Clan::OnRoundsCalculate()
 	{
 		next_round_player_needed = player_count - _taotai_count_per_rounds + remain_player_count;
 		
-		for (int i = next_round_player_needed; i < _joiner_count; ++i)
+		for (int i = next_round_player_needed; i <= _joiner_count; ++i)
 		{
 			if (i % 3 == 0) 
 			{
