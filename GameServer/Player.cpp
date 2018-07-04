@@ -1306,16 +1306,19 @@ int32_t Player::EnterRoom(pb::Message* message)
 				{
 					enter_room->set_error_code(Asset::ERROR_CLAN_ROOM_ENTER_NO_CLAN); 
 					SendProtocol(enter_room);
-
 					return Asset::ERROR_CLAN_ROOM_ENTER_NO_CLAN; //非茶馆成员，不能加入
 				}
 
-				int32_t consume_count = locate_room->GetTicketCount(); //门票数量
-				if (consume_count <= 0 || !CheckRoomCard(consume_count))
+				if (!locate_room->IsPayOnce())
 				{
-					enter_room->set_error_code(Asset::ERROR_ROOM_CARD_NOT_ENOUGH); //房卡不足
-					SendProtocol(enter_room);
-					return Asset::ERROR_ROOM_CARD_NOT_ENOUGH;
+					int32_t consume_count = locate_room->GetTicketCount(); //门票数量
+
+					if (consume_count <= 0 || !CheckRoomCard(consume_count))
+					{
+						enter_room->set_error_code(Asset::ERROR_ROOM_CARD_NOT_ENOUGH); //房卡不足
+						SendProtocol(enter_room);
+						return Asset::ERROR_ROOM_CARD_NOT_ENOUGH;
+					}
 				}
 
 				auto enter_status = locate_room->TryEnter(shared_from_this()); //玩家进入房间
@@ -1326,7 +1329,6 @@ int32_t Player::EnterRoom(pb::Message* message)
 				{
 					enter_room->set_error_code(Asset::ERROR_SUCCESS);
 					bool success = locate_room->Enter(shared_from_this()); //玩家进入房间
-
 					if (success) OnEnterSuccess(room_id);
 				}
 			}

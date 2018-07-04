@@ -48,6 +48,7 @@ private:
 	std::vector<Asset::RobElement> _rob_dizhu; //玩家是否叫地主和叫地主的分数
 
 	int32_t _ticket_count = 0; //比赛门票数量
+	Asset::OpenMatch _open_match; //比赛设置
 public:
 	explicit Room(Asset::Room room) {  _stuff = room; }
 
@@ -57,6 +58,8 @@ public:
 	bool IsClan() { return _stuff.clan_id() != 0; }
 	int64_t GetClan() { return _stuff.clan_id(); }
 	int32_t GetTicketCount() { return _ticket_count; }
+	const Asset::OpenMatch& GetOpenMatch() { return _open_match; } //比赛设置
+	bool IsPayOnce() { return _open_match.pay_type() == Asset::PAY_TYPE_ONCE; } //是否一次性付卡
 
 	void OnClanCreated();
 

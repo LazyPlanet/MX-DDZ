@@ -1007,6 +1007,7 @@ void Room::OnCreated(std::shared_ptr<Player> hoster)
 		if (!ClanInstance.GetCache(_stuff.clan_id(), clan)) return;
 				
 		_ticket_count = clan.match_history().open_match().ticket_count(); //门票数量
+		_open_match = clan.match_history().open_match(); //比赛设置
 	}
 	
 	UpdateClanStatus(); //茶馆房间状态同步
@@ -1127,6 +1128,8 @@ bool Room::CanStarGame()
 		if (GetRemainCount() <= 0) return false; //本房结束
 			
 		if (_games.size()) return true; //已经开局，不再进行房卡检查
+
+		if (_open_match.pay_type() == Asset::PAY_TYPE_ONCE) return true; //一次性付卡不再检查
 
 		int32_t consume_count = _ticket_count;
 		if (consume_count <= 0) return false; //没有设置消耗数量
