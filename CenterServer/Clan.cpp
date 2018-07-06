@@ -917,7 +917,18 @@ void Clan::OnMatchDismiss(std::shared_ptr<Player> player, Asset::ClanMatchDismis
 		}
 		else
 		{
-			LOG(ERROR, "茶馆:{} 比赛解散 返还玩家:{} 房卡数量:{} 由于该玩家没有在线，返还失败", _clan_id, player_id, ticket_count);
+			Asset::Player player;
+			bool loaded = PlayerInstance.GetCache(player_id, player);
+			if (!loaded)
+			{
+				LOG(ERROR, "茶馆:{} 比赛解散 返还玩家:{} 房卡数量:{} 由于该玩家没有在线，返还失败", _clan_id, player_id, ticket_count);
+				continue;
+			}
+
+			player.mutable_common_prop()->set_room_card_count(player.common_prop().room_card_count() + ticket_count);
+			PlayerInstance.Save(player_id, player); //直接存盘
+
+			LOG(INFO, "茶馆:{} 比赛解散 返还玩家:{} 房卡数量:{} 成功", _clan_id, player_id, ticket_count);
 		}
 	}
 
