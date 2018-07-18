@@ -372,6 +372,7 @@ public:
 	
 	bool IsDaili() { return _stuff.agent_account().size() > 0;} //是否是代理账号
 	int32_t GetChuPaiCount() { return _chupai_count; } //出牌次数
+	void OnChuPai() { ++_chupai_count; } //出牌次数
 };
 
 /////////////////////////////////////////////////////

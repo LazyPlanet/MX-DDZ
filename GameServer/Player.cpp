@@ -263,7 +263,11 @@ bool Player::HasTuoGuan()
 	
 int64_t Player::ConsumeRoomCard(Asset::ROOM_CARD_CHANGED_TYPE changed_type, int64_t count)
 {
-	if (count <= 0) return 0;
+	if (count <= 0) 
+	{
+		LOG(ERROR, "玩家:{} 消耗房卡，原因:{} 数量:{} 失败，参数错误", _player_id, Asset::ROOM_CARD_CHANGED_TYPE_Name(changed_type), count);
+		return 0;
+	}
 
 	if (_stuff.common_prop().room_card_count() - count > 0)
 	{
@@ -716,6 +720,12 @@ int32_t Player::CmdJoinMatch(pb::Message* message)
 			const auto& open_match = clan.match_history().open_match();
 			int32_t ticket_count = open_match.ticket_count();
 
+			if (ticket_count <= 0)
+			{
+				LOG(ERROR, "玩家:{} 参加茶馆:{} 比赛, 数据:{}", _player_id, match->clan_id(), open_match.ShortDebugString());
+				return 4;
+			}
+
 			if (!CheckRoomCard(ticket_count)) 
 			{
 				AlertMessage(Asset::ERROR_ROOM_CARD_NOT_ENOUGH); //房卡不足
@@ -1042,7 +1052,7 @@ int32_t Player::CmdPaiOperate(pb::Message* message)
 				return 3;
 			}
 
-			++_chupai_count; //出牌次数
+			//++_chupai_count; //出牌次数
 		}
 		break;
 

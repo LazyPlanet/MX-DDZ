@@ -324,6 +324,8 @@ void Game::OnPaiOperate(std::shared_ptr<Player> player, pb::Message* message)
 	{
 		_last_oper.set_player_id(player->GetID());
 		_last_oper.mutable_pai_oper()->CopyFrom(*pai_operate); //缓存上次牌数据
+
+		player->OnChuPai(); //合法出牌
 	}
 	
 	if (pai_operate->paixing() == Asset::PAIXING_TYPE_ZHADAN) 
