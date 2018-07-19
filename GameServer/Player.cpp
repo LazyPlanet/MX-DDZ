@@ -837,7 +837,9 @@ bool Player::PaiXingCheck(Asset::PaiOperation* pai_operate)
 	for (const auto& card : pai_operate->pais())
 	{
 		int32_t card_value = card.card_value();
-		if (card_value == 1 || card_value == 2) card_value += 13;
+
+		if (card.card_type() == Asset::CARD_TYPE_KINGS) { card_value += 15; } //王
+		else if (card_value == 1 || card_value == 2) card_value += 13;
 
 		if (max_value == card_value)
 		{
