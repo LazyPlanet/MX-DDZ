@@ -1048,10 +1048,11 @@ int32_t Player::CmdPaiOperate(pb::Message* message)
 	{
 		case Asset::PAI_OPER_TYPE_DAPAI: //打牌
 		{
-			if (!PaiXingCheck(pai_operate)) //牌型检查
+			if (!PaiXingCheck(pai_operate)) { AlertMessage(Asset::ERROR_PAI_UNSATISFIED); return 3; }//牌型检查
+
+			for (const auto& pai : pai_operate->pais()) 
 			{
-				AlertMessage(Asset::ERROR_PAI_UNSATISFIED); //不满足牌型
-				return 3;
+				if (!HasPai(pai)) { AlertMessage(Asset::ERROR_PAI_UNSATISFIED); return 4; } //不满足牌型 
 			}
 
 			//++_chupai_count; //出牌次数
@@ -1067,8 +1068,7 @@ int32_t Player::CmdPaiOperate(pb::Message* message)
 		default:
 		{
 			WARN("玩家:{} 在房间:{}/{}局操作错误，牌数据:{}", _player_id, _game->GetID(), _room->GetID(), pai_operate->ShortDebugString());
-
-			return 4; //非法操作，直接退出
+			return 5; //非法操作，直接退出
 		}
 		break;
 	}
@@ -2333,20 +2333,16 @@ std::vector<Asset::PAI_OPER_TYPE> Player::CheckPai(const Asset::PaiElement& pai,
 }
 */
 
-/*
 bool Player::HasPai(const Asset::PaiElement& pai)
 {
 	if (pai.card_type() <= 0 || pai.card_value() == 0) return false;
 
-	auto type_it = _cards_inhand.find(pai.card_type());
-	if (type_it == _cards_inhand.end()) return false;
-
-	auto value_it = std::find(type_it->second.begin(), type_it->second.end(), pai.card_value());
-	if (value_it == type_it->second.end()) return false;
-
+	auto it = std::find_if(_cards_inhand.begin(), _cards_inhand.end(), [pai](const Asset::PaiElement& card){
+				return card.card_type() == pai.card_type() && card.card_value() == pai.card_value();
+			});
+	if (it == _cards_inhand.end()) return false;
 	return true;
 }
-*/
 	
 bool Player::RemovePai(const Asset::PaiElement& pai)
 {

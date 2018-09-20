@@ -325,6 +325,7 @@ public:
 
 	virtual int32_t OnFaPai(std::vector<int32_t>& cards); //发牌
 	bool RemovePai(const Asset::PaiElement& pai); //删除手里的牌，返回是否删除成功
+	bool HasPai(const Asset::PaiElement& pai); //是否有牌
 
 	void OnGameStart(); //开局
 
