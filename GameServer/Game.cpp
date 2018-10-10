@@ -26,7 +26,8 @@ void Game::Init(std::shared_ptr<Room> room)
 	std::iota(_cards.begin(), _cards.end(), 1);
 	std::vector<int32_t> cards(_cards.begin(), _cards.end());
 
-	std::random_shuffle(cards.begin(), cards.end()); //洗牌
+	//std::random_shuffle(cards.begin(), cards.end()); //洗牌
+	std::shuffle(cards.begin(), cards.end(), default_random_engine(rand())); //洗牌
 
 	_cards = std::list<int32_t>(cards.begin(), cards.end());
 
