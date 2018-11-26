@@ -37,6 +37,7 @@ bool Game::Start(std::vector<std::shared_ptr<Player>> players, int64_t room_id, 
 {
 	if (MAX_PLAYER_COUNT != players.size()) return false; //做下检查，是否满足开局条件
 
+	auto _room = GetRoom();
 	if (!_room) return false;
 
 	_game_id = game_id; // + 1;
@@ -108,6 +109,7 @@ bool Game::Start(std::vector<std::shared_ptr<Player>> players, int64_t room_id, 
 	
 void Game::OnStart()
 {
+	auto _room = GetRoom();
 	if (!_room) return;
 
 	_playback.set_create_time(_room->GetCreateTime()); //回放时间
@@ -124,6 +126,7 @@ void Game::OnStart()
 //
 void Game::OnStarted()
 {
+	auto _room = GetRoom();
 	if (!_room) return;
 	
 	//if (!_room->IsJiaoFenMode()) _real_started = true; //叫分模式可以加倍，因此不能立即开始
@@ -152,6 +155,7 @@ void Game::OnStarted()
 
 bool Game::OnGameOver(int64_t player_id)
 {
+	auto _room = GetRoom();
 	if (!_room) return false;
 
 	const auto& list = _room->GetRobDiZhuList();
@@ -179,6 +183,7 @@ bool Game::OnGameOver(int64_t player_id)
 
 void Game::SavePlayBack()
 {
+	auto _room = GetRoom();
 	if (!_room || _room->IsMatch()) return; //匹配房不存回放
 
 	std::string key = "playback:" + std::to_string(_room_id) + "_" + std::to_string(_game_id);
@@ -264,6 +269,7 @@ void Game::OnPlayerReEnter(std::shared_ptr<Player> player)
 
 void Game::OnPaiOperate(std::shared_ptr<Player> player, pb::Message* message)
 {
+	auto _room = GetRoom();
 	if (!player || !message || !_room) return;
 	
 	Asset::PaiOperation* pai_operate = dynamic_cast<Asset::PaiOperation*>(message);
@@ -368,6 +374,7 @@ void Game::PaiPushDown()
 	
 void Game::Calculate(std::shared_ptr<Player> player_ptr)
 {
+	auto _room = GetRoom();
 	if (!_room || !player_ptr) return;
 
 	//1.推到牌
@@ -517,6 +524,7 @@ void Game::Calculate(std::shared_ptr<Player> player_ptr)
 	
 void Game::BroadCast(pb::Message* message, int64_t exclude_player_id)
 {
+	auto _room = GetRoom();
 	if (!_room) return;
 
 	_room->BroadCast(message, exclude_player_id);
@@ -524,6 +532,7 @@ void Game::BroadCast(pb::Message* message, int64_t exclude_player_id)
 	
 void Game::IncreaseBeiLv(int32_t beilv) 
 { 
+	auto _room = GetRoom();
 	if (!_room) return;
 
 	if (beilv <= 0) beilv = 2; 
@@ -549,6 +558,7 @@ void Game::Add2CardsPool(Asset::CARD_TYPE card_type, int32_t card_value)
 
 void Game::BroadCast(pb::Message& message, int64_t exclude_player_id)
 {
+	auto _room = GetRoom();
 	if (!_room) return;
 
 	_room->BroadCast(message, exclude_player_id);
@@ -593,6 +603,7 @@ std::vector<int32_t> Game::FaPai(size_t card_count)
 	
 std::shared_ptr<Player> Game::GetNextPlayer(int64_t player_id)
 {
+	auto _room = GetRoom();
 	if (!_room) return nullptr;
 
 	int32_t order = GetPlayerOrder(player_id);
@@ -603,6 +614,7 @@ std::shared_ptr<Player> Game::GetNextPlayer(int64_t player_id)
 
 int32_t Game::GetPlayerOrder(int32_t player_id)
 {
+	auto _room = GetRoom();
 	if (!_room) return -1;
 
 	return _room->GetPlayerOrder(player_id);
@@ -610,6 +622,7 @@ int32_t Game::GetPlayerOrder(int32_t player_id)
 
 std::shared_ptr<Player> Game::GetPlayerByOrder(int32_t player_index)
 {
+	auto _room = GetRoom();
 	if (!_room) return nullptr;
 
 	if (player_index < 0 || player_index >= MAX_PLAYER_COUNT) return nullptr;
@@ -630,6 +643,7 @@ std::shared_ptr<Player> Game::GetPlayer(int64_t player_id)
 
 bool Game::IsBanker(int64_t player_id) 
 { 
+	auto _room = GetRoom();
 	if (!_room) return false;
 	return _room->IsBanker(player_id); 
 }
@@ -679,6 +693,7 @@ bool Game::RandomDiZhu()
 
 void Game::OnRobDiZhu(int64_t player_id, int32_t beilv) 
 { 
+	auto _room = GetRoom();
 	if (!_room) return;
 
 	DEBUG("玩家:{} 在房间:{} 局数:{} 叫地主数量:{} 叫分:{} 此时庄家:{}", player_id, _room->GetID(), _game_id, _rob_dizhu_count, beilv, _banker_player_id);
@@ -703,6 +718,7 @@ void Game::OnRobDiZhu(int64_t player_id, int32_t beilv)
 //
 void Game::OnRobDiZhu(int64_t player_id, bool is_rob) 
 { 
+	auto _room = GetRoom();
 	if (!_room) return;
 
 	DEBUG("玩家:{} 在房间:{} 局数:{} 叫地主数量:{}，是否抢地主:{} 此时庄家:{}", player_id, _room->GetID(), _game_id, _rob_dizhu_count, is_rob, _banker_player_id);
@@ -721,6 +737,7 @@ void Game::OnRobDiZhu(int64_t player_id, bool is_rob)
 	
 void Game::SetDiZhu(int64_t player_id)
 {
+	auto _room = GetRoom();
 	if (!_room) return;
 
 	if (player_id <= 0) return;
@@ -746,6 +763,7 @@ void Game::SetDiZhu(int64_t player_id)
 //
 bool Game::CanStart()
 {
+	auto _room = GetRoom();
 	if (!_room) return false;
 
 	//

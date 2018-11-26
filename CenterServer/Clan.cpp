@@ -1215,6 +1215,7 @@ void Clan::SaveMatchHistory()
 		hist->clear_headimgurl();
 	}
 	
+	/*
 	std::lock_guard<std::mutex> lock(_joiners_mutex);
 	for (const auto player_id : _joiners) 
 	{
@@ -1223,6 +1224,7 @@ void Clan::SaveMatchHistory()
 		mem_ptr->set_player_id(player_id);
 		mem_ptr->set_nickname(mem.name());
 	}
+	*/
 
 	_dirty = true;
 

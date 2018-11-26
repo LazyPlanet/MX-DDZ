@@ -4,7 +4,7 @@ INCPATH=-I. -I.. -I../Include -IItem -I../NetWork -I$(BEHAVIORPATH) -I$(PROTOBUF
 CXXFLAGS += $(OPT) -pipe -Wunused-variable -Wno-unused-local-typedefs -Wno-unused-but-set-variable -Wno-literal-suffix -Wall -std=c++11 -ggdb -fPIC -D_GNU_SOURCE -D__STDC_LIMIT_MACROS $(INCPATH)
 
 LIBRARY=$(PROTOBUF_DIR)/lib/libprotobuf.a -L$(BOOST_ROOT)/stage/lib/ ../ThirdParty/cpp_redis/build/lib/libcpp_redis.a ../ThirdParty/cpp_redis/build/lib/libtacopie.a -L$(CHILKAT_DIR)/lib
-LDFLAGS = -lboost_system -lboost_thread -lboost_filesystem -lboost_date_time -lpthread
+LDFLAGS = -lboost_system -lboost_thread -lboost_filesystem -lboost_date_time -lpthread -ltcmalloc -lunwind
 
 PROTO_SRC=P_Command.proto P_Asset.proto P_Protocol.proto P_Server.proto
 PROTO_OBJ=$(patsubst %.proto,%.pb.o,$(PROTO_SRC))

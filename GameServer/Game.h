@@ -24,7 +24,7 @@ extern const int32_t MAX_PLAYER_COUNT; //玩家总数：有些地方不是4人�
 /////////////////////////////////////////////////////
 class Game : public std::enable_shared_from_this<Game>
 {
-	std::shared_ptr<Room> _room = nullptr; //游戏在哪个房间开启
+	std::weak_ptr<Room> _room; //游戏在哪个房间开启
 
 private:
 	
@@ -88,6 +88,7 @@ public:
 
 	void SetRoom(std::shared_ptr<Room> room) {	_room = room; } //设置房间
 	int64_t GetID() { return _game_id; } //局数
+	std::shared_ptr<Room> GetRoom() { return _room.lock(); }
 
 	bool IsBanker(int64_t player_id); //是否庄家
 	bool IsStarted() { return _real_started; } //是否真正开局
