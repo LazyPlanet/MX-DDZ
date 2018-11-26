@@ -139,6 +139,8 @@ int32_t Player::Logout(pb::Message* message)
 	//
 	//(2) 处理操作玩家退出的状态，即刚好轮到该玩家进行操作的时候，玩家逃跑;
 	//
+	auto _room = GetRoom();
+	auto _game = GetGame();
 	if (_room) 
 	{
 		if (_game || (_room->HasStarted() && !_room->HasBeenOver() && !_room->HasDisMiss())) //游戏中，或已经开局且尚未对局完成且不是解散，则不让退出房间
@@ -210,6 +212,8 @@ int32_t Player::Logout(pb::Message* message)
 	
 int32_t Player::OnLogout(Asset::KICK_OUT_REASON reason)
 {
+	auto _room = GetRoom();
+	auto _game = GetGame();
 	if (!_game && _room && (!_room->HasStarted() || _room->HasBeenOver() || _room->HasDisMiss())) 
 	{
 		ResetRoom();
@@ -254,6 +258,8 @@ int32_t Player::OnLogout(Asset::KICK_OUT_REASON reason)
 
 bool Player::HasTuoGuan()
 {
+	auto _room = GetRoom();
+	auto _game = GetGame();
 	if (!_game || !_room) return false;
 
 	if (_room->IsFriend()) return false; //好友房不托管
@@ -453,6 +459,7 @@ int32_t Player::CmdLeaveRoom(pb::Message* message)
 {
 	if (!message) return 1;
 
+	auto _game = GetGame();
 	if (_game)
 	{
 		_tuoguan_server = true; //服务器托管
@@ -488,6 +495,7 @@ int32_t Player::CreateRoom(pb::Message* message)
 	Asset::CreateRoom* create_room = dynamic_cast<Asset::CreateRoom*>(message);
 	if (!create_room) return 1;
 	
+	auto _room = GetRoom();
 	if (_room && create_room->room().clan_id() == 0) 
 	{
 		auto room = RoomInstance.Get(_room->GetID());
@@ -579,6 +587,7 @@ int32_t Player::CreateRoom(pb::Message* message)
 	
 void Player::OnRoomRemoved(int64_t room_id)
 {
+	auto _room = GetRoom();
 	if (_room && _room->GetID() != room_id)
 	{
 		WARN("玩家:{} 退出房间错误, 当前所在房间:{} 玩家退出房间:{} 已不一致", _player_id, _room->GetID(), room_id);	
@@ -612,6 +621,9 @@ int32_t Player::CmdGameOperate(pb::Message* message)
 	if (!game_operate) return 1;
 	
 	game_operate->set_source_player_id(_player_id); //设置当前操作玩家
+	
+	auto _room = GetRoom();
+	auto _game = GetGame();
 
 	switch(game_operate->oper_type())
 	{
@@ -691,6 +703,7 @@ void Player::OnGameStart()
 {
 	AddTotalRounds(); //总对战局数
 
+	auto _room = GetRoom();
 	if (_room && _room->IsFriend()) AddFriendRoomRounds(); //好友房对战局数
 
 	ClearCards();  //游戏数据
@@ -773,6 +786,8 @@ int32_t Player::OnMatchDismiss(pb::Message* message)
 //
 bool Player::PaiXingCheck(Asset::PaiOperation* pai_operate)
 {
+	auto _room = GetRoom();
+	auto _game = GetGame();
 	if (!_room || !_game) return false;
 
 	if (!pai_operate) return false;
@@ -1035,6 +1050,8 @@ int32_t Player::CmdPaiOperate(pb::Message* message)
 {
 	std::lock_guard<std::mutex> lock(_card_lock);
 	
+	auto _room = GetRoom();
+	auto _game = GetGame();
 	if (!_room || !_game) return 1; //还没加入房间或者还没开始游戏
 
 	Asset::PaiOperation* pai_operate = dynamic_cast<Asset::PaiOperation*>(message);
@@ -1148,6 +1165,8 @@ int32_t Player::EnterRoom(pb::Message* message)
 	//
 	//房间重入检查
 	//
+	auto _room = GetRoom();
+	auto _game = GetGame();
 	do 
 	{
 		if (_room) 
@@ -1270,6 +1289,7 @@ int32_t Player::EnterRoom(pb::Message* message)
 				AlertMessage(enter_room->error_code(), Asset::ERROR_TYPE_NORMAL, Asset::ERROR_SHOW_TYPE_MESSAGE_BOX); //不能加入，错误提示
 
 			SendProtocol(enter_room);
+			return enter_room->error_code();
 		}
 		break;
 
@@ -1349,6 +1369,7 @@ int32_t Player::EnterRoom(pb::Message* message)
 				AlertMessage(enter_room->error_code(), Asset::ERROR_TYPE_NORMAL, Asset::ERROR_SHOW_TYPE_MESSAGE_BOX); //不能加入，错误提示
 
 			SendProtocol(enter_room);
+			return enter_room->error_code();
 		}
 		break;
 
@@ -1391,6 +1412,7 @@ Asset::ERROR_CODE Player::CheckMatching(Asset::ROOM_TYPE room_type)
 	
 int32_t Player::GetLocalRoomID() 
 { 
+	auto _room = GetRoom();
 	if (!_room) return 0; 
 
 	return _room->GetID();
@@ -1400,6 +1422,7 @@ void Player::OnEnterSuccess(int64_t room_id)
 {
 	_stuff.set_room_id(room_id); //避免玩家进入房间后尚未加载场景//掉线
 
+	auto _room = GetRoom();
 	if (_room) _stuff.set_room_type(_room->GetType()); //好友房或者匹配房
 
 	_stuff.clear_matching_room_type(); //匹配
@@ -1483,7 +1506,9 @@ void Player::SendProtocol(const pb::Message& message)
 {
 	//if (IsOffline()) return; //离线不再发送协议//玩家无法登陆
 
-	if (!Connected()) return; //尚未建立网络连接
+	//if (!Connected()) return; //尚未建立网络连接
+	auto _session = GetSession();
+	if (!_session || !_session->IsConnected()) return;
 
 	const pb::FieldDescriptor* field = message.GetDescriptor()->FindFieldByName("type_t");
 	if (!field) return;
@@ -1504,6 +1529,8 @@ void Player::SendProtocol(const pb::Message& message)
 
 	int64_t room_id = 0, game_id = 0;
 
+	auto _room = GetRoom();
+	auto _game = GetGame();
 	if (_room) room_id = _room->GetID();
 	if (_game) game_id = _game->GetID();
 
@@ -1515,12 +1542,14 @@ void Player::SendProtocol(const pb::Message& message)
 
 void Player::Send2Roomers(pb::Message& message, int64_t exclude_player_id) 
 {
+	auto _room = GetRoom();
 	if (!_room) return;
 	_room->BroadCast(message, exclude_player_id);
 }
 
 void Player::Send2Roomers(pb::Message* message, int64_t exclude_player_id)
 {
+	auto _room = GetRoom();
 	if (!_room) return;
 	_room->BroadCast(message, exclude_player_id);
 }
@@ -1738,22 +1767,21 @@ void Player::OnLeaveRoom(Asset::GAME_OPER_TYPE reason)
 	
 void Player::BroadCast(Asset::MsgItem& item) 
 {
-	if (!_room) return;
 	
 }	
 	
 void Player::ResetRoom() 
 { 
-	int64_t room_id = 0;
+	//int64_t room_id = 0;
 
-	if (_room) 
+	//if (_room) 
 	{
-		room_id = _room->GetID();
+		//room_id = _room->GetID();
 		//_room->Remove(_player_id); //死循环可能-->_room->OnLeaveRoom()-->this->ResetRoom()-->_room->Remove()
 		_room.reset(); //刷新房间信息
 	}
 	
-	WARN("清理玩家:{} 房间:{} 数据", _player_id, room_id);
+	//WARN("清理玩家:{} 房间:{} 数据", _player_id, room_id);
 
 	//if (_game) _game.reset(); //刷新游戏//游戏刷新不在此进行，否则严重错误
 
@@ -1903,6 +1931,8 @@ int32_t Player::CmdGetRoomData(pb::Message* message)
 	auto get_data = dynamic_cast<Asset::GetRoomData*>(message);
 	if (!get_data) return 1;
 
+	auto _room = GetRoom();
+
 	if (get_data->reason() == Asset::ROOM_SYNC_TYPE_QUERY)
 	{
 		auto room = RoomInstance.Get(get_data->room_id());
@@ -1959,6 +1989,7 @@ int32_t Player::CmdUpdateRoom(pb::Message* message)
 	auto update_data = dynamic_cast<Asset::UpdateRoom*>(message);
 	if (!update_data) return 1;
 	
+	auto _room = GetRoom();
 	if (!_room || !_room->IsVoiceOpen()) return 2;
 
 	if (update_data->voice_member_id() == GetVoiceMemberID()) return 3; //尚未发生变化
@@ -1975,6 +2006,7 @@ int32_t Player::CmdLoadScene(pb::Message* message)
 	Asset::LoadScene* load_scene = dynamic_cast<Asset::LoadScene*>(message);
 	if (!load_scene) return 1;
 
+	auto _room = GetRoom();
 	switch (load_scene->load_type())
 	{
 		case Asset::LOAD_SCENE_TYPE_START: //加载开始
@@ -2031,6 +2063,7 @@ void Player::OnEnterScene(bool is_reenter)
 	
 	if (!is_reenter) ClearCards(); //第一次进房间初始化牌局状态
 
+	auto _room = GetRoom();
 	if (_room) 
 	{
 		_room->SyncRoom(); //同步当前房间内玩家数据
@@ -2362,6 +2395,8 @@ int32_t Player::OnFaPai(std::vector<int32_t>& cards)
 {
 	//std::lock_guard<std::mutex> lock(_card_lock);
 
+	auto _room = GetRoom();
+	auto _game = GetGame();
 	if (!_room || !_game) return 1;
 
 	if (cards.size() == 0) return 2;
@@ -2396,6 +2431,8 @@ int32_t Player::OnFaPai(std::vector<int32_t>& cards)
 	
 void Player::PrintPai()
 {
+	auto _room = GetRoom();
+	auto _game = GetGame();
 	if (!_room || !_game) return;
 
 	std::stringstream card_value_list;
@@ -2422,6 +2459,7 @@ Asset::GAME_OPER_TYPE Player::GetOperState()
 	
 void Player::SetOffline(bool offline)
 { 
+	auto _room = GetRoom();
 	if (!_room/* || !_game*/) return; //房间状态
 
 	if (offline == _player_prop.offline()) return; //状态尚未发生变化
@@ -2438,6 +2476,8 @@ void Player::SetOffline(bool offline)
 
 void Player::OnOperateTimeOut()
 {
+	auto _room = GetRoom();
+	auto _game = GetGame();
 	if (!_room || !_game) return;
 
 	if (!HasTuoGuan()) return; //好友房不做超时处理
@@ -2493,7 +2533,7 @@ void Player::ClearCards()
 	_last_oper_type = _oper_type = Asset::PAI_OPER_TYPE_BEGIN; //初始化操作
 	_player_prop.clear_game_oper_state(); //准备//离开
 
-	if (_game) _game.reset();
+	_game.reset();
 }
 
 void Player::OnGameOver()
@@ -2575,6 +2615,7 @@ int32_t Player::CmdSystemChat(pb::Message* message)
 	auto chat = dynamic_cast<Asset::SystemChat*>(message);
 	if (!chat) return 1;
 
+	auto _room = GetRoom();
 	if (!_room) return 2;
 
 	chat->set_position(GetPosition());
@@ -2629,6 +2670,7 @@ void Player::SendRoomState()
 {
 	Asset::RoomState proto;
 
+	auto _room = GetRoom();
 	if (_room && !_room->HasDisMiss()) 
 	{
 		proto.set_room_id(_room->GetID());
@@ -2728,6 +2770,8 @@ int32_t Player::CmdSwitchRoom(pb::Message* message)
 	auto switch_room = dynamic_cast<Asset::SwitchRoom*>(message);
 	if (!switch_room) return 1;
 
+	auto _room = GetRoom();
+	auto _game = GetGame();
 	if (!_room || _game) return 2; //非房间内或者正在牌局中不能换房
 
 	const auto result = CheckMatching(_room->GetType());

@@ -279,6 +279,8 @@ void CenterSession::RemovePlayer(int64_t player_id)
 	if (it->second) it->second.reset();
 	
 	_players.erase(it); 
+
+	WARN("删除玩家:{}", player_id);
 }
 	
 void CenterSession::AddPlayer(int64_t player_id, std::shared_ptr<Player> player)
@@ -292,6 +294,8 @@ void CenterSession::AddPlayer(int64_t player_id, std::shared_ptr<Player> player)
 
 	player->SetSession(std::dynamic_pointer_cast<CenterSession>(shared_from_this()));
 	_players[player_id] = player;
+
+	WARN("增加玩家:{}", player_id);
 }
 	
 std::shared_ptr<Player> CenterSession::GetPlayer(int64_t player_id)

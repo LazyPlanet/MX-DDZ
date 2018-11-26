@@ -51,7 +51,7 @@ class Player : public std::enable_shared_from_this<Player>
 {
 	typedef std::function<int32_t(pb::Message*)> CallBack;
 	unordered_map<int32_t, CallBack>  _callbacks;	//每个协议的回调函数，不要传入引用
-	std::shared_ptr<CenterSession> _session = nullptr;
+	std::weak_ptr<CenterSession> _session;
 private:
 	int64_t _player_id = 0; //玩家全局唯一标识
 	Asset::Player _stuff; //玩家数据，存盘数据
@@ -73,18 +73,16 @@ public:
 	//const std::shared_ptr<WorldSession> GetSession() { return _session;	}
 	//bool Connected() { if (!_session) return false; return _session->IsConnect(); }
 
-	const std::shared_ptr<CenterSession> GetSession() { return _session; }
+	const std::shared_ptr<CenterSession> GetSession() { return _session.lock(); }
 	void SetSession(std::shared_ptr<CenterSession> session) { _session = session; }
-	bool Connected() { if (!_session) return false; return _session->IsConnected(); }
+	//bool Connected() { if (!_session) return false; return _session->IsConnected(); }
 
 	int32_t DefaultMethod(pb::Message*); //协议处理默认调用函数
 	
 	void AddHandler(Asset::META_TYPE message_type, CallBack callback)
 	{
 		int32_t type_t = message_type;
-
 		if (_callbacks.find(type_t) != _callbacks.end()) return;
-
 		_callbacks.emplace(type_t, callback);
 	}
 
@@ -272,8 +270,8 @@ public:
 ///////游戏逻辑定义
 private:
 	std::mutex _card_lock;
-	std::shared_ptr<Room> _room = nullptr; //实体所在房间
-	std::shared_ptr<Game> _game = nullptr; //当前游戏
+	std::weak_ptr<Room> _room; //实体所在房间
+	std::weak_ptr<Game> _game; //当前游戏
 	bool _debug_model = false;
 
 	//玩家牌数据
@@ -304,13 +302,13 @@ public:
 	virtual int32_t CmdGetBattleHistory(pb::Message* message); //获取历史战绩
 
 	void OnEnterScene(bool is_reenter); //进入房间回调
-	virtual std::shared_ptr<Room> GetRoom() { return _room; }	//获取当前房间
+	virtual std::shared_ptr<Room> GetRoom() { return _room.lock(); }	//获取当前房间
 
 	virtual void SetRoomID(int64_t room_id) { _player_prop.set_room_id(room_id); }	//设置房间ID
 	virtual int32_t GetLocalRoomID(); //获取当前房间ID
 
 	virtual int32_t GetRoomID() { return _player_prop.room_id(); }
-	virtual bool HasRoom() { return _room != nullptr; }
+	virtual bool HasRoom() { return _room.lock() != nullptr; }
 	virtual void SetRoom(std::shared_ptr<Room> room) { _room = room; }
 	virtual void ResetRoom(); 
 
@@ -321,7 +319,8 @@ public:
 	int32_t GetBeiLv() { return _jiabei; } //加倍
 
 	void SetGame(std::shared_ptr<Game> game) { _game = game; }
-	bool IsInGame() { return _game != nullptr; }
+	bool IsInGame() { return _game.lock() != nullptr; }
+	std::shared_ptr<Game> GetGame() { return _game.lock(); }
 
 	virtual int32_t OnFaPai(std::vector<int32_t>& cards); //发牌
 	bool RemovePai(const Asset::PaiElement& pai); //删除手里的牌，返回是否删除成功
