@@ -128,6 +128,8 @@ void ServerSession::OnInnerProcess(const Asset::InnerMeta& meta)
 			Asset::Command* command = dynamic_cast<Asset::Command*>(message);
 			if (!command) return; 
 
+			command->set_command_type(Asset::COMMAND_TYPE_HUANLEDOU);
+
 			DEBUG("收到命令:{} 来自服务器:{}", command->ShortDebugString(), _ip_address);
 
 			if (Asset::SERVER_TYPE_GMT == _server_type)

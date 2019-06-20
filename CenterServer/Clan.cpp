@@ -80,6 +80,27 @@ void Clan::OnLoaded()
 		auto sys_message_ptr = _stuff.mutable_message_list()->Add();
 		sys_message_ptr->CopyFrom(sys_message);
 	}
+	
+	//
+	//删除过期的历史战绩
+	//
+	std::vector<Asset::Clan_RoomHistory> room_histry;
+
+	for (const auto& history : _stuff.battle_history())
+	{
+		auto battle_time = history.battle_time();
+		if (battle_time + 24 * 3600 < curr_time) continue; //过期
+
+		room_histry.push_back(history);
+	}
+
+	_stuff.mutable_battle_history()->Clear();
+
+	for (const auto& history : room_histry)
+	{
+		auto history_ptr = _stuff.mutable_battle_history()->Add();
+		history_ptr->CopyFrom(history);
+	}
 }
 
 int32_t Clan::OnApply(int64_t player_id, Asset::ClanOperation* message)
@@ -1542,7 +1563,7 @@ void Clan::OnRoomOver(const Asset::ClanRoomStatusChanged* message)
 	for (const auto& history : _stuff.battle_history())
 	{
 		auto battle_time = history.battle_time();
-		if (battle_time + _glimit->room_history_last_day() * 24 * 3600 < curr_time) continue; //过期
+		if (battle_time + 24 * 3600 < curr_time) continue; //过期
 
 		room_histry.push_back(history);
 	}
